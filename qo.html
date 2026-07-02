@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Met Capital — Access</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+        --black: #000000;
+        --gray-dark: #333333;
+        --gray: #666666;
+        --gray-light: #999999;
+        --red: #C41E3A;
+        --white: #FFFFFF;
+        --off-white: #F7F7F7;
+        --border: #E0E0E0;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-weight: 400;
+        line-height: 1.5;
+        color: var(--gray-dark);
+        background: var(--off-white);
+        -webkit-font-smoothing: antialiased;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-top: 3px solid var(--red);
+        padding: 3rem 2.5rem;
+        max-width: 420px;
+        width: 100%;
+    }
+
+    .brand {
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--gray);
+        margin-bottom: 0.5rem;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--black);
+        margin-bottom: 0.75rem;
+        letter-spacing: -0.01em;
+    }
+
+    p.lead {
+        font-size: 0.9375rem;
+        color: var(--gray);
+        margin-bottom: 2rem;
+    }
+
+    label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--gray-dark);
+        margin-bottom: 0.5rem;
+    }
+
+    .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+        font-family: inherit;
+        font-size: 0.9375rem;
+        padding: 0.75rem 0.875rem;
+        border: 1px solid var(--border);
+        background: var(--white);
+        color: var(--gray-dark);
+        width: 100%;
+        transition: border-color 0.15s ease;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+        outline: none;
+        border-color: var(--black);
+    }
+
+    button {
+        font-family: inherit;
+        font-size: 0.9375rem;
+        font-weight: 500;
+        padding: 0.75rem 1rem;
+        background: var(--black);
+        color: var(--white);
+        border: none;
+        cursor: pointer;
+        width: 100%;
+        margin-top: 0.5rem;
+        transition: background 0.15s ease;
+    }
+
+    button:hover { background: var(--gray-dark); }
+
+    .error {
+        font-size: 0.8125rem;
+        color: var(--red);
+        margin-top: 0.75rem;
+        min-height: 1.2em;
+    }
+
+    .footer {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.75rem;
+        color: var(--gray-light);
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+    <main class="card">
+        <div class="brand">Met Capital</div>
+        <h1>Restricted Access</h1>
+        <p class="lead">Please enter your credentials to continue.</p>
+
+        <form id="gate-form" autocomplete="off">
+            <div class="field">
+                <div>
+                    <label for="user">Username</label>
+                    <input type="text" id="user" name="user" autocomplete="off" required>
+                </div>
+                <div>
+                    <label for="pass">Password</label>
+                    <input type="password" id="pass" name="pass" autocomplete="off" required>
+                </div>
+            </div>
+            <button type="submit">Continue</button>
+            <div class="error" id="error" role="alert" aria-live="polite"></div>
+        </form>
+
+        <div class="footer">Authorized personnel only.</div>
+    </main>
+
+<script>
+(function() {
+    var EXPECTED_USER = "client";
+    var EXPECTED_PASS = "view_access";
+    var TARGET = "https://api.dataspace.ch/api/transforms/rid.transform.521cf483-b8ea-4bb0-a55f-73bd0786c90a/public/artifacts";
+
+    var form = document.getElementById("gate-form");
+    var errorEl = document.getElementById("error");
+    var userInput = document.getElementById("user");
+
+    userInput.focus();
+
+    form.addEventListener("submit", function(e) {
+        e.preventDefault();
+        errorEl.textContent = "";
+
+        var u = document.getElementById("user").value.trim();
+        var p = document.getElementById("pass").value;
+
+        if (u === EXPECTED_USER && p === EXPECTED_PASS) {
+            window.location.replace(TARGET);
+        } else {
+            errorEl.textContent = "Invalid credentials.";
+            document.getElementById("pass").value = "";
+            document.getElementById("pass").focus();
+        }
+    });
+})();
+</script>
+</body>
+</html>
