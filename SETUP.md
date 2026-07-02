@@ -101,7 +101,12 @@ From there:
   - Add/edit/delete their **investment vehicles** — one row per
     product/currency they hold. These show as separate cards on their
     dashboard and become quick-pick currencies on their Withdrawal
-    Request and Payout Currency forms.
+    Request and Payout Currency forms. The Currency dropdown includes
+    a **Multicurrency Account** option for vehicles that hold several
+    currencies at once — the balance shows without a fixed currency
+    symbol, and when a client withdraws from one of these, they pick
+    which currency to withdraw in at that point rather than it being
+    locked automatically.
   - Upload/delete **documents** (statements, tax docs, agreements) —
     they appear in the client's Document Center immediately.
   - Review **onboarding submissions**, including a direct link to view

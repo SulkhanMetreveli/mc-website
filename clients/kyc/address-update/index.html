@@ -276,7 +276,7 @@
         var seen = {};
         var currencies = [];
         vehicleRows.forEach(function (v) {
-          if (v.currency && !seen[v.currency]) {
+          if (v.currency && v.currency !== 'MULTI' && !seen[v.currency]) {
             seen[v.currency] = true;
             currencies.push(v.currency);
           }

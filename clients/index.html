@@ -118,11 +118,18 @@
 
     function fmtMoney(value, currency) {
       if (value === null || value === undefined) return '—';
+      if (currency === 'MULTI') {
+        return new Intl.NumberFormat('en-GB').format(value) + ' (multi-currency)';
+      }
       try {
         return new Intl.NumberFormat('en-GB', { style: 'currency', currency: currency || 'USD' }).format(value);
       } catch (e) {
         return value + ' ' + (currency || '');
       }
+    }
+
+    function currencyLabel(code) {
+      return code === 'MULTI' ? 'Multicurrency Account' : (code || '—');
     }
 
     function fmtPct(value) {
@@ -187,7 +194,7 @@
             '<div class="overview-item"><div class="metric-label">Balance</div><div class="metric-value">' + fmtMoney(v.balance, v.currency) + '</div></div>' +
             '<div class="overview-item"><div class="metric-label">YTD Performance</div><div class="metric-value">' + fmtPct(v.ytd_performance_pct) + '</div></div>' +
             '<div class="overview-item"><div class="metric-label">Since Inception</div><div class="metric-value">' + fmtPct(v.inception_performance_pct) + '</div></div>' +
-            '<div class="overview-item"><div class="metric-label">Currency</div><div class="metric-value">' + (v.currency || '—') + '</div></div>' +
+            '<div class="overview-item"><div class="metric-label">Currency</div><div class="metric-value">' + currencyLabel(v.currency) + '</div></div>' +
           '</div>' +
           (v.notes ? '<div class="overview-asof">' + v.notes + '</div>' : '') +
           '<div class="overview-asof">As of ' + (v.as_of_date || '—') + '</div>' +

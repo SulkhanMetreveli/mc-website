@@ -147,11 +147,18 @@
 
     function fmtMoney(value, currency) {
       if (value === null || value === undefined) return '—';
+      if (currency === 'MULTI') {
+        return new Intl.NumberFormat('en-GB').format(value) + ' (multi-currency)';
+      }
       try {
         return new Intl.NumberFormat('en-GB', { style: 'currency', currency: currency || 'USD' }).format(value);
       } catch (e) {
         return value + ' ' + (currency || '');
       }
+    }
+
+    function currencyLabel(code) {
+      return code === 'MULTI' ? 'Multicurrency Account' : (code || '—');
     }
 
     var amountInput = document.getElementById('amount');
@@ -181,8 +188,18 @@
 
       hint.textContent = 'Available balance: ' + fmtMoney(v.balance, v.currency);
 
-      // Make sure the vehicle's currency exists as an option, then select it
-      // and lock the field so it always matches the chosen vehicle.
+      if (v.currency === 'MULTI') {
+        // Multicurrency account: it can hold several currencies at once,
+        // so the client picks which one to withdraw in rather than it
+        // being inferred from the vehicle.
+        currencySelect.disabled = false;
+        currencySelect.value = '';
+        currencyHint.textContent = 'This is a multicurrency account — choose which currency to withdraw.';
+        return;
+      }
+
+      // Single-currency vehicle: make sure its currency exists as an
+      // option, then select it and lock the field so it always matches.
       var existingOption = Array.prototype.find.call(currencySelect.options, function (o) { return o.value === v.currency; });
       if (!existingOption && v.currency) {
         var opt = document.createElement('option');
@@ -294,7 +311,7 @@
         vehicles.forEach(function (v) {
           var opt = document.createElement('option');
           opt.value = v.id;
-          opt.textContent = v.vehicle_name + ' — ' + v.currency + (v.balance !== null ? ' (' + fmtMoney(v.balance, v.currency) + ')' : '');
+          opt.textContent = v.vehicle_name + ' — ' + currencyLabel(v.currency) + (v.balance !== null ? ' (' + fmtMoney(v.balance, v.currency) + ')' : '');
           vehicleSelect.appendChild(opt);
         });
       } else {

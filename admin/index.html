@@ -152,8 +152,15 @@
 
     function fmtMoney(value, currency) {
       if (value === null || value === undefined) return '—';
+      if (currency === 'MULTI') {
+        return new Intl.NumberFormat('en-GB').format(value) + ' (multi-currency)';
+      }
       try { return new Intl.NumberFormat('en-GB', { style: 'currency', currency: currency || 'USD' }).format(value); }
       catch (e) { return value + ' ' + (currency || ''); }
+    }
+
+    function currencyLabel(code) {
+      return code === 'MULTI' ? 'Multicurrency Account' : (code || '—');
     }
 
     async function loadClients() {

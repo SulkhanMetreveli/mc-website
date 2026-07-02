@@ -87,7 +87,22 @@
           <input type="hidden" id="v_id">
           <div class="inline-form-grid">
             <div class="field"><label>Vehicle Name</label><input type="text" id="v_name" required></div>
-            <div class="field"><label>Currency</label><input type="text" id="v_currency" required placeholder="USD"></div>
+            <div class="field">
+              <label>Currency</label>
+              <select id="v_currency" required>
+                <option value="">Select currency…</option>
+                <option value="USD">USD — US Dollar</option>
+                <option value="EUR">EUR — Euro</option>
+                <option value="GBP">GBP — British Pound</option>
+                <option value="CHF">CHF — Swiss Franc</option>
+                <option value="SGD">SGD — Singapore Dollar</option>
+                <option value="HKD">HKD — Hong Kong Dollar</option>
+                <option value="AED">AED — UAE Dirham</option>
+                <option value="JPY">JPY — Japanese Yen</option>
+                <option value="MULTI">Multicurrency Account</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
             <div class="field"><label>Balance</label><input type="text" id="v_balance" inputmode="decimal"></div>
             <div class="field"><label>YTD %</label><input type="text" id="v_ytd" inputmode="decimal"></div>
             <div class="field"><label>Inception %</label><input type="text" id="v_inception" inputmode="decimal"></div>
@@ -173,8 +188,15 @@
 
     function fmtMoney(value, currency) {
       if (value === null || value === undefined) return '—';
+      if (currency === 'MULTI') {
+        return new Intl.NumberFormat('en-GB').format(value) + ' (multi-currency)';
+      }
       try { return new Intl.NumberFormat('en-GB', { style: 'currency', currency: currency || 'USD' }).format(value); }
       catch (e) { return value + ' ' + (currency || ''); }
+    }
+
+    function currencyLabel(code) {
+      return code === 'MULTI' ? 'Multicurrency Account' : (code || '—');
     }
 
     function statusPill(status) {
@@ -315,7 +337,7 @@
       vehicles.forEach(function (v) {
         rows += '<tr>' +
           '<td>' + v.vehicle_name + '</td>' +
-          '<td>' + v.currency + '</td>' +
+          '<td>' + currencyLabel(v.currency) + '</td>' +
           '<td>' + fmtMoney(v.balance, v.currency) + '</td>' +
           '<td>' + (v.ytd_performance_pct ?? '—') + '%</td>' +
           '<td>' + (v.inception_performance_pct ?? '—') + '%</td>' +
@@ -335,6 +357,14 @@
           document.getElementById('v_id').value = v.id;
           document.getElementById('v_name').value = v.vehicle_name;
           document.getElementById('v_currency').value = v.currency;
+          if (document.getElementById('v_currency').value !== v.currency) {
+            // currency isn't one of the preset options (older free-text data) -- add it so it doesn't silently reset
+            var extraOpt = document.createElement('option');
+            extraOpt.value = v.currency;
+            extraOpt.textContent = v.currency;
+            document.getElementById('v_currency').appendChild(extraOpt);
+            document.getElementById('v_currency').value = v.currency;
+          }
           document.getElementById('v_balance').value = v.balance ?? '';
           document.getElementById('v_ytd').value = v.ytd_performance_pct ?? '';
           document.getElementById('v_inception').value = v.inception_performance_pct ?? '';
@@ -372,7 +402,7 @@
       var payload = {
         user_id: targetUserId,
         vehicle_name: document.getElementById('v_name').value.trim(),
-        currency: document.getElementById('v_currency').value.trim().toUpperCase(),
+        currency: document.getElementById('v_currency').value,
         balance: document.getElementById('v_balance').value ? parseFloat(document.getElementById('v_balance').value) : null,
         ytd_performance_pct: document.getElementById('v_ytd').value ? parseFloat(document.getElementById('v_ytd').value) : null,
         inception_performance_pct: document.getElementById('v_inception').value ? parseFloat(document.getElementById('v_inception').value) : null,
