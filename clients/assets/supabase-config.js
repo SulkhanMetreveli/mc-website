@@ -7,5 +7,5 @@
 //
 // Fill these in after creating your Supabase project (see SETUP.md).
 // ============================================================================
-window.MC_SUPABASE_URL = "REPLACE_WITH_YOUR_SUPABASE_URL";
-window.MC_SUPABASE_ANON_KEY = "REPLACE_WITH_YOUR_SUPABASE_ANON_KEY";
+window.MC_SUPABASE_URL = "https://qnysvjbqltnwkjkvjwov.supabase.co";
+window.MC_SUPABASE_ANON_KEY = "sb_publishable_GSi7RBnzm4npqyJgOR_vtg_ZZJ4lmnb";
