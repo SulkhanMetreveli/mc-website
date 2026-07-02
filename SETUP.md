@@ -68,6 +68,12 @@ no code needed:
   your systems** — this form only records a request, it never applies a
   change automatically. Mark `status` as `approved` or `rejected` once
   handled.
+- **Withdrawal requests**: review new rows in `withdrawal_requests`
+  (added in `supabase/002_withdrawal_requests.sql` — run that migration
+  once in the SQL Editor if you set the portal up before this was added).
+  Same rule as above: **verify the client by phone before releasing any
+  funds** — this table only records a request, nothing here moves money.
+  Mark `status` as `approved` or `rejected` once handled.
 - **Onboarding submissions**: review `onboarding_submissions`, including
   the linked passport and proof-of-address PDFs in the `kyc-files`
   bucket, before marking a client active.

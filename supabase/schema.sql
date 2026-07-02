@@ -174,8 +174,44 @@ create policy "clients insert own onboarding submission"
   on onboarding_submissions for insert
   with check (auth.uid() = user_id);
 
+
 -- ---------------------------------------------------------------------------
--- 6. Storage buckets
+-- 6. withdrawal_requests
+--    Client-submitted withdrawal request. IMPORTANT: this table only ever
+--    records a PENDING REQUEST. Nothing here moves money automatically —
+--    a staff member must verify the client out-of-band and action the
+--    withdrawal manually through your custodian/banking systems before
+--    marking it approved.
+-- ---------------------------------------------------------------------------
+create table if not exists withdrawal_requests (
+  id                     uuid primary key default gen_random_uuid(),
+  user_id                uuid not null references auth.users(id) on delete cascade,
+  submitted_at           timestamptz not null default now(),
+  status                 text not null default 'pending' check (status in ('pending','approved','rejected')),
+  reviewed_at            timestamptz,
+  reviewed_by            text,
+  reviewer_notes         text,
+
+  withdrawal_type        text not null check (withdrawal_type in ('full','partial')),
+  amount                 numeric,
+  currency               text not null,
+  reason                 text not null,
+  confirm_bank_on_file   boolean not null default false,
+  additional_notes       text
+);
+
+alter table withdrawal_requests enable row level security;
+
+create policy "clients read own withdrawal requests"
+  on withdrawal_requests for select
+  using (auth.uid() = user_id);
+
+create policy "clients insert own withdrawal requests"
+  on withdrawal_requests for insert
+  with check (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
+-- 7. Storage buckets
 -- ---------------------------------------------------------------------------
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('client-documents', 'client-documents', false, 26214400, null)

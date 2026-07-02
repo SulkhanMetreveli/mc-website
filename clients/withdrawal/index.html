@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Withdrawal Request — Met Capital Client Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+</head>
+<body>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/clients/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/clients/" class="dashboard-link">Dashboard</a>
+        <a href="/clients/documents/">Documents</a>
+        <a href="/clients/withdrawal/" class="active">Withdrawal Request</a>
+        <a href="/clients/kyc/address-update/">Address &amp; Bank Update</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main" style="max-width:720px;">
+    <div class="page-label">Withdrawal</div>
+    <h1 class="page-title">Withdrawal Request</h1>
+    <p class="page-subtitle">
+      Submitting this form does <strong>not</strong> release funds immediately. A member of
+      our operations team will verify the request with you directly before it is processed.
+      Funds are always sent to the bank account currently on file — if that needs to change,
+      submit an <a href="/clients/kyc/address-update/">Address &amp; Bank Update</a> request first
+      and wait for it to be confirmed before requesting a withdrawal.
+    </p>
+
+    <div id="formAlert"></div>
+
+    <form id="withdrawalForm" class="card" novalidate>
+      <div class="form-section">
+        <h3>Request Details</h3>
+
+        <div class="field" style="margin-bottom:1.25rem;">
+          <label>Withdrawal Type <span class="required">*</span></label>
+          <div class="checkbox-field" style="margin-top:0.5rem;">
+            <input type="radio" name="withdrawal_type" id="type_full" value="full" required>
+            <label for="type_full" style="font-weight:400;">Full balance — withdraw my entire account balance</label>
+          </div>
+          <div class="checkbox-field" style="margin-top:0.5rem;">
+            <input type="radio" name="withdrawal_type" id="type_partial" value="partial" required>
+            <label for="type_partial" style="font-weight:400;">Partial amount — specify an amount below</label>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field" id="amountField">
+            <label for="amount">Amount <span class="required">*</span></label>
+            <input type="text" id="amount" inputmode="decimal" placeholder="e.g. 25000" disabled>
+          </div>
+          <div class="field">
+            <label for="currency">Currency <span class="required">*</span></label>
+            <select id="currency" required>
+              <option value="">Select currency…</option>
+              <option value="USD">USD — US Dollar</option>
+              <option value="EUR">EUR — Euro</option>
+              <option value="GBP">GBP — British Pound</option>
+              <option value="CHF">CHF — Swiss Franc</option>
+              <option value="SGD">SGD — Singapore Dollar</option>
+              <option value="HKD">HKD — Hong Kong Dollar</option>
+              <option value="AED">AED — UAE Dirham</option>
+              <option value="JPY">JPY — Japanese Yen</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label for="reason">Reason for Withdrawal <span class="required">*</span></label>
+            <select id="reason" required>
+              <option value="">Select…</option>
+              <option>Personal use</option>
+              <option>Rebalancing / reallocation</option>
+              <option>Tax payment</option>
+              <option>Transfer to another provider</option>
+              <option>Account closure</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="additional_notes">Additional Notes (optional)</label>
+          <textarea id="additional_notes"></textarea>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Confirmation</h3>
+        <div class="checkbox-field">
+          <input type="checkbox" id="confirm_bank_on_file" required>
+          <label for="confirm_bank_on_file">
+            I confirm I want these funds sent to the bank account currently on file with Met
+            Capital, and I understand this request will be verified by phone before it is
+            processed. <span class="required">*</span>
+          </label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary" id="submitBtn">Submit Withdrawal Request</button>
+    </form>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/clients/assets/auth.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcLogout);
+
+    var mcSession = null;
+
+    function showAlert(message, type) {
+      document.getElementById('formAlert').innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    var amountInput = document.getElementById('amount');
+    function toggleAmountField() {
+      var partial = document.getElementById('type_partial').checked;
+      amountInput.disabled = !partial;
+      amountInput.required = partial;
+      if (!partial) amountInput.value = '';
+    }
+    document.getElementById('type_full').addEventListener('change', toggleAmountField);
+    document.getElementById('type_partial').addEventListener('change', toggleAmountField);
+
+    document.getElementById('withdrawalForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var form = e.target;
+
+      var typeEl = document.querySelector('input[name="withdrawal_type"]:checked');
+      if (!typeEl) {
+        showAlert('Please select a withdrawal type.', 'error');
+        return;
+      }
+      var withdrawalType = typeEl.value;
+
+      if (withdrawalType === 'partial') {
+        var amountVal = parseFloat(amountInput.value);
+        if (!amountInput.value.trim() || isNaN(amountVal) || amountVal <= 0) {
+          showAlert('Please enter a valid amount greater than zero.', 'error');
+          return;
+        }
+      }
+
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      if (!document.getElementById('confirm_bank_on_file').checked) {
+        showAlert('Please confirm the bank-on-file statement before submitting.', 'error');
+        return;
+      }
+
+      var btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      try {
+        var payload = {
+          user_id: mcSession.user.id,
+          withdrawal_type: withdrawalType,
+          amount: withdrawalType === 'partial' ? parseFloat(amountInput.value) : null,
+          currency: document.getElementById('currency').value,
+          reason: document.getElementById('reason').value,
+          confirm_bank_on_file: true,
+          additional_notes: document.getElementById('additional_notes').value.trim()
+        };
+
+        var insert = await window.mcClient.from('withdrawal_requests').insert(payload);
+        if (insert.error) throw insert.error;
+
+        form.reset();
+        amountInput.disabled = true;
+        showAlert('Your withdrawal request has been submitted. A member of our operations team will contact you to verify the request before any funds are released.', 'success');
+      } catch (err) {
+        console.error(err);
+        showAlert('Something went wrong submitting your request. Please try again, or contact inquiries@met.capital.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit Withdrawal Request';
+      }
+    });
+
+    (async function init() {
+      var session = await window.mcRequireSession('/clients/withdrawal/');
+      if (!session) return;
+      mcSession = session;
+      var profile = await window.mcLoadProfile();
+      if (!profile) return;
+
+      // Pre-select currency from account overview if available.
+      var { data: overview } = await window.mcClient
+        .from('account_overview')
+        .select('currency')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+      if (overview && overview.currency) {
+        var sel = document.getElementById('currency');
+        for (var i = 0; i < sel.options.length; i++) {
+          if (sel.options[i].value === overview.currency) { sel.selectedIndex = i; break; }
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
