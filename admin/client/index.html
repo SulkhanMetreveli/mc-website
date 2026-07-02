@@ -83,6 +83,19 @@
             <div class="field"><label>YTD %</label><input type="text" id="v_ytd" inputmode="decimal"></div>
             <div class="field"><label>Inception %</label><input type="text" id="v_inception" inputmode="decimal"></div>
             <div class="field"><label>As Of</label><input type="date" id="v_asof"></div>
+            <div class="field">
+              <label>Status</label>
+              <select id="v_status">
+                <option value="active">Active</option>
+                <option value="on_hold">On Hold</option>
+                <option value="liquidating">Liquidating</option>
+                <option value="withdrawing">Withdrawing</option>
+                <option value="in_transfer_awaiting_client">In Transfer — Awaiting Client's Input</option>
+                <option value="in_transfer">In Transfer</option>
+                <option value="liquidated">Liquidated</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
           </div>
           <div class="field" style="margin-bottom:1rem;"><label>Notes</label><input type="text" id="v_notes"></div>
           <button type="submit" class="btn-small" id="vehicleSaveBtn">Save Vehicle</button>
@@ -157,6 +170,22 @@
 
     function statusPill(status) {
       return '<span class="status-pill ' + status + '">' + status + '</span>';
+    }
+
+    var VEHICLE_STATUS_META = {
+      active: { label: 'Active', cls: 'approved' },
+      on_hold: { label: 'On Hold', cls: 'pending' },
+      liquidating: { label: 'Liquidating', cls: 'pending' },
+      withdrawing: { label: 'Withdrawing', cls: 'pending' },
+      in_transfer_awaiting_client: { label: "In Transfer — Awaiting Client's Input", cls: 'pending' },
+      in_transfer: { label: 'In Transfer', cls: 'pending' },
+      liquidated: { label: 'Liquidated', cls: 'neutral' },
+      rejected: { label: 'Rejected', cls: 'rejected' }
+    };
+
+    function vehicleStatusLabel(status) {
+      var meta = VEHICLE_STATUS_META[status] || { label: status || 'Active', cls: 'neutral' };
+      return '<span class="status-pill ' + meta.cls + '">' + meta.label + '</span>';
     }
 
     async function signedUrlFor(bucket, path) {
@@ -252,13 +281,14 @@
           '<td>' + (v.ytd_performance_pct ?? '—') + '%</td>' +
           '<td>' + (v.inception_performance_pct ?? '—') + '%</td>' +
           '<td>' + (v.as_of_date || '—') + '</td>' +
+          '<td>' + vehicleStatusLabel(v.status) + '</td>' +
           '<td>' +
             '<button type="button" class="btn-small" data-edit-vehicle=\'' + JSON.stringify(v).replace(/'/g, "&#39;") + '\'>Edit</button>' +
             '<button type="button" class="btn-small danger" data-delete-vehicle="' + v.id + '">Delete</button>' +
           '</td>' +
         '</tr>';
       });
-      el.innerHTML = '<table class="admin-table"><thead><tr><th>Vehicle</th><th>Ccy</th><th>Balance</th><th>YTD</th><th>Inception</th><th>As Of</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+      el.innerHTML = '<table class="admin-table"><thead><tr><th>Vehicle</th><th>Ccy</th><th>Balance</th><th>YTD</th><th>Inception</th><th>As Of</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
 
       el.querySelectorAll('[data-edit-vehicle]').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -270,6 +300,7 @@
           document.getElementById('v_ytd').value = v.ytd_performance_pct ?? '';
           document.getElementById('v_inception').value = v.inception_performance_pct ?? '';
           document.getElementById('v_asof').value = v.as_of_date ?? '';
+          document.getElementById('v_status').value = v.status || 'active';
           document.getElementById('v_notes').value = v.notes ?? '';
           document.getElementById('vehicleFormTitle').textContent = 'Edit Vehicle';
           document.getElementById('vehicleCancelBtn').style.display = '';
@@ -289,6 +320,7 @@
     function resetVehicleForm() {
       document.getElementById('vehicleForm').reset();
       document.getElementById('v_id').value = '';
+      document.getElementById('v_status').value = 'active';
       document.getElementById('vehicleFormTitle').textContent = 'Add a Vehicle';
       document.getElementById('vehicleCancelBtn').style.display = 'none';
       document.getElementById('vehicleSaveBtn').textContent = 'Save Vehicle';
@@ -306,6 +338,7 @@
         ytd_performance_pct: document.getElementById('v_ytd').value ? parseFloat(document.getElementById('v_ytd').value) : null,
         inception_performance_pct: document.getElementById('v_inception').value ? parseFloat(document.getElementById('v_inception').value) : null,
         as_of_date: document.getElementById('v_asof').value || null,
+        status: document.getElementById('v_status').value,
         notes: document.getElementById('v_notes').value.trim() || null,
         updated_at: new Date().toISOString()
       };

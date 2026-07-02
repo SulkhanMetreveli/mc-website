@@ -236,6 +236,11 @@ create table if not exists investment_vehicles (
   inception_performance_pct   numeric,
   as_of_date                  date,
   notes                       text,
+  status                      text not null default 'active' check (status in (
+                                 'active', 'on_hold', 'liquidating', 'withdrawing',
+                                 'in_transfer_awaiting_client', 'in_transfer',
+                                 'liquidated', 'rejected'
+                               )),
   created_at                  timestamptz not null default now(),
   updated_at                  timestamptz not null default now()
 );

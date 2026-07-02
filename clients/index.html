@@ -61,8 +61,6 @@
     <h1 class="page-title" id="welcomeTitle">Welcome</h1>
     <p class="page-subtitle" id="refText">Client reference —</p>
 
-    <div id="onboardingBanner"></div>
-
     <div class="card">
       <h2>Client Profile</h2>
       <div class="profile-grid">
@@ -134,6 +132,22 @@
       return '<span class="metric-value ' + cls + '">' + sign + value + '%</span>';
     }
 
+    var VEHICLE_STATUS_META = {
+      active: { label: 'Active', cls: 'approved' },
+      on_hold: { label: 'On Hold', cls: 'pending' },
+      liquidating: { label: 'Liquidating', cls: 'pending' },
+      withdrawing: { label: 'Withdrawing', cls: 'pending' },
+      in_transfer_awaiting_client: { label: "In Transfer — Awaiting Your Input", cls: 'pending' },
+      in_transfer: { label: 'In Transfer', cls: 'pending' },
+      liquidated: { label: 'Liquidated', cls: 'neutral' },
+      rejected: { label: 'Rejected', cls: 'rejected' }
+    };
+
+    function vehicleStatusLabel(status) {
+      var meta = VEHICLE_STATUS_META[status] || { label: status || 'Active', cls: 'neutral' };
+      return '<span class="status-pill ' + meta.cls + '">' + meta.label + '</span>';
+    }
+
     function fmtAddress(p) {
       var parts = [p.address_line1, p.address_line2, p.city, p.state_province, p.postal_code, p.country]
         .filter(function (v) { return v && v.trim().length > 0; });
@@ -153,19 +167,6 @@
       document.getElementById('profileReference').textContent = profile.client_reference || '—';
       document.getElementById('profileAddress').textContent = fmtAddress(profile);
 
-      // Onboarding banner: check if an onboarding submission already exists.
-      var { data: onboarding } = await window.mcClient
-        .from('onboarding_submissions')
-        .select('id, status')
-        .eq('user_id', session.user.id)
-        .order('submitted_at', { ascending: false })
-        .limit(1);
-
-      var banner = document.getElementById('onboardingBanner');
-      if (!onboarding || onboarding.length === 0) {
-        banner.innerHTML = '<div class="alert info">Please complete your initial client onboarding (KYC) — <a href="/clients/kyc/onboarding/">start onboarding</a>.</div>';
-      }
-
       var { data: vehicles, error } = await window.mcClient
         .from('investment_vehicles')
         .select('*')
@@ -181,7 +182,7 @@
       var html = '';
       vehicles.forEach(function (v) {
         html += '<div class="vehicle-block">' +
-          '<h3>' + v.vehicle_name + '</h3>' +
+          '<h3>' + v.vehicle_name + ' ' + vehicleStatusLabel(v.status) + '</h3>' +
           '<div class="overview-grid">' +
             '<div class="overview-item"><div class="metric-label">Balance</div><div class="metric-value">' + fmtMoney(v.balance, v.currency) + '</div></div>' +
             '<div class="overview-item"><div class="metric-label">YTD Performance</div><div class="metric-value">' + fmtPct(v.ytd_performance_pct) + '</div></div>' +

@@ -36,6 +36,15 @@
     </div>
 
     <div class="section-block">
+      <h2>Pending Requests</h2>
+      <div class="card">
+        <div id="pendingRequestsContent">
+          <p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block">
       <h2>Add a New Client</h2>
       <div id="newClientAlert"></div>
       <form id="newClientForm" class="card" novalidate>
@@ -91,6 +100,60 @@
       cards[1].textContent = onboardingCount ?? '0';
       cards[2].textContent = addressCount ?? '0';
       cards[3].textContent = withdrawalCount ?? '0';
+    }
+
+    async function loadPendingRequests() {
+      var el = document.getElementById('pendingRequestsContent');
+
+      var [profilesRes, onboardingRes, addressRes, withdrawalRes] = await Promise.all([
+        window.mcAdminClient.from('client_profiles').select('user_id, full_name, email'),
+        window.mcAdminClient.from('onboarding_submissions').select('id, user_id, submitted_at').eq('status', 'pending'),
+        window.mcAdminClient.from('address_update_requests').select('id, user_id, submitted_at, country').eq('status', 'pending'),
+        window.mcAdminClient.from('withdrawal_requests').select('id, user_id, submitted_at, withdrawal_type, amount, currency').eq('status', 'pending')
+      ]);
+
+      var nameMap = {};
+      (profilesRes.data || []).forEach(function (p) { nameMap[p.user_id] = p.full_name || p.email; });
+
+      var items = [];
+      (onboardingRes.data || []).forEach(function (r) {
+        items.push({ type: 'Onboarding / KYC', detail: 'Initial onboarding submission', submitted_at: r.submitted_at, user_id: r.user_id });
+      });
+      (addressRes.data || []).forEach(function (r) {
+        items.push({ type: 'Address & Bank Update', detail: r.country ? ('New address in ' + r.country) : 'Address/bank change request', submitted_at: r.submitted_at, user_id: r.user_id });
+      });
+      (withdrawalRes.data || []).forEach(function (r) {
+        var detail = (r.withdrawal_type === 'full' ? 'Full balance' : fmtMoney(r.amount, r.currency)) + ' — ' + r.currency;
+        items.push({ type: 'Withdrawal Request', detail: detail, submitted_at: r.submitted_at, user_id: r.user_id });
+      });
+
+      items.sort(function (a, b) { return new Date(b.submitted_at) - new Date(a.submitted_at); });
+
+      if (items.length === 0) {
+        el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">Nothing pending. All caught up.</p>';
+        return;
+      }
+
+      var rows = '';
+      items.forEach(function (it) {
+        rows += '<tr>' +
+          '<td>' + (nameMap[it.user_id] || it.user_id) + '</td>' +
+          '<td>' + it.type + '</td>' +
+          '<td>' + it.detail + '</td>' +
+          '<td>' + new Date(it.submitted_at).toLocaleString() + '</td>' +
+          '<td><a href="/admin/client/?u=' + it.user_id + '">Review →</a></td>' +
+        '</tr>';
+      });
+
+      el.innerHTML =
+        '<table class="admin-table"><thead><tr><th>Client</th><th>Type</th><th>Detail</th><th>Submitted</th><th></th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table>';
+    }
+
+    function fmtMoney(value, currency) {
+      if (value === null || value === undefined) return '—';
+      try { return new Intl.NumberFormat('en-GB', { style: 'currency', currency: currency || 'USD' }).format(value); }
+      catch (e) { return value + ' ' + (currency || ''); }
     }
 
     async function loadClients() {
@@ -170,6 +233,7 @@
       if (!session) return;
       document.getElementById('welcomeTitle').textContent = 'Dashboard — ' + (window.mcAdminProfile.full_name || '');
       loadStats();
+      loadPendingRequests();
       loadClients();
     })();
   </script>

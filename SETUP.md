@@ -88,7 +88,9 @@ Log in at `/admin/login/` with any account listed in `admin_users`.
 From there:
 
 - **Dashboard** (`/admin/`) — pending-item counts across onboarding,
-  address/bank updates, and withdrawals; the client list; the "Add a New
+  address/bank updates, and withdrawals; a **Pending Requests** table
+  showing exactly which client submitted what and when (click "Review"
+  to jump straight to them); the full client list; and the "Add a New
   Client" form.
 - **Client page** (`/admin/client/?u=<uuid>`, reached by clicking
   "Manage" on any client) — everything about one client in one place:
