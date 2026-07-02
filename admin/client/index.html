@@ -66,6 +66,15 @@
         </div>
         <button type="submit" class="btn-primary" id="profileSaveBtn">Save Profile</button>
       </form>
+      <div class="card" style="margin-top:1rem;">
+        <h2>Password</h2>
+        <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:1rem;">
+          Generates a new temporary password for this client and forces them to set their own
+          on next login. Nothing is emailed automatically — copy the password shown and send
+          it to them yourself over a secure channel.
+        </p>
+        <button type="button" class="btn-small" id="resetPasswordBtn">Reset Password</button>
+      </div>
     </div>
 
     <!-- INVESTMENT VEHICLES -->
@@ -251,6 +260,36 @@
       if (error) { showAlert('Could not save profile: ' + error.message, 'error'); return; }
       showAlert('Profile saved.', 'success');
       loadProfile();
+    });
+
+    document.getElementById('resetPasswordBtn').addEventListener('click', async function () {
+      if (!confirm('Reset this client\'s password? Their current password will stop working immediately, and they will be required to set a new one on next login.')) return;
+
+      var btn = document.getElementById('resetPasswordBtn');
+      btn.disabled = true;
+      btn.textContent = 'Resetting…';
+
+      try {
+        var { data, error } = await window.mcAdminClient.functions.invoke('admin-reset-password', {
+          body: { user_id: targetUserId }
+        });
+
+        if (error || (data && data.error)) {
+          throw new Error((data && data.error) || error.message);
+        }
+
+        showAlert(
+          'Password reset. Send this to the client over a secure channel \u2014 they will be required to set their own on next login:<br><br>' +
+          '<strong>Temporary password:</strong> ' + data.password,
+          'success'
+        );
+      } catch (err) {
+        console.error(err);
+        showAlert('Could not reset password: ' + err.message + '. Make sure the admin-reset-password Edge Function has been deployed (see SETUP.md).', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Reset Password';
+      }
     });
 
     function applyAddressToProfileForm(addr) {

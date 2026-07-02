@@ -34,3 +34,14 @@ Omit `--password` to auto-generate a strong temporary one (recommended).
 The script prints the username/password once — copy it immediately and
 send it to the client over a secure channel. They'll be forced to set
 their own password on first login.
+
+## Reset a client's password
+
+```
+node reset-password.js --email client@example.com
+```
+
+Generates a new temporary password, invalidates their old one immediately,
+and forces them to set their own on next login. Same as account creation:
+nothing is emailed automatically, this only prints the new password for
+you to send yourself.

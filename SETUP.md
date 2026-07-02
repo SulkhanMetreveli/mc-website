@@ -61,6 +61,7 @@ npm install -g supabase
 supabase login
 supabase link --project-ref <your-project-ref>      # e.g. qnysvjbqltnwkjkvjwov
 supabase functions deploy admin-create-client
+supabase functions deploy admin-reset-password
 ```
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are
@@ -114,6 +115,13 @@ From there:
   - Review **withdrawal requests** — same rule: verify by phone, then
     mark approved/rejected. Approving here is a record-keeping action
     only; you still action the actual payment separately.
+  - **Reset Password** — generates a new temporary password and forces
+    the client to set their own on next login. Nothing is ever emailed
+    automatically anywhere in this system; the new password is shown to
+    you once, to send however you choose. Needs the
+    `admin-reset-password` Edge Function deployed (see step 5 above),
+    or use `local-admin-tools/reset-password.js` as an offline
+    fallback.
 
 Everything in the admin panel respects the same rule we designed from
 the start: **no financial or identity change ever applies itself.** The

@@ -5,7 +5,8 @@
   "description": "Local-only admin scripts for managing Met Capital client portal accounts. Never deploy this folder to the public site.",
   "type": "commonjs",
   "scripts": {
-    "create-client": "node create-client.js"
+    "create-client": "node create-client.js",
+    "reset-password": "node reset-password.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
