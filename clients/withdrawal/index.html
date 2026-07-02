@@ -59,7 +59,7 @@
         <div class="form-row" id="fallbackCurrencyRow">
           <div class="field">
             <label for="currency">Currency <span class="required">*</span></label>
-            <select id="currency">
+            <select id="currency" required>
               <option value="">Select currency…</option>
               <option value="USD">USD — US Dollar</option>
               <option value="EUR">EUR — Euro</option>
@@ -71,6 +71,7 @@
               <option value="JPY">JPY — Japanese Yen</option>
               <option value="OTHER">Other</option>
             </select>
+            <div class="file-hint" id="currencyHint"></div>
           </div>
         </div>
 
@@ -164,10 +165,34 @@
     document.getElementById('type_partial').addEventListener('change', toggleAmountField);
 
     var vehicleSelect = document.getElementById('vehicleSelect');
+    var currencySelect = document.getElementById('currency');
     vehicleSelect.addEventListener('change', function () {
       var v = vehicles.find(function (x) { return x.id === vehicleSelect.value; });
       var hint = document.getElementById('vehicleBalanceHint');
-      hint.textContent = v ? 'Available balance: ' + fmtMoney(v.balance, v.currency) : '';
+      var currencyHint = document.getElementById('currencyHint');
+
+      if (!v) {
+        hint.textContent = '';
+        currencySelect.disabled = false;
+        currencySelect.value = '';
+        currencyHint.textContent = '';
+        return;
+      }
+
+      hint.textContent = 'Available balance: ' + fmtMoney(v.balance, v.currency);
+
+      // Make sure the vehicle's currency exists as an option, then select it
+      // and lock the field so it always matches the chosen vehicle.
+      var existingOption = Array.prototype.find.call(currencySelect.options, function (o) { return o.value === v.currency; });
+      if (!existingOption && v.currency) {
+        var opt = document.createElement('option');
+        opt.value = v.currency;
+        opt.textContent = v.currency;
+        currencySelect.appendChild(opt);
+      }
+      currencySelect.value = v.currency || '';
+      currencySelect.disabled = true;
+      currencyHint.textContent = v.currency ? 'Set automatically from the selected vehicle.' : 'This vehicle has no currency on file — contact us before withdrawing.';
     });
 
     document.getElementById('withdrawalForm').addEventListener('submit', async function (e) {
@@ -189,7 +214,7 @@
         return;
       }
 
-      var currency = hasVehicles ? (selectedVehicle ? selectedVehicle.currency : '') : document.getElementById('currency').value;
+      var currency = document.getElementById('currency').value;
       if (!currency) {
         showAlert('Please select a currency.', 'error');
         return;
@@ -235,6 +260,8 @@
         form.reset();
         amountInput.disabled = true;
         document.getElementById('vehicleBalanceHint').textContent = '';
+        document.getElementById('currencyHint').textContent = '';
+        currencySelect.disabled = false;
         showAlert('Your withdrawal request has been submitted. A member of our operations team will contact you to verify the request before any funds are released.', 'success');
       } catch (err) {
         console.error(err);
@@ -262,8 +289,6 @@
 
       if (vehicles.length > 0) {
         document.getElementById('vehicleFieldRow').style.display = '';
-        document.getElementById('fallbackCurrencyRow').style.display = 'none';
-        document.getElementById('currency').required = false;
         vehicleSelect.required = true;
 
         vehicles.forEach(function (v) {
@@ -274,7 +299,6 @@
         });
       } else {
         document.getElementById('noVehiclesNotice').style.display = 'block';
-        document.getElementById('currency').required = true;
       }
     })();
   </script>
