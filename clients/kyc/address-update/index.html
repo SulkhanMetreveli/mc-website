@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Address &amp; Bank Update — Met Capital Client Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+</head>
+<body>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/clients/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/clients/" class="dashboard-link">Dashboard</a>
+        <a href="/clients/documents/">Documents</a>
+        <a href="/clients/kyc/address-update/" class="active">Address &amp; Bank Update</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="page-label">KYC · Change Request</div>
+    <h1 class="page-title">Address &amp; Bank Update Request</h1>
+    <p class="page-subtitle">
+      Use this form to request an update to your address on file and/or your payout bank
+      account. Submitting this form does <strong>not</strong> apply the change immediately —
+      a member of our operations team will verify the request with you directly (including a
+      call to the phone number already on file) before anything is updated.
+    </p>
+
+    <div id="formAlert"></div>
+
+    <form id="requestForm" class="card" novalidate>
+      <div class="form-section">
+        <h3>New Address</h3>
+        <div class="form-row">
+          <div class="field">
+            <label for="address_line1">Address Line 1 <span class="required">*</span></label>
+            <input type="text" id="address_line1" required>
+          </div>
+          <div class="field">
+            <label for="address_line2">Address Line 2</label>
+            <input type="text" id="address_line2">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="city">City <span class="required">*</span></label>
+            <input type="text" id="city" required>
+          </div>
+          <div class="field">
+            <label for="state_province">State / Province</label>
+            <input type="text" id="state_province">
+          </div>
+          <div class="field">
+            <label for="postal_code">Postal Code <span class="required">*</span></label>
+            <input type="text" id="postal_code" required>
+          </div>
+          <div class="field">
+            <label for="country">Country <span class="required">*</span></label>
+            <input type="text" id="country" required placeholder="e.g. United Kingdom">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Proof of Address</h3>
+        <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:1rem;">
+          Upload a recent utility bill, bank statement, or government-issued letter (dated
+          within the last 3 months) showing your full name and the new address above.
+        </p>
+        <div class="file-field">
+          <label for="proof_file" style="font-weight:500; font-size:0.875rem;">Proof of Address (PDF only) <span class="required">*</span></label><br>
+          <input type="file" id="proof_file" accept="application/pdf" required style="margin-top:0.6rem;">
+          <div class="file-hint">PDF format only, maximum 25MB.</div>
+          <div class="file-status" id="proofStatus"></div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Payout Bank Account</h3>
+        <div class="form-row">
+          <div class="field">
+            <label for="bank_account_holder_name">Account Holder Name <span class="required">*</span></label>
+            <input type="text" id="bank_account_holder_name" required>
+          </div>
+          <div class="field">
+            <label for="bank_name">Bank Name <span class="required">*</span></label>
+            <input type="text" id="bank_name" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="bank_account_number">Account Number / IBAN <span class="required">*</span></label>
+            <input type="text" id="bank_account_number" required>
+          </div>
+          <div class="field">
+            <label for="bank_swift_bic">SWIFT / BIC</label>
+            <input type="text" id="bank_swift_bic">
+          </div>
+          <div class="field">
+            <label for="bank_routing_number">Routing / Sort Code</label>
+            <input type="text" id="bank_routing_number">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="bank_country">Bank Country <span class="required">*</span></label>
+            <input type="text" id="bank_country" required>
+          </div>
+          <div class="field">
+            <label for="payout_currency">Payout Currency <span class="required">*</span></label>
+            <select id="payout_currency" required>
+              <option value="">Select currency…</option>
+              <option value="USD">USD — US Dollar</option>
+              <option value="EUR">EUR — Euro</option>
+              <option value="GBP">GBP — British Pound</option>
+              <option value="CHF">CHF — Swiss Franc</option>
+              <option value="SGD">SGD — Singapore Dollar</option>
+              <option value="HKD">HKD — Hong Kong Dollar</option>
+              <option value="AED">AED — UAE Dirham</option>
+              <option value="JPY">JPY — Japanese Yen</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field" style="grid-column: 1 / -1;">
+            <label for="bank_address">Bank Address</label>
+            <input type="text" id="bank_address" placeholder="Branch address (optional but recommended)">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Additional Notes</h3>
+        <div class="field">
+          <label for="additional_notes">Notes (optional)</label>
+          <textarea id="additional_notes"></textarea>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary" id="submitBtn">Submit Request for Review</button>
+    </form>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/clients/assets/auth.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcLogout);
+
+    var mcSession = null;
+
+    function showAlert(message, type) {
+      document.getElementById('formAlert').innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    var proofInput = document.getElementById('proof_file');
+    proofInput.addEventListener('change', function () {
+      var status = document.getElementById('proofStatus');
+      var file = proofInput.files[0];
+      if (!file) { status.textContent = ''; return; }
+      if (file.type !== 'application/pdf') {
+        status.textContent = 'This file is not a PDF. Please select a PDF file.';
+        status.className = 'file-status error';
+        proofInput.value = '';
+        return;
+      }
+      if (file.size > 25 * 1024 * 1024) {
+        status.textContent = 'File is too large (max 25MB).';
+        status.className = 'file-status error';
+        proofInput.value = '';
+        return;
+      }
+      status.textContent = 'Selected: ' + file.name;
+      status.className = 'file-status ok';
+    });
+
+    document.getElementById('requestForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      var form = e.target;
+      var proofFile = proofInput.files[0];
+
+      // Mandatory field check (native + explicit re-check on the file input,
+      // since file inputs don't always block submit consistently).
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+      if (!proofFile) {
+        showAlert('Proof of address is required. Please attach a PDF before submitting.', 'error');
+        return;
+      }
+      if (proofFile.type !== 'application/pdf') {
+        showAlert('Proof of address must be a PDF file.', 'error');
+        return;
+      }
+
+      var btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      try {
+        var userId = mcSession.user.id;
+        var safeName = proofFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        var path = userId + '/address-proof-' + Date.now() + '-' + safeName;
+
+        var upload = await window.mcClient.storage
+          .from('kyc-files')
+          .upload(path, proofFile, { contentType: 'application/pdf' });
+
+        if (upload.error) throw upload.error;
+
+        var payload = {
+          user_id: userId,
+          address_line1: document.getElementById('address_line1').value.trim(),
+          address_line2: document.getElementById('address_line2').value.trim(),
+          city: document.getElementById('city').value.trim(),
+          state_province: document.getElementById('state_province').value.trim(),
+          postal_code: document.getElementById('postal_code').value.trim(),
+          country: document.getElementById('country').value.trim(),
+          proof_of_address_path: path,
+          bank_account_holder_name: document.getElementById('bank_account_holder_name').value.trim(),
+          bank_name: document.getElementById('bank_name').value.trim(),
+          bank_account_number: document.getElementById('bank_account_number').value.trim(),
+          bank_swift_bic: document.getElementById('bank_swift_bic').value.trim(),
+          bank_routing_number: document.getElementById('bank_routing_number').value.trim(),
+          bank_country: document.getElementById('bank_country').value.trim(),
+          payout_currency: document.getElementById('payout_currency').value,
+          bank_address: document.getElementById('bank_address').value.trim(),
+          additional_notes: document.getElementById('additional_notes').value.trim()
+        };
+
+        var insert = await window.mcClient.from('address_update_requests').insert(payload);
+        if (insert.error) throw insert.error;
+
+        form.reset();
+        document.getElementById('proofStatus').textContent = '';
+        showAlert('Your request has been submitted for review. A member of our operations team will verify these changes with you directly before they take effect — no changes are made automatically.', 'success');
+      } catch (err) {
+        console.error(err);
+        showAlert('Something went wrong submitting your request. Please try again, or contact inquiries@met.capital.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit Request for Review';
+      }
+    });
+
+    (async function init() {
+      var session = await window.mcRequireSession('/clients/kyc/address-update/');
+      if (!session) return;
+      mcSession = session;
+      await window.mcLoadProfile();
+    })();
+  </script>
+</body>
+</html>

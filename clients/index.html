@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Dashboard — Met Capital Client Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+</head>
+<body>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/clients/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/clients/" class="dashboard-link active">Dashboard</a>
+        <a href="/clients/documents/">Documents</a>
+        <a href="/clients/kyc/address-update/">Address &amp; Bank Update</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="page-label">Overview</div>
+    <h1 class="page-title" id="welcomeTitle">Welcome</h1>
+    <p class="page-subtitle" id="refText">Client reference —</p>
+
+    <div id="onboardingBanner"></div>
+
+    <div class="card">
+      <h2>Account Overview</h2>
+      <div id="overviewContent">
+        <p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p>
+      </div>
+    </div>
+
+    <div class="quick-links">
+      <a class="quick-link" href="/clients/documents/">
+        <h3>Documents</h3>
+        <p>View and download statements, tax documents, and agreements shared by our team.</p>
+      </a>
+      <a class="quick-link" href="/clients/kyc/address-update/">
+        <h3>Address &amp; Bank Update</h3>
+        <p>Submit a change of address or payout bank details for review by our operations team.</p>
+      </a>
+      <a class="quick-link" href="/clients/kyc/onboarding/">
+        <h3>Onboarding / KYC</h3>
+        <p>Complete or review your initial client onboarding information.</p>
+      </a>
+      <a class="quick-link" href="/clients/account/change-password/">
+        <h3>Account Security</h3>
+        <p>Change your password.</p>
+      </a>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/clients/assets/auth.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcLogout);
+
+    function fmtMoney(value, currency) {
+      if (value === null || value === undefined) return '—';
+      try {
+        return new Intl.NumberFormat('en-GB', { style: 'currency', currency: currency || 'USD' }).format(value);
+      } catch (e) {
+        return value + ' ' + (currency || '');
+      }
+    }
+
+    function fmtPct(value) {
+      if (value === null || value === undefined) return '—';
+      var cls = value > 0 ? 'positive' : (value < 0 ? 'negative' : '');
+      var sign = value > 0 ? '+' : '';
+      return '<span class="metric-value ' + cls + '">' + sign + value + '%</span>';
+    }
+
+    (async function init() {
+      var session = await window.mcRequireSession('/clients/');
+      if (!session) return;
+
+      var profile = await window.mcLoadProfile();
+      if (!profile) return;
+
+      document.getElementById('welcomeTitle').textContent = 'Welcome, ' + profile.full_name;
+      document.getElementById('refText').textContent = 'Client reference — ' + (profile.client_reference || '—');
+
+      // Onboarding banner: check if an onboarding submission already exists.
+      var { data: onboarding } = await window.mcClient
+        .from('onboarding_submissions')
+        .select('id, status')
+        .eq('user_id', session.user.id)
+        .order('submitted_at', { ascending: false })
+        .limit(1);
+
+      var banner = document.getElementById('onboardingBanner');
+      if (!onboarding || onboarding.length === 0) {
+        banner.innerHTML = '<div class="alert info">Please complete your initial client onboarding (KYC) — <a href="/clients/kyc/onboarding/">start onboarding</a>.</div>';
+      }
+
+      var { data: overview, error } = await window.mcClient
+        .from('account_overview')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+      var content = document.getElementById('overviewContent');
+      if (error || !overview) {
+        content.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">Your account overview will appear here once available. Please contact your relationship manager with any questions.</p>';
+        return;
+      }
+
+      content.innerHTML =
+        '<div class="overview-grid">' +
+          '<div class="overview-item"><div class="metric-label">Balance</div><div class="metric-value">' + fmtMoney(overview.balance, overview.currency) + '</div></div>' +
+          '<div class="overview-item"><div class="metric-label">YTD Performance</div><div class="metric-value">' + fmtPct(overview.ytd_performance_pct) + '</div></div>' +
+          '<div class="overview-item"><div class="metric-label">Since Inception</div><div class="metric-value">' + fmtPct(overview.inception_performance_pct) + '</div></div>' +
+          '<div class="overview-item"><div class="metric-label">Currency</div><div class="metric-value">' + (overview.currency || '—') + '</div></div>' +
+        '</div>' +
+        (overview.notes ? '<div class="overview-asof">' + overview.notes + '</div>' : '') +
+        '<div class="overview-asof">As of ' + (overview.as_of_date || '—') + '</div>';
+    })();
+  </script>
+</body>
+</html>

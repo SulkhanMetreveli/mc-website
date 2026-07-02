@@ -1,0 +1,14 @@
+{
+  "name": "mc-client-admin",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Local-only admin scripts for managing Met Capital client portal accounts. Never deploy this folder to the public site.",
+  "type": "commonjs",
+  "scripts": {
+    "create-client": "node create-client.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5"
+  }
+}

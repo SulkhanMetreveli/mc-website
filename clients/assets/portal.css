@@ -1,0 +1,388 @@
+/* ============================================================================
+   Met Capital Client Portal — shared styles
+   Matches the design system of the public site (Inter, black/red/blue,
+   generous whitespace, thin borders, uppercase micro-labels).
+   ============================================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --black: #000000;
+  --gray-dark: #333333;
+  --gray: #666666;
+  --gray-light: #999999;
+  --red: #C41E3A;
+  --blue: #1E3A8A;
+  --white: #FFFFFF;
+  --off-white: #F7F7F7;
+  --border: #E0E0E0;
+  --green: #1E7A3A;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--gray-dark);
+  background: var(--off-white);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+a { color: var(--blue); }
+
+/* Header (shared with public site) */
+header.portal-header {
+  position: sticky;
+  top: 0;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  z-index: 1000;
+}
+
+.header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo { height: 24px; }
+
+.portal-nav { display: flex; align-items: center; gap: 1.75rem; }
+
+.portal-nav a {
+  text-decoration: none;
+  color: var(--gray);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: color 0.2s;
+}
+
+.portal-nav a:hover, .portal-nav a.active { color: var(--black); }
+
+.portal-nav button.logout {
+  border: none;
+  background: transparent;
+  color: var(--gray);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.portal-nav button.logout:hover { color: var(--red); }
+
+.badge-pill {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--border);
+  color: var(--gray);
+}
+
+/* Layout */
+main.portal-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 3rem 2rem 5rem;
+}
+
+.page-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--gray-light);
+  margin-bottom: 0.75rem;
+}
+
+h1.page-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--black);
+  letter-spacing: -0.01em;
+  margin-bottom: 0.5rem;
+}
+
+.page-subtitle {
+  color: var(--gray);
+  font-size: 0.9375rem;
+  max-width: 640px;
+  margin-bottom: 2.5rem;
+}
+
+/* Cards */
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.card h2 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: 1.25rem;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1.75rem;
+}
+
+.overview-item .metric-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gray-light);
+  margin-bottom: 0.35rem;
+}
+
+.overview-item .metric-value {
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--black);
+}
+
+.overview-item .metric-value.positive { color: var(--green); }
+.overview-item .metric-value.negative { color: var(--red); }
+
+.overview-asof {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.8125rem;
+  color: var(--gray-light);
+}
+
+/* Quick links grid on the dashboard */
+.quick-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.quick-link {
+  display: block;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  padding: 1.5rem;
+  text-decoration: none;
+  transition: border-color 0.2s;
+}
+
+.quick-link:hover { border-left-color: var(--blue); }
+
+.quick-link h3 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: 0.4rem;
+}
+
+.quick-link p {
+  font-size: 0.8125rem;
+  color: var(--gray);
+  line-height: 1.6;
+}
+
+/* Forms */
+.form-section {
+  margin-bottom: 2rem;
+}
+
+.form-section:last-child { margin-bottom: 0; }
+
+.form-section h3 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--gray-light);
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.field { display: flex; flex-direction: column; }
+
+.field label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--gray-dark);
+  margin-bottom: 0.4rem;
+}
+
+.field label .required { color: var(--red); margin-left: 0.15rem; }
+
+.field input[type="text"],
+.field input[type="email"],
+.field input[type="tel"],
+.field input[type="date"],
+.field input[type="password"],
+.field select,
+.field textarea {
+  font-family: inherit;
+  font-size: 0.9375rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--gray-dark);
+}
+
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+.field textarea { resize: vertical; min-height: 80px; }
+
+.checkbox-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.checkbox-field input { margin-top: 0.2rem; }
+
+.checkbox-field label { font-size: 0.8125rem; color: var(--gray); font-weight: 400; }
+
+.file-field {
+  border: 1px dashed var(--border);
+  padding: 1.25rem;
+  background: var(--off-white);
+}
+
+.file-field .file-hint {
+  font-size: 0.75rem;
+  color: var(--gray-light);
+  margin-top: 0.5rem;
+}
+
+.file-field .file-status {
+  font-size: 0.8125rem;
+  margin-top: 0.5rem;
+  color: var(--gray-dark);
+}
+
+.file-field .file-status.error { color: var(--red); }
+.file-field .file-status.ok { color: var(--green); }
+
+/* Buttons */
+button.btn-primary {
+  font-family: inherit;
+  background: var(--black);
+  color: var(--white);
+  border: none;
+  padding: 0.85rem 1.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button.btn-primary:hover { background: var(--gray-dark); }
+button.btn-primary:disabled { background: var(--gray-light); cursor: not-allowed; }
+
+/* Alerts */
+.alert {
+  padding: 0.9rem 1.1rem;
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  border-left: 3px solid;
+}
+
+.alert.error { background: #FBEAEC; border-color: var(--red); color: #8A1128; }
+.alert.success { background: #EAF4EC; border-color: var(--green); color: #14502A; }
+.alert.info { background: #EEF1F8; border-color: var(--blue); color: var(--blue); }
+
+/* Status pills for requests/documents */
+.status-pill {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid;
+  display: inline-block;
+}
+
+.status-pill.pending { color: #8A6D1E; border-color: #D9B94A; background: #FBF6E6; }
+.status-pill.approved { color: #14502A; border-color: var(--green); background: #EAF4EC; }
+.status-pill.rejected { color: #8A1128; border-color: var(--red); background: #FBEAEC; }
+
+/* Tables */
+table.simple-table { width: 100%; border-collapse: collapse; }
+table.simple-table th, table.simple-table td {
+  text-align: left;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.875rem;
+}
+table.simple-table th {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gray-light);
+}
+table.simple-table tr:last-child td { border-bottom: none; }
+
+/* Login page */
+.login-wrap {
+  min-height: calc(100vh - 65px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.login-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 380px;
+}
+
+.login-card h1 {
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: 0.4rem;
+}
+
+.login-card p.subtitle {
+  font-size: 0.875rem;
+  color: var(--gray);
+  margin-bottom: 1.75rem;
+}
+
+.security-note {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--gray-light);
+  line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  main.portal-main { padding: 2rem 1.25rem 3rem; }
+  .header-inner { padding: 0.875rem 1.25rem; }
+  .portal-nav { gap: 1rem; }
+  .portal-nav a:not(.dashboard-link) { display: none; }
+}

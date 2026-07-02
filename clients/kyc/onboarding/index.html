@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Client Onboarding — Met Capital Client Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+</head>
+<body>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/clients/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/clients/" class="dashboard-link">Dashboard</a>
+        <a href="/clients/documents/">Documents</a>
+        <a href="/clients/kyc/address-update/">Address &amp; Bank Update</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="page-label">KYC · Onboarding</div>
+    <h1 class="page-title">Initial Client Onboarding</h1>
+    <p class="page-subtitle">
+      Please complete the information below in full. This is required once, as part of our
+      standard Know-Your-Customer (KYC) process, before your account becomes active.
+    </p>
+
+    <div id="formAlert"></div>
+    <div id="alreadySubmitted" style="display:none;" class="card">
+      <h2>Onboarding already submitted</h2>
+      <p id="alreadySubmittedText" style="font-size:0.875rem; color:var(--gray);"></p>
+    </div>
+
+    <form id="onboardingForm" class="card" novalidate>
+      <div class="form-section">
+        <h3>Personal Details</h3>
+        <div class="form-row">
+          <div class="field">
+            <label for="full_legal_name">Full Legal Name <span class="required">*</span></label>
+            <input type="text" id="full_legal_name" required>
+          </div>
+          <div class="field">
+            <label for="date_of_birth">Date of Birth <span class="required">*</span></label>
+            <input type="date" id="date_of_birth" required>
+          </div>
+          <div class="field">
+            <label for="nationality">Nationality <span class="required">*</span></label>
+            <input type="text" id="nationality" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="phone_number">Phone Number <span class="required">*</span></label>
+            <input type="tel" id="phone_number" required placeholder="+44 …">
+          </div>
+          <div class="field">
+            <label for="email_field">Email Address <span class="required">*</span></label>
+            <input type="email" id="email_field" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Residential Address</h3>
+        <div class="form-row">
+          <div class="field">
+            <label for="address_line1">Address Line 1 <span class="required">*</span></label>
+            <input type="text" id="address_line1" required>
+          </div>
+          <div class="field">
+            <label for="address_line2">Address Line 2</label>
+            <input type="text" id="address_line2">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="city">City <span class="required">*</span></label>
+            <input type="text" id="city" required>
+          </div>
+          <div class="field">
+            <label for="state_province">State / Province</label>
+            <input type="text" id="state_province">
+          </div>
+          <div class="field">
+            <label for="postal_code">Postal Code <span class="required">*</span></label>
+            <input type="text" id="postal_code" required>
+          </div>
+          <div class="field">
+            <label for="country_of_residence">Country of Residence <span class="required">*</span></label>
+            <input type="text" id="country_of_residence" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Tax &amp; Compliance</h3>
+        <div class="form-row">
+          <div class="field">
+            <label for="tax_residency_country">Tax Residency Country <span class="required">*</span></label>
+            <input type="text" id="tax_residency_country" required>
+          </div>
+          <div class="field">
+            <label for="tax_id_number">Tax ID / TIN Number</label>
+            <input type="text" id="tax_id_number">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="occupation">Occupation <span class="required">*</span></label>
+            <input type="text" id="occupation" required>
+          </div>
+          <div class="field">
+            <label for="source_of_funds">Source of Funds <span class="required">*</span></label>
+            <select id="source_of_funds" required>
+              <option value="">Select…</option>
+              <option>Employment income</option>
+              <option>Business income</option>
+              <option>Investment / dividend income</option>
+              <option>Sale of property</option>
+              <option>Inheritance</option>
+              <option>Savings</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="checkbox-field" style="margin-top:0.5rem;">
+          <input type="checkbox" id="pep_status">
+          <label for="pep_status">I am a Politically Exposed Person (PEP), or an immediate family member / close associate of one.</label>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Identity &amp; Address Verification</h3>
+        <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:1rem;">
+          Both documents are required and must be uploaded as PDF files.
+        </p>
+        <div class="form-row">
+          <div class="file-field">
+            <label style="font-weight:500; font-size:0.875rem;">Passport Copy (PDF only) <span class="required">*</span></label><br>
+            <input type="file" id="passport_file" accept="application/pdf" required style="margin-top:0.6rem;">
+            <div class="file-hint">Photo page of a valid, unexpired passport. PDF, max 25MB.</div>
+            <div class="file-status" id="passportStatus"></div>
+          </div>
+          <div class="file-field">
+            <label style="font-weight:500; font-size:0.875rem;">Proof of Address (PDF only) <span class="required">*</span></label><br>
+            <input type="file" id="proof_file" accept="application/pdf" required style="margin-top:0.6rem;">
+            <div class="file-hint">Utility bill or bank statement, dated within last 3 months. PDF, max 25MB.</div>
+            <div class="file-status" id="proofStatus"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Payout Bank Account</h3>
+        <div class="form-row">
+          <div class="field">
+            <label for="bank_account_holder_name">Account Holder Name <span class="required">*</span></label>
+            <input type="text" id="bank_account_holder_name" required>
+          </div>
+          <div class="field">
+            <label for="bank_name">Bank Name <span class="required">*</span></label>
+            <input type="text" id="bank_name" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="bank_account_number">Account Number / IBAN <span class="required">*</span></label>
+            <input type="text" id="bank_account_number" required>
+          </div>
+          <div class="field">
+            <label for="bank_swift_bic">SWIFT / BIC</label>
+            <input type="text" id="bank_swift_bic">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="bank_country">Bank Country <span class="required">*</span></label>
+            <input type="text" id="bank_country" required>
+          </div>
+          <div class="field">
+            <label for="payout_currency">Payout Currency <span class="required">*</span></label>
+            <select id="payout_currency" required>
+              <option value="">Select currency…</option>
+              <option value="USD">USD — US Dollar</option>
+              <option value="EUR">EUR — Euro</option>
+              <option value="GBP">GBP — British Pound</option>
+              <option value="CHF">CHF — Swiss Franc</option>
+              <option value="SGD">SGD — Singapore Dollar</option>
+              <option value="HKD">HKD — Hong Kong Dollar</option>
+              <option value="AED">AED — UAE Dirham</option>
+              <option value="JPY">JPY — Japanese Yen</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary" id="submitBtn">Submit Onboarding Information</button>
+    </form>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/clients/assets/auth.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcLogout);
+
+    var mcSession = null;
+
+    function showAlert(message, type) {
+      document.getElementById('formAlert').innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function wireFileValidation(inputId, statusId) {
+      var input = document.getElementById(inputId);
+      input.addEventListener('change', function () {
+        var status = document.getElementById(statusId);
+        var file = input.files[0];
+        if (!file) { status.textContent = ''; return; }
+        if (file.type !== 'application/pdf') {
+          status.textContent = 'This file is not a PDF. Please select a PDF file.';
+          status.className = 'file-status error';
+          input.value = '';
+          return;
+        }
+        if (file.size > 25 * 1024 * 1024) {
+          status.textContent = 'File is too large (max 25MB).';
+          status.className = 'file-status error';
+          input.value = '';
+          return;
+        }
+        status.textContent = 'Selected: ' + file.name;
+        status.className = 'file-status ok';
+      });
+    }
+    wireFileValidation('passport_file', 'passportStatus');
+    wireFileValidation('proof_file', 'proofStatus');
+
+    document.getElementById('onboardingForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var form = e.target;
+
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      var passportFile = document.getElementById('passport_file').files[0];
+      var proofFile = document.getElementById('proof_file').files[0];
+
+      if (!passportFile || !proofFile) {
+        showAlert('Both a passport copy and proof of address (PDF) are required.', 'error');
+        return;
+      }
+      if (passportFile.type !== 'application/pdf' || proofFile.type !== 'application/pdf') {
+        showAlert('Both documents must be PDF files.', 'error');
+        return;
+      }
+
+      var btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      try {
+        var userId = mcSession.user.id;
+        var stamp = Date.now();
+
+        function safe(name) { return name.replace(/[^a-zA-Z0-9._-]/g, '_'); }
+
+        var passportPath = userId + '/onboarding-passport-' + stamp + '-' + safe(passportFile.name);
+        var proofPath = userId + '/onboarding-address-proof-' + stamp + '-' + safe(proofFile.name);
+
+        var up1 = await window.mcClient.storage.from('kyc-files').upload(passportPath, passportFile, { contentType: 'application/pdf' });
+        if (up1.error) throw up1.error;
+
+        var up2 = await window.mcClient.storage.from('kyc-files').upload(proofPath, proofFile, { contentType: 'application/pdf' });
+        if (up2.error) throw up2.error;
+
+        var payload = {
+          user_id: userId,
+          full_legal_name: document.getElementById('full_legal_name').value.trim(),
+          date_of_birth: document.getElementById('date_of_birth').value,
+          nationality: document.getElementById('nationality').value.trim(),
+          phone_number: document.getElementById('phone_number').value.trim(),
+          email: document.getElementById('email_field').value.trim(),
+          address_line1: document.getElementById('address_line1').value.trim(),
+          address_line2: document.getElementById('address_line2').value.trim(),
+          city: document.getElementById('city').value.trim(),
+          state_province: document.getElementById('state_province').value.trim(),
+          postal_code: document.getElementById('postal_code').value.trim(),
+          country_of_residence: document.getElementById('country_of_residence').value.trim(),
+          tax_residency_country: document.getElementById('tax_residency_country').value.trim(),
+          tax_id_number: document.getElementById('tax_id_number').value.trim(),
+          occupation: document.getElementById('occupation').value.trim(),
+          source_of_funds: document.getElementById('source_of_funds').value,
+          pep_status: document.getElementById('pep_status').checked,
+          passport_copy_path: passportPath,
+          proof_of_address_path: proofPath,
+          bank_account_holder_name: document.getElementById('bank_account_holder_name').value.trim(),
+          bank_name: document.getElementById('bank_name').value.trim(),
+          bank_account_number: document.getElementById('bank_account_number').value.trim(),
+          bank_swift_bic: document.getElementById('bank_swift_bic').value.trim(),
+          bank_country: document.getElementById('bank_country').value.trim(),
+          payout_currency: document.getElementById('payout_currency').value
+        };
+
+        var insert = await window.mcClient.from('onboarding_submissions').insert(payload);
+        if (insert.error) throw insert.error;
+
+        form.style.display = 'none';
+        showAlert('Thank you. Your onboarding information has been submitted and is being reviewed by our compliance team.', 'success');
+      } catch (err) {
+        console.error(err);
+        showAlert('Something went wrong submitting your information. Please try again, or contact inquiries@met.capital.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit Onboarding Information';
+      }
+    });
+
+    (async function init() {
+      var session = await window.mcRequireSession('/clients/kyc/onboarding/');
+      if (!session) return;
+      mcSession = session;
+      var profile = await window.mcLoadProfile();
+      if (!profile) return;
+
+      document.getElementById('email_field').value = profile.email || '';
+
+      var { data: existing } = await window.mcClient
+        .from('onboarding_submissions')
+        .select('id, status, submitted_at')
+        .eq('user_id', session.user.id)
+        .order('submitted_at', { ascending: false })
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        document.getElementById('onboardingForm').style.display = 'none';
+        var box = document.getElementById('alreadySubmitted');
+        box.style.display = 'block';
+        document.getElementById('alreadySubmittedText').textContent =
+          'You submitted onboarding information on ' + new Date(existing[0].submitted_at).toLocaleDateString() +
+          '. Status: ' + existing[0].status + '. Contact us if you need to update any details.';
+      }
+    })();
+  </script>
+</body>
+</html>

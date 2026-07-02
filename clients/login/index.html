@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Client Login — Met Capital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+</head>
+<body>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <span class="badge-pill">Client Portal</span>
+    </div>
+  </header>
+
+  <div class="login-wrap">
+    <div class="login-card">
+      <h1>Client Login</h1>
+      <p class="subtitle">Sign in with the credentials provided to you by Met Capital.</p>
+
+      <div id="loginAlert"></div>
+
+      <form id="loginForm" novalidate>
+        <div class="field" style="margin-bottom:1.1rem;">
+          <label for="email">Username <span class="required">*</span></label>
+          <input type="email" id="email" name="email" autocomplete="username" required>
+        </div>
+        <div class="field" style="margin-bottom:1.5rem;">
+          <label for="password">Password <span class="required">*</span></label>
+          <input type="password" id="password" name="password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn-primary" id="loginBtn" style="width:100%;">Sign In</button>
+      </form>
+
+      <div class="security-note">
+        This is a private area for Met Capital clients only. If you did not receive
+        login credentials directly from Met Capital, please do not enter information here
+        and contact <a href="mailto:inquiries@met.capital">inquiries@met.capital</a>.
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/clients/assets/auth.js"></script>
+  <script>
+    function showAlert(message, type) {
+      var el = document.getElementById('loginAlert');
+      el.innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var btn = document.getElementById('loginBtn');
+      var email = document.getElementById('email').value.trim();
+      var password = document.getElementById('password').value;
+
+      if (!email || !password) {
+        showAlert('Please enter both your username and password.', 'error');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Signing in…';
+
+      var result = await window.mcClient.auth.signInWithPassword({ email: email, password: password });
+
+      if (result.error) {
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+        showAlert('Access denied. The username or password you entered is incorrect.', 'error');
+        return;
+      }
+
+      var params = new URLSearchParams(window.location.search);
+      var next = params.get('next');
+      window.location.href = next ? decodeURIComponent(next) : '/clients/';
+    });
+
+    // If already logged in, skip straight to the dashboard.
+    (async function () {
+      var session = await window.mcClient.auth.getSession();
+      if (session.data && session.data.session) {
+        window.location.href = '/clients/';
+      }
+    })();
+  </script>
+</body>
+</html>

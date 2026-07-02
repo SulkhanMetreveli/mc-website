@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Documents — Met Capital Client Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+</head>
+<body>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/clients/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/clients/" class="dashboard-link">Dashboard</a>
+        <a href="/clients/documents/" class="active">Documents</a>
+        <a href="/clients/kyc/address-update/">Address &amp; Bank Update</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="page-label">Documents</div>
+    <h1 class="page-title">Document Center</h1>
+    <p class="page-subtitle">Statements, tax documents, and agreements shared with you by Met Capital.</p>
+
+    <div class="card">
+      <div id="docsContent">
+        <p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/clients/assets/auth.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcLogout);
+
+    (async function init() {
+      var session = await window.mcRequireSession('/clients/documents/');
+      if (!session) return;
+      var profile = await window.mcLoadProfile();
+      if (!profile) return;
+
+      var { data: docs, error } = await window.mcClient
+        .from('documents')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('uploaded_at', { ascending: false });
+
+      var content = document.getElementById('docsContent');
+
+      if (error || !docs || docs.length === 0) {
+        content.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No documents have been shared with you yet.</p>';
+        return;
+      }
+
+      var rows = '';
+      for (var i = 0; i < docs.length; i++) {
+        var d = docs[i];
+        rows += '<tr>' +
+          '<td>' + d.title + '</td>' +
+          '<td style="text-transform:capitalize;">' + d.category + '</td>' +
+          '<td>' + new Date(d.uploaded_at).toLocaleDateString() + '</td>' +
+          '<td><a href="#" data-path="' + d.storage_path + '" class="download-link">Download</a></td>' +
+        '</tr>';
+      }
+
+      content.innerHTML =
+        '<table class="simple-table"><thead><tr><th>Title</th><th>Category</th><th>Date</th><th></th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table>';
+
+      var links = document.querySelectorAll('.download-link');
+      links.forEach(function (link) {
+        link.addEventListener('click', async function (e) {
+          e.preventDefault();
+          var path = link.getAttribute('data-path');
+          var { data, error } = await window.mcClient.storage
+            .from('client-documents')
+            .createSignedUrl(path, 60);
+          if (error || !data) {
+            alert('Could not generate a download link. Please try again or contact us.');
+            return;
+          }
+          window.open(data.signedUrl, '_blank');
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
