@@ -57,8 +57,23 @@ account is created by you, on purpose.
 Everything below is done from the Supabase dashboard (**Table Editor**),
 no code needed:
 
-- **Account overview numbers** (balance, performance): edit rows in the
-  `account_overview` table. One row per client (`user_id`).
+- **Client address of record**: edit the `address_line1` / `address_line2`
+  / `city` / `state_province` / `postal_code` / `country` columns directly
+  on the client's row in `client_profiles`. This is what shows on their
+  dashboard — update it here after you've approved an address change (see
+  below), not automatically.
+- **Investment vehicles** (replaces the old single-balance overview):
+  a client can hold several, one row each, in the `investment_vehicles`
+  table (added in `supabase/003_investment_vehicles_and_address.sql` —
+  run that migration once in the SQL Editor if you set the portal up
+  before this was added). Insert one row per product/currency the client
+  holds:
+  `user_id`, `vehicle_name` (e.g. "Systematic Multi-Asset Fund"),
+  `currency`, `balance`, `ytd_performance_pct`,
+  `inception_performance_pct`, `as_of_date`, `notes`. All of these show
+  up as separate cards on the client's dashboard, and their currencies
+  are offered as quick picks on the Withdrawal Request and Payout
+  Currency forms.
 - **Documents**: upload a file in **Storage -> client-documents** under a
   folder named with the client's `user_id`, then add a row to the
   `documents` table pointing at that path so it shows up in their portal.

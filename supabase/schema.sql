@@ -14,7 +14,17 @@ create table if not exists client_profiles (
   email               text not null,
   must_change_password boolean not null default true,
   status              text not null default 'active' check (status in ('active','suspended')),
-  created_at          timestamptz not null default now()
+  created_at          timestamptz not null default now(),
+
+  -- address of record, admin-maintained (see address_update_requests for
+  -- the client-submitted change workflow -- this column is only ever
+  -- updated by an admin after verifying the client out-of-band)
+  address_line1       text,
+  address_line2       text,
+  city                text,
+  state_province      text,
+  postal_code         text,
+  country             text
 );
 
 alter table client_profiles enable row level security;
@@ -211,7 +221,38 @@ create policy "clients insert own withdrawal requests"
   with check (auth.uid() = user_id);
 
 -- ---------------------------------------------------------------------------
--- 7. Storage buckets
+-- 7. investment_vehicles
+--    One row per investment product / currency sub-account a client holds.
+--    A client can have several rows (e.g. one per fund, one per currency).
+--    Admin-maintained only -- clients can read their own rows, never write.
+-- ---------------------------------------------------------------------------
+create table if not exists investment_vehicles (
+  id                          uuid primary key default gen_random_uuid(),
+  user_id                     uuid not null references auth.users(id) on delete cascade,
+  vehicle_name                text not null,
+  currency                    text not null,
+  balance                     numeric,
+  ytd_performance_pct         numeric,
+  inception_performance_pct   numeric,
+  as_of_date                  date,
+  notes                       text,
+  created_at                  timestamptz not null default now(),
+  updated_at                  timestamptz not null default now()
+);
+
+alter table investment_vehicles enable row level security;
+
+create policy "clients read own investment vehicles"
+  on investment_vehicles for select
+  using (auth.uid() = user_id);
+
+-- link withdrawal requests to a specific vehicle/currency once vehicles
+-- exist; nullable so the form still works before any are set up.
+alter table withdrawal_requests
+  add column if not exists investment_vehicle_id uuid references investment_vehicles(id);
+
+-- ---------------------------------------------------------------------------
+-- 8. Storage buckets
 -- ---------------------------------------------------------------------------
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('client-documents', 'client-documents', false, 26214400, null)

@@ -9,6 +9,38 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/clients/assets/portal.css">
+<style>
+  .vehicle-block {
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .vehicle-block:last-child { margin-bottom: 0; }
+  .vehicle-block h3 {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--black);
+    margin-bottom: 1rem;
+  }
+  .profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.75rem;
+  }
+  .profile-item .metric-label {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gray-light);
+    margin-bottom: 0.35rem;
+  }
+  .profile-item .metric-value {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--black);
+    line-height: 1.5;
+  }
+</style>
 </head>
 <body>
   <header class="portal-header">
@@ -32,8 +64,26 @@
     <div id="onboardingBanner"></div>
 
     <div class="card">
-      <h2>Account Overview</h2>
-      <div id="overviewContent">
+      <h2>Client Profile</h2>
+      <div class="profile-grid">
+        <div class="profile-item">
+          <div class="metric-label">Client Name</div>
+          <div class="metric-value" id="profileName">—</div>
+        </div>
+        <div class="profile-item">
+          <div class="metric-label">Client Reference</div>
+          <div class="metric-value" id="profileReference">—</div>
+        </div>
+        <div class="profile-item" style="grid-column: span 2;">
+          <div class="metric-label">Address on File</div>
+          <div class="metric-value" id="profileAddress">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Investment Vehicles</h2>
+      <div id="vehiclesContent">
         <p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p>
       </div>
     </div>
@@ -84,6 +134,12 @@
       return '<span class="metric-value ' + cls + '">' + sign + value + '%</span>';
     }
 
+    function fmtAddress(p) {
+      var parts = [p.address_line1, p.address_line2, p.city, p.state_province, p.postal_code, p.country]
+        .filter(function (v) { return v && v.trim().length > 0; });
+      return parts.length ? parts.join(', ') : 'Not on file yet';
+    }
+
     (async function init() {
       var session = await window.mcRequireSession('/clients/');
       if (!session) return;
@@ -93,6 +149,9 @@
 
       document.getElementById('welcomeTitle').textContent = 'Welcome, ' + profile.full_name;
       document.getElementById('refText').textContent = 'Client reference — ' + (profile.client_reference || '—');
+      document.getElementById('profileName').textContent = profile.full_name;
+      document.getElementById('profileReference').textContent = profile.client_reference || '—';
+      document.getElementById('profileAddress').textContent = fmtAddress(profile);
 
       // Onboarding banner: check if an onboarding submission already exists.
       var { data: onboarding } = await window.mcClient
@@ -107,27 +166,33 @@
         banner.innerHTML = '<div class="alert info">Please complete your initial client onboarding (KYC) — <a href="/clients/kyc/onboarding/">start onboarding</a>.</div>';
       }
 
-      var { data: overview, error } = await window.mcClient
-        .from('account_overview')
+      var { data: vehicles, error } = await window.mcClient
+        .from('investment_vehicles')
         .select('*')
         .eq('user_id', session.user.id)
-        .maybeSingle();
+        .order('vehicle_name', { ascending: true });
 
-      var content = document.getElementById('overviewContent');
-      if (error || !overview) {
-        content.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">Your account overview will appear here once available. Please contact your relationship manager with any questions.</p>';
+      var content = document.getElementById('vehiclesContent');
+      if (error || !vehicles || vehicles.length === 0) {
+        content.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No investment vehicles on file yet. Please contact your relationship manager with any questions.</p>';
         return;
       }
 
-      content.innerHTML =
-        '<div class="overview-grid">' +
-          '<div class="overview-item"><div class="metric-label">Balance</div><div class="metric-value">' + fmtMoney(overview.balance, overview.currency) + '</div></div>' +
-          '<div class="overview-item"><div class="metric-label">YTD Performance</div><div class="metric-value">' + fmtPct(overview.ytd_performance_pct) + '</div></div>' +
-          '<div class="overview-item"><div class="metric-label">Since Inception</div><div class="metric-value">' + fmtPct(overview.inception_performance_pct) + '</div></div>' +
-          '<div class="overview-item"><div class="metric-label">Currency</div><div class="metric-value">' + (overview.currency || '—') + '</div></div>' +
-        '</div>' +
-        (overview.notes ? '<div class="overview-asof">' + overview.notes + '</div>' : '') +
-        '<div class="overview-asof">As of ' + (overview.as_of_date || '—') + '</div>';
+      var html = '';
+      vehicles.forEach(function (v) {
+        html += '<div class="vehicle-block">' +
+          '<h3>' + v.vehicle_name + '</h3>' +
+          '<div class="overview-grid">' +
+            '<div class="overview-item"><div class="metric-label">Balance</div><div class="metric-value">' + fmtMoney(v.balance, v.currency) + '</div></div>' +
+            '<div class="overview-item"><div class="metric-label">YTD Performance</div><div class="metric-value">' + fmtPct(v.ytd_performance_pct) + '</div></div>' +
+            '<div class="overview-item"><div class="metric-label">Since Inception</div><div class="metric-value">' + fmtPct(v.inception_performance_pct) + '</div></div>' +
+            '<div class="overview-item"><div class="metric-label">Currency</div><div class="metric-value">' + (v.currency || '—') + '</div></div>' +
+          '</div>' +
+          (v.notes ? '<div class="overview-asof">' + v.notes + '</div>' : '') +
+          '<div class="overview-asof">As of ' + (v.as_of_date || '—') + '</div>' +
+        '</div>';
+      });
+      content.innerHTML = html;
     })();
   </script>
 </body>

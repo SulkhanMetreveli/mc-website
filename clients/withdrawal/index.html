@@ -36,31 +36,30 @@
     </p>
 
     <div id="formAlert"></div>
+    <div id="noVehiclesNotice" style="display:none;" class="alert info">
+      No investment vehicles are on file for your account yet, so pick the currency manually
+      below. Once your account is set up with one or more vehicles, you'll be able to select
+      exactly which one to withdraw from.
+    </div>
 
     <form id="withdrawalForm" class="card" novalidate>
       <div class="form-section">
         <h3>Request Details</h3>
 
-        <div class="field" style="margin-bottom:1.25rem;">
-          <label>Withdrawal Type <span class="required">*</span></label>
-          <div class="checkbox-field" style="margin-top:0.5rem;">
-            <input type="radio" name="withdrawal_type" id="type_full" value="full" required>
-            <label for="type_full" style="font-weight:400;">Full balance — withdraw my entire account balance</label>
-          </div>
-          <div class="checkbox-field" style="margin-top:0.5rem;">
-            <input type="radio" name="withdrawal_type" id="type_partial" value="partial" required>
-            <label for="type_partial" style="font-weight:400;">Partial amount — specify an amount below</label>
+        <div class="form-row" id="vehicleFieldRow" style="display:none;">
+          <div class="field" style="grid-column: 1 / -1;">
+            <label for="vehicleSelect">Withdraw From <span class="required">*</span></label>
+            <select id="vehicleSelect">
+              <option value="">Select an investment vehicle…</option>
+            </select>
+            <div class="file-hint" id="vehicleBalanceHint"></div>
           </div>
         </div>
 
-        <div class="form-row">
-          <div class="field" id="amountField">
-            <label for="amount">Amount <span class="required">*</span></label>
-            <input type="text" id="amount" inputmode="decimal" placeholder="e.g. 25000" disabled>
-          </div>
+        <div class="form-row" id="fallbackCurrencyRow">
           <div class="field">
             <label for="currency">Currency <span class="required">*</span></label>
-            <select id="currency" required>
+            <select id="currency">
               <option value="">Select currency…</option>
               <option value="USD">USD — US Dollar</option>
               <option value="EUR">EUR — Euro</option>
@@ -72,6 +71,25 @@
               <option value="JPY">JPY — Japanese Yen</option>
               <option value="OTHER">Other</option>
             </select>
+          </div>
+        </div>
+
+        <div class="field" style="margin-bottom:1.25rem;">
+          <label>Withdrawal Type <span class="required">*</span></label>
+          <div class="checkbox-field" style="margin-top:0.5rem;">
+            <input type="radio" name="withdrawal_type" id="type_full" value="full" required>
+            <label for="type_full" style="font-weight:400;">Full balance — withdraw the entire balance of the selected vehicle/currency</label>
+          </div>
+          <div class="checkbox-field" style="margin-top:0.5rem;">
+            <input type="radio" name="withdrawal_type" id="type_partial" value="partial" required>
+            <label for="type_partial" style="font-weight:400;">Partial amount — specify an amount below</label>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field" id="amountField">
+            <label for="amount">Amount <span class="required">*</span></label>
+            <input type="text" id="amount" inputmode="decimal" placeholder="e.g. 25000" disabled>
           </div>
         </div>
 
@@ -119,10 +137,20 @@
     document.getElementById('logoutBtn').addEventListener('click', window.mcLogout);
 
     var mcSession = null;
+    var vehicles = [];
 
     function showAlert(message, type) {
       document.getElementById('formAlert').innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function fmtMoney(value, currency) {
+      if (value === null || value === undefined) return '—';
+      try {
+        return new Intl.NumberFormat('en-GB', { style: 'currency', currency: currency || 'USD' }).format(value);
+      } catch (e) {
+        return value + ' ' + (currency || '');
+      }
     }
 
     var amountInput = document.getElementById('amount');
@@ -135,6 +163,13 @@
     document.getElementById('type_full').addEventListener('change', toggleAmountField);
     document.getElementById('type_partial').addEventListener('change', toggleAmountField);
 
+    var vehicleSelect = document.getElementById('vehicleSelect');
+    vehicleSelect.addEventListener('change', function () {
+      var v = vehicles.find(function (x) { return x.id === vehicleSelect.value; });
+      var hint = document.getElementById('vehicleBalanceHint');
+      hint.textContent = v ? 'Available balance: ' + fmtMoney(v.balance, v.currency) : '';
+    });
+
     document.getElementById('withdrawalForm').addEventListener('submit', async function (e) {
       e.preventDefault();
       var form = e.target;
@@ -145,6 +180,20 @@
         return;
       }
       var withdrawalType = typeEl.value;
+
+      var hasVehicles = vehicles.length > 0;
+      var selectedVehicle = hasVehicles ? vehicles.find(function (x) { return x.id === vehicleSelect.value; }) : null;
+
+      if (hasVehicles && !selectedVehicle) {
+        showAlert('Please select which investment vehicle to withdraw from.', 'error');
+        return;
+      }
+
+      var currency = hasVehicles ? (selectedVehicle ? selectedVehicle.currency : '') : document.getElementById('currency').value;
+      if (!currency) {
+        showAlert('Please select a currency.', 'error');
+        return;
+      }
 
       if (withdrawalType === 'partial') {
         var amountVal = parseFloat(amountInput.value);
@@ -171,9 +220,10 @@
       try {
         var payload = {
           user_id: mcSession.user.id,
+          investment_vehicle_id: selectedVehicle ? selectedVehicle.id : null,
           withdrawal_type: withdrawalType,
           amount: withdrawalType === 'partial' ? parseFloat(amountInput.value) : null,
-          currency: document.getElementById('currency').value,
+          currency: currency,
           reason: document.getElementById('reason').value,
           confirm_bank_on_file: true,
           additional_notes: document.getElementById('additional_notes').value.trim()
@@ -184,6 +234,7 @@
 
         form.reset();
         amountInput.disabled = true;
+        document.getElementById('vehicleBalanceHint').textContent = '';
         showAlert('Your withdrawal request has been submitted. A member of our operations team will contact you to verify the request before any funds are released.', 'success');
       } catch (err) {
         console.error(err);
@@ -201,17 +252,29 @@
       var profile = await window.mcLoadProfile();
       if (!profile) return;
 
-      // Pre-select currency from account overview if available.
-      var { data: overview } = await window.mcClient
-        .from('account_overview')
-        .select('currency')
+      var { data: vehicleRows } = await window.mcClient
+        .from('investment_vehicles')
+        .select('*')
         .eq('user_id', session.user.id)
-        .maybeSingle();
-      if (overview && overview.currency) {
-        var sel = document.getElementById('currency');
-        for (var i = 0; i < sel.options.length; i++) {
-          if (sel.options[i].value === overview.currency) { sel.selectedIndex = i; break; }
-        }
+        .order('vehicle_name', { ascending: true });
+
+      vehicles = vehicleRows || [];
+
+      if (vehicles.length > 0) {
+        document.getElementById('vehicleFieldRow').style.display = '';
+        document.getElementById('fallbackCurrencyRow').style.display = 'none';
+        document.getElementById('currency').required = false;
+        vehicleSelect.required = true;
+
+        vehicles.forEach(function (v) {
+          var opt = document.createElement('option');
+          opt.value = v.id;
+          opt.textContent = v.vehicle_name + ' — ' + v.currency + (v.balance !== null ? ' (' + fmtMoney(v.balance, v.currency) + ')' : '');
+          vehicleSelect.appendChild(opt);
+        });
+      } else {
+        document.getElementById('noVehiclesNotice').style.display = 'block';
+        document.getElementById('currency').required = true;
       }
     })();
   </script>

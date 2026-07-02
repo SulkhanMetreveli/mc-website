@@ -118,15 +118,18 @@
             <label for="payout_currency">Payout Currency <span class="required">*</span></label>
             <select id="payout_currency" required>
               <option value="">Select currency…</option>
-              <option value="USD">USD — US Dollar</option>
-              <option value="EUR">EUR — Euro</option>
-              <option value="GBP">GBP — British Pound</option>
-              <option value="CHF">CHF — Swiss Franc</option>
-              <option value="SGD">SGD — Singapore Dollar</option>
-              <option value="HKD">HKD — Hong Kong Dollar</option>
-              <option value="AED">AED — UAE Dirham</option>
-              <option value="JPY">JPY — Japanese Yen</option>
-              <option value="OTHER">Other</option>
+              <optgroup label="Your Account Currencies" id="accountCurrencyGroup" style="display:none;"></optgroup>
+              <optgroup label="Other Currencies">
+                <option value="USD">USD — US Dollar</option>
+                <option value="EUR">EUR — Euro</option>
+                <option value="GBP">GBP — British Pound</option>
+                <option value="CHF">CHF — Swiss Franc</option>
+                <option value="SGD">SGD — Singapore Dollar</option>
+                <option value="HKD">HKD — Hong Kong Dollar</option>
+                <option value="AED">AED — UAE Dirham</option>
+                <option value="JPY">JPY — Japanese Yen</option>
+                <option value="OTHER">Other</option>
+              </optgroup>
             </select>
           </div>
         </div>
@@ -260,6 +263,35 @@
       if (!session) return;
       mcSession = session;
       await window.mcLoadProfile();
+
+      // Surface the client's existing investment-vehicle currencies at the
+      // top of the Payout Currency dropdown, so multi-currency accounts are
+      // easy to select from without losing the ability to add a new one.
+      var { data: vehicleRows } = await window.mcClient
+        .from('investment_vehicles')
+        .select('currency')
+        .eq('user_id', session.user.id);
+
+      if (vehicleRows && vehicleRows.length > 0) {
+        var seen = {};
+        var currencies = [];
+        vehicleRows.forEach(function (v) {
+          if (v.currency && !seen[v.currency]) {
+            seen[v.currency] = true;
+            currencies.push(v.currency);
+          }
+        });
+        if (currencies.length > 0) {
+          var group = document.getElementById('accountCurrencyGroup');
+          currencies.forEach(function (c) {
+            var opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = c + ' — currently held';
+            group.appendChild(opt);
+          });
+          group.style.display = '';
+        }
+      }
     })();
   </script>
 </body>
