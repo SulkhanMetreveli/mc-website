@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Manage Client — Met Capital Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body>
+  <div class="admin-topbar">Met Capital — Internal Admin</div>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/admin/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/admin/">Dashboard</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="page-label"><a href="/admin/">← All Clients</a></div>
+    <h1 class="page-title" id="clientTitle">Loading…</h1>
+    <p class="page-subtitle" id="clientSubtitle"></p>
+
+    <div id="pageAlert"></div>
+
+    <!-- PROFILE -->
+    <div class="section-block">
+      <h2>Profile</h2>
+      <form id="profileForm" class="card" novalidate>
+        <div class="form-row">
+          <div class="field">
+            <label for="p_full_name">Full Name <span class="required">*</span></label>
+            <input type="text" id="p_full_name" required>
+          </div>
+          <div class="field">
+            <label for="p_reference">Client Reference</label>
+            <input type="text" id="p_reference">
+          </div>
+          <div class="field">
+            <label for="p_status">Status</label>
+            <select id="p_status">
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-section">
+          <h3>Address of Record</h3>
+          <div class="form-row">
+            <div class="field"><label for="p_address_line1">Address Line 1</label><input type="text" id="p_address_line1"></div>
+            <div class="field"><label for="p_address_line2">Address Line 2</label><input type="text" id="p_address_line2"></div>
+          </div>
+          <div class="form-row">
+            <div class="field"><label for="p_city">City</label><input type="text" id="p_city"></div>
+            <div class="field"><label for="p_state_province">State / Province</label><input type="text" id="p_state_province"></div>
+            <div class="field"><label for="p_postal_code">Postal Code</label><input type="text" id="p_postal_code"></div>
+            <div class="field"><label for="p_country">Country</label><input type="text" id="p_country"></div>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" id="profileSaveBtn">Save Profile</button>
+      </form>
+    </div>
+
+    <!-- INVESTMENT VEHICLES -->
+    <div class="section-block">
+      <h2>Investment Vehicles</h2>
+      <div class="card">
+        <div id="vehiclesTable"></div>
+        <h3 style="margin-top:1.5rem; margin-bottom:0.75rem; font-size:0.8125rem; color:var(--gray);" id="vehicleFormTitle">Add a Vehicle</h3>
+        <form id="vehicleForm" novalidate>
+          <input type="hidden" id="v_id">
+          <div class="inline-form-grid">
+            <div class="field"><label>Vehicle Name</label><input type="text" id="v_name" required></div>
+            <div class="field"><label>Currency</label><input type="text" id="v_currency" required placeholder="USD"></div>
+            <div class="field"><label>Balance</label><input type="text" id="v_balance" inputmode="decimal"></div>
+            <div class="field"><label>YTD %</label><input type="text" id="v_ytd" inputmode="decimal"></div>
+            <div class="field"><label>Inception %</label><input type="text" id="v_inception" inputmode="decimal"></div>
+            <div class="field"><label>As Of</label><input type="date" id="v_asof"></div>
+          </div>
+          <div class="field" style="margin-bottom:1rem;"><label>Notes</label><input type="text" id="v_notes"></div>
+          <button type="submit" class="btn-small" id="vehicleSaveBtn">Save Vehicle</button>
+          <button type="button" class="btn-small" id="vehicleCancelBtn" style="display:none;">Cancel Edit</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- DOCUMENTS -->
+    <div class="section-block">
+      <h2>Documents</h2>
+      <div class="card">
+        <div id="documentsTable"></div>
+        <h3 style="margin-top:1.5rem; margin-bottom:0.75rem; font-size:0.8125rem; color:var(--gray);">Upload a Document</h3>
+        <form id="documentForm" novalidate>
+          <div class="inline-form-grid">
+            <div class="field"><label>Title</label><input type="text" id="d_title" required></div>
+            <div class="field">
+              <label>Category</label>
+              <select id="d_category">
+                <option value="statement">Statement</option>
+                <option value="tax">Tax</option>
+                <option value="agreement">Agreement</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="field"><label>File</label><input type="file" id="d_file" required></div>
+          </div>
+          <button type="submit" class="btn-small" id="documentUploadBtn">Upload</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ONBOARDING -->
+    <div class="section-block">
+      <h2>Onboarding Submissions</h2>
+      <div class="card"><div id="onboardingContent"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
+    </div>
+
+    <!-- ADDRESS UPDATE REQUESTS -->
+    <div class="section-block">
+      <h2>Address &amp; Bank Update Requests</h2>
+      <div class="card"><div id="addressRequestsContent"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
+    </div>
+
+    <!-- WITHDRAWAL REQUESTS -->
+    <div class="section-block">
+      <h2>Withdrawal Requests</h2>
+      <div class="card"><div id="withdrawalRequestsContent"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/admin/assets/admin.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcAdminLogout);
+
+    var params = new URLSearchParams(window.location.search);
+    var targetUserId = params.get('u');
+
+    function showAlert(message, type) {
+      document.getElementById('pageAlert').innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function fmtMoney(value, currency) {
+      if (value === null || value === undefined) return '—';
+      try { return new Intl.NumberFormat('en-GB', { style: 'currency', currency: currency || 'USD' }).format(value); }
+      catch (e) { return value + ' ' + (currency || ''); }
+    }
+
+    function statusPill(status) {
+      return '<span class="status-pill ' + status + '">' + status + '</span>';
+    }
+
+    async function signedUrlFor(bucket, path) {
+      var { data, error } = await window.mcAdminClient.storage.from(bucket).createSignedUrl(path, 60);
+      if (error || !data) return null;
+      return data.signedUrl;
+    }
+
+    function bindPdfLink(el, bucket, path) {
+      el.addEventListener('click', async function (e) {
+        e.preventDefault();
+        var url = await signedUrlFor(bucket, path);
+        if (url) window.open(url, '_blank'); else alert('Could not generate a link for this file.');
+      });
+    }
+
+    if (!targetUserId) {
+      document.body.innerHTML = '<main class="portal-main"><div class="alert error">No client specified. Go back to the <a href="/admin/">dashboard</a> and click Manage on a client.</div></main>';
+      throw new Error('missing ?u= param');
+    }
+
+    // ---------------- PROFILE ----------------
+    async function loadProfile() {
+      var { data: profile, error } = await window.mcAdminClient
+        .from('client_profiles').select('*').eq('user_id', targetUserId).maybeSingle();
+
+      if (error || !profile) {
+        document.getElementById('clientTitle').textContent = 'Client not found';
+        return null;
+      }
+
+      document.getElementById('clientTitle').textContent = profile.full_name;
+      document.getElementById('clientSubtitle').textContent = profile.email + ' · ' + (profile.client_reference || 'no reference');
+
+      document.getElementById('p_full_name').value = profile.full_name || '';
+      document.getElementById('p_reference').value = profile.client_reference || '';
+      document.getElementById('p_status').value = profile.status || 'active';
+      document.getElementById('p_address_line1').value = profile.address_line1 || '';
+      document.getElementById('p_address_line2').value = profile.address_line2 || '';
+      document.getElementById('p_city').value = profile.city || '';
+      document.getElementById('p_state_province').value = profile.state_province || '';
+      document.getElementById('p_postal_code').value = profile.postal_code || '';
+      document.getElementById('p_country').value = profile.country || '';
+      return profile;
+    }
+
+    document.getElementById('profileForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var btn = document.getElementById('profileSaveBtn');
+      btn.disabled = true; btn.textContent = 'Saving…';
+      var { error } = await window.mcAdminClient.from('client_profiles').update({
+        full_name: document.getElementById('p_full_name').value.trim(),
+        client_reference: document.getElementById('p_reference').value.trim() || null,
+        status: document.getElementById('p_status').value,
+        address_line1: document.getElementById('p_address_line1').value.trim() || null,
+        address_line2: document.getElementById('p_address_line2').value.trim() || null,
+        city: document.getElementById('p_city').value.trim() || null,
+        state_province: document.getElementById('p_state_province').value.trim() || null,
+        postal_code: document.getElementById('p_postal_code').value.trim() || null,
+        country: document.getElementById('p_country').value.trim() || null
+      }).eq('user_id', targetUserId);
+      btn.disabled = false; btn.textContent = 'Save Profile';
+      if (error) { showAlert('Could not save profile: ' + error.message, 'error'); return; }
+      showAlert('Profile saved.', 'success');
+      loadProfile();
+    });
+
+    function applyAddressToProfileForm(addr) {
+      document.getElementById('p_address_line1').value = addr.address_line1 || '';
+      document.getElementById('p_address_line2').value = addr.address_line2 || '';
+      document.getElementById('p_city').value = addr.city || '';
+      document.getElementById('p_state_province').value = addr.state_province || '';
+      document.getElementById('p_postal_code').value = addr.postal_code || '';
+      document.getElementById('p_country').value = addr.country || '';
+    }
+
+    // ---------------- INVESTMENT VEHICLES ----------------
+    async function loadVehicles() {
+      var { data: vehicles } = await window.mcAdminClient
+        .from('investment_vehicles').select('*').eq('user_id', targetUserId).order('vehicle_name');
+
+      var el = document.getElementById('vehiclesTable');
+      if (!vehicles || vehicles.length === 0) {
+        el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No vehicles yet.</p>';
+        return;
+      }
+      var rows = '';
+      vehicles.forEach(function (v) {
+        rows += '<tr>' +
+          '<td>' + v.vehicle_name + '</td>' +
+          '<td>' + v.currency + '</td>' +
+          '<td>' + fmtMoney(v.balance, v.currency) + '</td>' +
+          '<td>' + (v.ytd_performance_pct ?? '—') + '%</td>' +
+          '<td>' + (v.inception_performance_pct ?? '—') + '%</td>' +
+          '<td>' + (v.as_of_date || '—') + '</td>' +
+          '<td>' +
+            '<button type="button" class="btn-small" data-edit-vehicle=\'' + JSON.stringify(v).replace(/'/g, "&#39;") + '\'>Edit</button>' +
+            '<button type="button" class="btn-small danger" data-delete-vehicle="' + v.id + '">Delete</button>' +
+          '</td>' +
+        '</tr>';
+      });
+      el.innerHTML = '<table class="admin-table"><thead><tr><th>Vehicle</th><th>Ccy</th><th>Balance</th><th>YTD</th><th>Inception</th><th>As Of</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+
+      el.querySelectorAll('[data-edit-vehicle]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var v = JSON.parse(btn.getAttribute('data-edit-vehicle'));
+          document.getElementById('v_id').value = v.id;
+          document.getElementById('v_name').value = v.vehicle_name;
+          document.getElementById('v_currency').value = v.currency;
+          document.getElementById('v_balance').value = v.balance ?? '';
+          document.getElementById('v_ytd').value = v.ytd_performance_pct ?? '';
+          document.getElementById('v_inception').value = v.inception_performance_pct ?? '';
+          document.getElementById('v_asof').value = v.as_of_date ?? '';
+          document.getElementById('v_notes').value = v.notes ?? '';
+          document.getElementById('vehicleFormTitle').textContent = 'Edit Vehicle';
+          document.getElementById('vehicleCancelBtn').style.display = '';
+          document.getElementById('vehicleSaveBtn').textContent = 'Update Vehicle';
+          window.scrollTo({ top: document.getElementById('vehicleForm').offsetTop - 100, behavior: 'smooth' });
+        });
+      });
+      el.querySelectorAll('[data-delete-vehicle]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          if (!confirm('Delete this investment vehicle?')) return;
+          await window.mcAdminClient.from('investment_vehicles').delete().eq('id', btn.getAttribute('data-delete-vehicle'));
+          loadVehicles();
+        });
+      });
+    }
+
+    function resetVehicleForm() {
+      document.getElementById('vehicleForm').reset();
+      document.getElementById('v_id').value = '';
+      document.getElementById('vehicleFormTitle').textContent = 'Add a Vehicle';
+      document.getElementById('vehicleCancelBtn').style.display = 'none';
+      document.getElementById('vehicleSaveBtn').textContent = 'Save Vehicle';
+    }
+    document.getElementById('vehicleCancelBtn').addEventListener('click', resetVehicleForm);
+
+    document.getElementById('vehicleForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var id = document.getElementById('v_id').value;
+      var payload = {
+        user_id: targetUserId,
+        vehicle_name: document.getElementById('v_name').value.trim(),
+        currency: document.getElementById('v_currency').value.trim().toUpperCase(),
+        balance: document.getElementById('v_balance').value ? parseFloat(document.getElementById('v_balance').value) : null,
+        ytd_performance_pct: document.getElementById('v_ytd').value ? parseFloat(document.getElementById('v_ytd').value) : null,
+        inception_performance_pct: document.getElementById('v_inception').value ? parseFloat(document.getElementById('v_inception').value) : null,
+        as_of_date: document.getElementById('v_asof').value || null,
+        notes: document.getElementById('v_notes').value.trim() || null,
+        updated_at: new Date().toISOString()
+      };
+
+      var result;
+      if (id) {
+        result = await window.mcAdminClient.from('investment_vehicles').update(payload).eq('id', id);
+      } else {
+        result = await window.mcAdminClient.from('investment_vehicles').insert(payload);
+      }
+      if (result.error) { showAlert('Could not save vehicle: ' + result.error.message, 'error'); return; }
+      resetVehicleForm();
+      loadVehicles();
+      showAlert('Vehicle saved.', 'success');
+    });
+
+    // ---------------- DOCUMENTS ----------------
+    async function loadDocuments() {
+      var { data: docs } = await window.mcAdminClient
+        .from('documents').select('*').eq('user_id', targetUserId).order('uploaded_at', { ascending: false });
+
+      var el = document.getElementById('documentsTable');
+      if (!docs || docs.length === 0) {
+        el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No documents yet.</p>';
+        return;
+      }
+      var rows = '';
+      docs.forEach(function (d) {
+        rows += '<tr>' +
+          '<td>' + d.title + '</td>' +
+          '<td style="text-transform:capitalize;">' + d.category + '</td>' +
+          '<td>' + new Date(d.uploaded_at).toLocaleDateString() + '</td>' +
+          '<td><a href="#" data-view-doc="' + d.storage_path + '">View</a></td>' +
+          '<td><button type="button" class="btn-small danger" data-delete-doc="' + d.id + '" data-path="' + d.storage_path + '">Delete</button></td>' +
+        '</tr>';
+      });
+      el.innerHTML = '<table class="admin-table"><thead><tr><th>Title</th><th>Category</th><th>Uploaded</th><th></th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+
+      el.querySelectorAll('[data-view-doc]').forEach(function (a) {
+        bindPdfLink(a, 'client-documents', a.getAttribute('data-view-doc'));
+      });
+      el.querySelectorAll('[data-delete-doc]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          if (!confirm('Delete this document?')) return;
+          await window.mcAdminClient.storage.from('client-documents').remove([btn.getAttribute('data-path')]);
+          await window.mcAdminClient.from('documents').delete().eq('id', btn.getAttribute('data-delete-doc'));
+          loadDocuments();
+        });
+      });
+    }
+
+    document.getElementById('documentForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var file = document.getElementById('d_file').files[0];
+      var title = document.getElementById('d_title').value.trim();
+      if (!file || !title) { showAlert('Title and a file are required.', 'error'); return; }
+
+      var btn = document.getElementById('documentUploadBtn');
+      btn.disabled = true; btn.textContent = 'Uploading…';
+
+      try {
+        var safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        var path = targetUserId + '/' + Date.now() + '-' + safeName;
+        var up = await window.mcAdminClient.storage.from('client-documents').upload(path, file);
+        if (up.error) throw up.error;
+
+        var ins = await window.mcAdminClient.from('documents').insert({
+          user_id: targetUserId,
+          title: title,
+          category: document.getElementById('d_category').value,
+          storage_path: path
+        });
+        if (ins.error) throw ins.error;
+
+        document.getElementById('documentForm').reset();
+        loadDocuments();
+        showAlert('Document uploaded.', 'success');
+      } catch (err) {
+        showAlert('Upload failed: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Upload';
+      }
+    });
+
+    // ---------------- ONBOARDING ----------------
+    async function loadOnboarding() {
+      var { data: rows } = await window.mcAdminClient
+        .from('onboarding_submissions').select('*').eq('user_id', targetUserId).order('submitted_at', { ascending: false });
+
+      var el = document.getElementById('onboardingContent');
+      if (!rows || rows.length === 0) {
+        el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No onboarding submission yet.</p>';
+        return;
+      }
+
+      var html = '';
+      rows.forEach(function (r) {
+        html += '<div class="request-detail-box">' +
+          statusPill(r.status) +
+          '<dl>' +
+          '<dt>Submitted</dt><dd>' + new Date(r.submitted_at).toLocaleString() + '</dd>' +
+          '<dt>Full Legal Name</dt><dd>' + r.full_legal_name + '</dd>' +
+          '<dt>Date of Birth</dt><dd>' + r.date_of_birth + '</dd>' +
+          '<dt>Nationality</dt><dd>' + r.nationality + '</dd>' +
+          '<dt>Phone</dt><dd>' + r.phone_number + '</dd>' +
+          '<dt>Email</dt><dd>' + r.email + '</dd>' +
+          '<dt>Address</dt><dd>' + [r.address_line1, r.address_line2, r.city, r.state_province, r.postal_code, r.country_of_residence].filter(Boolean).join(', ') + '</dd>' +
+          '<dt>Tax Residency</dt><dd>' + r.tax_residency_country + (r.tax_id_number ? ' (' + r.tax_id_number + ')' : '') + '</dd>' +
+          '<dt>Occupation / Source of Funds</dt><dd>' + r.occupation + ' — ' + r.source_of_funds + '</dd>' +
+          '<dt>PEP</dt><dd>' + (r.pep_status ? 'Yes' : 'No') + '</dd>' +
+          '<dt>Documents</dt><dd><a href="#" data-view-doc="' + r.passport_copy_path + '">Passport Copy</a> · <a href="#" data-view-doc="' + r.proof_of_address_path + '">Proof of Address</a></dd>' +
+          '<dt>Payout Bank</dt><dd>' + r.bank_account_holder_name + ' — ' + r.bank_name + ' (' + r.bank_country + '), ' + r.bank_account_number + (r.bank_swift_bic ? ', SWIFT ' + r.bank_swift_bic : '') + ', ' + r.payout_currency + '</dd>' +
+          '</dl>' +
+          (r.status === 'pending' ?
+            '<div style="margin-top:0.75rem;">' +
+              '<button type="button" class="btn-small approve" data-onboard-approve="' + r.id + '">Approve</button>' +
+              '<button type="button" class="btn-small reject" data-onboard-reject="' + r.id + '">Reject</button>' +
+            '</div>' : '') +
+        '</div>';
+      });
+      el.innerHTML = html;
+
+      el.querySelectorAll('[data-view-doc]').forEach(function (a) { bindPdfLink(a, 'kyc-files', a.getAttribute('data-view-doc')); });
+      el.querySelectorAll('[data-onboard-approve]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          await window.mcAdminClient.from('onboarding_submissions').update({ status: 'approved' }).eq('id', btn.getAttribute('data-onboard-approve'));
+          loadOnboarding();
+        });
+      });
+      el.querySelectorAll('[data-onboard-reject]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          await window.mcAdminClient.from('onboarding_submissions').update({ status: 'rejected' }).eq('id', btn.getAttribute('data-onboard-reject'));
+          loadOnboarding();
+        });
+      });
+    }
+
+    // ---------------- ADDRESS UPDATE REQUESTS ----------------
+    async function loadAddressRequests() {
+      var { data: rows } = await window.mcAdminClient
+        .from('address_update_requests').select('*').eq('user_id', targetUserId).order('submitted_at', { ascending: false });
+
+      var el = document.getElementById('addressRequestsContent');
+      if (!rows || rows.length === 0) {
+        el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No requests yet.</p>';
+        return;
+      }
+
+      var html = '';
+      rows.forEach(function (r) {
+        html += '<div class="request-detail-box">' +
+          statusPill(r.status) +
+          '<dl>' +
+          '<dt>Submitted</dt><dd>' + new Date(r.submitted_at).toLocaleString() + '</dd>' +
+          '<dt>New Address</dt><dd>' + [r.address_line1, r.address_line2, r.city, r.state_province, r.postal_code, r.country].filter(Boolean).join(', ') + '</dd>' +
+          '<dt>Proof of Address</dt><dd><a href="#" data-view-doc="' + r.proof_of_address_path + '">View PDF</a></dd>' +
+          '<dt>Payout Bank</dt><dd>' + r.bank_account_holder_name + ' — ' + r.bank_name + ' (' + r.bank_country + '), ' + r.bank_account_number + (r.bank_swift_bic ? ', SWIFT ' + r.bank_swift_bic : '') + ', ' + r.payout_currency + '</dd>' +
+          (r.additional_notes ? '<dt>Client Notes</dt><dd>' + r.additional_notes + '</dd>' : '') +
+          '</dl>' +
+          (r.status === 'pending' ?
+            '<div style="margin-top:0.75rem;">' +
+              '<button type="button" class="btn-small approve" data-addr-approve=\'' + JSON.stringify(r).replace(/'/g, "&#39;") + '\'>Approve &amp; Apply to Profile</button>' +
+              '<button type="button" class="btn-small reject" data-addr-reject="' + r.id + '">Reject</button>' +
+            '</div>' :
+            '<div style="margin-top:0.5rem; font-size:0.75rem; color:var(--gray-light);">Reviewed ' + (r.reviewed_at ? new Date(r.reviewed_at).toLocaleString() : '') + '</div>') +
+        '</div>';
+      });
+      el.innerHTML = html;
+
+      el.querySelectorAll('[data-view-doc]').forEach(function (a) { bindPdfLink(a, 'kyc-files', a.getAttribute('data-view-doc')); });
+      el.querySelectorAll('[data-addr-approve]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          if (!confirm('This will mark the request approved AND copy the new address into the client profile. Have you already verified the client by phone?')) return;
+          var r = JSON.parse(btn.getAttribute('data-addr-approve'));
+          await window.mcAdminClient.from('client_profiles').update({
+            address_line1: r.address_line1, address_line2: r.address_line2, city: r.city,
+            state_province: r.state_province, postal_code: r.postal_code, country: r.country
+          }).eq('user_id', targetUserId);
+          await window.mcAdminClient.from('address_update_requests').update({
+            status: 'approved', reviewed_at: new Date().toISOString()
+          }).eq('id', r.id);
+          loadProfile();
+          loadAddressRequests();
+          showAlert('Address request approved and applied to profile. Remember to update the payout bank details in your banking/custodian system separately — nothing here does that automatically.', 'success');
+        });
+      });
+      el.querySelectorAll('[data-addr-reject]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          await window.mcAdminClient.from('address_update_requests').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', btn.getAttribute('data-addr-reject'));
+          loadAddressRequests();
+        });
+      });
+    }
+
+    // ---------------- WITHDRAWAL REQUESTS ----------------
+    async function loadWithdrawalRequests() {
+      var { data: rows } = await window.mcAdminClient
+        .from('withdrawal_requests').select('*').eq('user_id', targetUserId).order('submitted_at', { ascending: false });
+
+      var el = document.getElementById('withdrawalRequestsContent');
+      if (!rows || rows.length === 0) {
+        el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No requests yet.</p>';
+        return;
+      }
+
+      var html = '';
+      rows.forEach(function (r) {
+        html += '<div class="request-detail-box">' +
+          statusPill(r.status) +
+          '<dl>' +
+          '<dt>Submitted</dt><dd>' + new Date(r.submitted_at).toLocaleString() + '</dd>' +
+          '<dt>Type</dt><dd>' + (r.withdrawal_type === 'full' ? 'Full balance' : 'Partial') + '</dd>' +
+          (r.amount !== null ? '<dt>Amount</dt><dd>' + fmtMoney(r.amount, r.currency) + '</dd>' : '') +
+          '<dt>Currency</dt><dd>' + r.currency + '</dd>' +
+          '<dt>Reason</dt><dd>' + r.reason + '</dd>' +
+          (r.additional_notes ? '<dt>Client Notes</dt><dd>' + r.additional_notes + '</dd>' : '') +
+          '</dl>' +
+          (r.status === 'pending' ?
+            '<div style="margin-top:0.75rem;">' +
+              '<button type="button" class="btn-small approve" data-wd-approve="' + r.id + '">Approve</button>' +
+              '<button type="button" class="btn-small reject" data-wd-reject="' + r.id + '">Reject</button>' +
+            '</div>' :
+            '<div style="margin-top:0.5rem; font-size:0.75rem; color:var(--gray-light);">Reviewed ' + (r.reviewed_at ? new Date(r.reviewed_at).toLocaleString() : '') + '</div>') +
+        '</div>';
+      });
+      el.innerHTML = html;
+
+      el.querySelectorAll('[data-wd-approve]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          if (!confirm('Mark this withdrawal approved? This does not move any money — action the payment in your banking/custodian system separately, after verifying the client by phone.')) return;
+          await window.mcAdminClient.from('withdrawal_requests').update({ status: 'approved', reviewed_at: new Date().toISOString() }).eq('id', btn.getAttribute('data-wd-approve'));
+          loadWithdrawalRequests();
+        });
+      });
+      el.querySelectorAll('[data-wd-reject]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          await window.mcAdminClient.from('withdrawal_requests').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', btn.getAttribute('data-wd-reject'));
+          loadWithdrawalRequests();
+        });
+      });
+    }
+
+    (async function init() {
+      var session = await window.mcRequireAdminSession('/admin/client/?u=' + targetUserId);
+      if (!session) return;
+
+      await loadProfile();
+      loadVehicles();
+      loadDocuments();
+      loadOnboarding();
+      loadAddressRequests();
+      loadWithdrawalRequests();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin Login — Met Capital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body>
+  <div class="admin-topbar">Met Capital — Internal Admin</div>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <span class="badge-pill">Admin</span>
+    </div>
+  </header>
+
+  <div class="login-wrap">
+    <div class="login-card">
+      <h1>Admin Login</h1>
+      <p class="subtitle">Staff access only.</p>
+
+      <div id="loginAlert"></div>
+
+      <form id="loginForm" novalidate>
+        <div class="field" style="margin-bottom:1.1rem;">
+          <label for="email">Email <span class="required">*</span></label>
+          <input type="email" id="email" name="email" autocomplete="username" required>
+        </div>
+        <div class="field" style="margin-bottom:1.5rem;">
+          <label for="password">Password <span class="required">*</span></label>
+          <input type="password" id="password" name="password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn-primary" id="loginBtn" style="width:100%;">Sign In</button>
+      </form>
+
+      <div class="security-note">
+        This area is restricted to authorised Met Capital staff. Access attempts are subject
+        to the same audit trail as any other account action on this platform.
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/admin/assets/admin.js"></script>
+  <script>
+    function showAlert(message, type) {
+      document.getElementById('loginAlert').innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
+    }
+
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('denied') === '1') {
+      showAlert('That account does not have admin access.', 'error');
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var btn = document.getElementById('loginBtn');
+      var email = document.getElementById('email').value.trim();
+      var password = document.getElementById('password').value;
+
+      if (!email || !password) {
+        showAlert('Please enter both your email and password.', 'error');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Signing in…';
+
+      var result = await window.mcAdminClient.auth.signInWithPassword({ email: email, password: password });
+
+      if (result.error) {
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+        showAlert('Access denied. The email or password you entered is incorrect.', 'error');
+        return;
+      }
+
+      var { data: adminRow } = await window.mcAdminClient
+        .from('admin_users')
+        .select('user_id')
+        .eq('user_id', result.data.user.id)
+        .maybeSingle();
+
+      if (!adminRow) {
+        await window.mcAdminClient.auth.signOut();
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+        showAlert('That account does not have admin access.', 'error');
+        return;
+      }
+
+      var next = params.get('next');
+      window.location.href = next ? decodeURIComponent(next) : '/admin/';
+    });
+
+    (async function () {
+      var session = await window.mcAdminClient.auth.getSession();
+      if (session.data && session.data.session) {
+        var { data: adminRow } = await window.mcAdminClient
+          .from('admin_users')
+          .select('user_id')
+          .eq('user_id', session.data.session.user.id)
+          .maybeSingle();
+        if (adminRow) window.location.href = '/admin/';
+      }
+    })();
+  </script>
+</body>
+</html>

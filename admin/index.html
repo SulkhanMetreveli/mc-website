@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin Dashboard — Met Capital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body>
+  <div class="admin-topbar">Met Capital — Internal Admin</div>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/admin/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/admin/" class="active">Dashboard</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="page-label">Admin</div>
+    <h1 class="page-title" id="welcomeTitle">Dashboard</h1>
+    <p class="page-subtitle">Pending items need your review before anything is actioned in your banking/custodian systems.</p>
+
+    <div class="stat-cards" id="statCards">
+      <div class="stat-card"><div class="stat-value">—</div><div class="stat-label">Clients</div></div>
+      <div class="stat-card warn"><div class="stat-value">—</div><div class="stat-label">Pending Onboarding</div></div>
+      <div class="stat-card warn"><div class="stat-value">—</div><div class="stat-label">Pending Address/Bank Updates</div></div>
+      <div class="stat-card warn"><div class="stat-value">—</div><div class="stat-label">Pending Withdrawals</div></div>
+    </div>
+
+    <div class="section-block">
+      <h2>Add a New Client</h2>
+      <div id="newClientAlert"></div>
+      <form id="newClientForm" class="card" novalidate>
+        <div class="form-row">
+          <div class="field">
+            <label for="nc_full_name">Full Name <span class="required">*</span></label>
+            <input type="text" id="nc_full_name" required>
+          </div>
+          <div class="field">
+            <label for="nc_email">Email (becomes their username) <span class="required">*</span></label>
+            <input type="email" id="nc_email" required>
+          </div>
+          <div class="field">
+            <label for="nc_reference">Client Reference</label>
+            <input type="text" id="nc_reference" placeholder="e.g. MC-00123">
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" id="newClientBtn">Create Client</button>
+      </form>
+    </div>
+
+    <div class="section-block">
+      <h2>Clients</h2>
+      <div class="card">
+        <div id="clientsContent">
+          <p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/admin/assets/admin.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcAdminLogout);
+
+    function showAlert(id, message, type) {
+      document.getElementById(id).innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
+    }
+
+    async function loadStats() {
+      var cards = document.querySelectorAll('#statCards .stat-card .stat-value');
+
+      var [{ count: clientCount }, { count: onboardingCount }, { count: addressCount }, { count: withdrawalCount }] = await Promise.all([
+        window.mcAdminClient.from('client_profiles').select('*', { count: 'exact', head: true }),
+        window.mcAdminClient.from('onboarding_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        window.mcAdminClient.from('address_update_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        window.mcAdminClient.from('withdrawal_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+      ]);
+
+      cards[0].textContent = clientCount ?? '0';
+      cards[1].textContent = onboardingCount ?? '0';
+      cards[2].textContent = addressCount ?? '0';
+      cards[3].textContent = withdrawalCount ?? '0';
+    }
+
+    async function loadClients() {
+      var { data: clients, error } = await window.mcAdminClient
+        .from('client_profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      var content = document.getElementById('clientsContent');
+      if (error || !clients || clients.length === 0) {
+        content.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No clients yet.</p>';
+        return;
+      }
+
+      var rows = '';
+      clients.forEach(function (c) {
+        rows += '<tr>' +
+          '<td>' + c.full_name + '</td>' +
+          '<td>' + c.email + '</td>' +
+          '<td>' + (c.client_reference || '—') + '</td>' +
+          '<td style="text-transform:capitalize;">' + c.status + '</td>' +
+          '<td>' + new Date(c.created_at).toLocaleDateString() + '</td>' +
+          '<td><a href="/admin/client/?u=' + c.user_id + '">Manage →</a></td>' +
+        '</tr>';
+      });
+
+      content.innerHTML =
+        '<table class="admin-table"><thead><tr><th>Name</th><th>Email</th><th>Reference</th><th>Status</th><th>Created</th><th></th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table>';
+    }
+
+    document.getElementById('newClientForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var form = e.target;
+      if (!form.checkValidity()) { form.reportValidity(); return; }
+
+      var btn = document.getElementById('newClientBtn');
+      btn.disabled = true;
+      btn.textContent = 'Creating…';
+
+      try {
+        var { data, error } = await window.mcAdminClient.functions.invoke('admin-create-client', {
+          body: {
+            full_name: document.getElementById('nc_full_name').value.trim(),
+            email: document.getElementById('nc_email').value.trim(),
+            client_reference: document.getElementById('nc_reference').value.trim()
+          }
+        });
+
+        if (error || (data && data.error)) {
+          throw new Error((data && data.error) || error.message);
+        }
+
+        form.reset();
+        showAlert('newClientAlert', 
+          'Client created. Send these credentials to them over a secure channel — they will be required to change the password on first login:<br><br>' +
+          '<strong>Username:</strong> ' + data.email + '<br>' +
+          '<strong>Temporary password:</strong> ' + data.password,
+          'success'
+        );
+        loadStats();
+        loadClients();
+      } catch (err) {
+        console.error(err);
+        showAlert('newClientAlert', 
+          'Could not create client: ' + err.message + '. Make sure the admin-create-client Edge Function has been deployed (see SETUP.md).',
+          'error'
+        );
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Create Client';
+      }
+    });
+
+    (async function init() {
+      var session = await window.mcRequireAdminSession('/admin/');
+      if (!session) return;
+      document.getElementById('welcomeTitle').textContent = 'Dashboard — ' + (window.mcAdminProfile.full_name || '');
+      loadStats();
+      loadClients();
+    })();
+  </script>
+</body>
+</html>

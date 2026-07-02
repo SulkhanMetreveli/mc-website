@@ -1,9 +1,10 @@
 # Met Capital Client Portal — Setup Guide
 
-This adds a client portal at `/clients` on top of the existing static
-met.capital site. It uses [Supabase](https://supabase.com) (free tier is
-enough to start) for real per-client login, a database, and private file
-storage — a static site alone can't do any of that securely.
+This adds a client portal at `/clients` and an internal admin panel at
+`/admin` on top of the existing static met.capital site. It uses
+[Supabase](https://supabase.com) (free tier is enough to start) for real
+per-client login, a database, and private file storage — a static site
+alone can't do any of that securely.
 
 ## 1. Create a Supabase project
 
@@ -15,6 +16,9 @@ storage — a static site alone can't do any of that securely.
 
 1. In the Supabase dashboard, open **SQL Editor -> New query**.
 2. Paste the entire contents of `supabase/schema.sql` from this repo and run it.
+   (If you set the portal up before certain features existed, you can
+   instead run the individual `supabase/00N_*.sql` migration files —
+   they're all safe to run on top of an existing database.)
 3. Go to **Storage** and confirm two new buckets exist: `client-documents`
    and `kyc-files`, both marked **Private**. `kyc-files` should show
    `application/pdf` as its only allowed MIME type.
@@ -26,85 +30,114 @@ In the Supabase dashboard: **Project Settings -> API**.
 - **Project URL** and **anon / public key** → go in the frontend (safe to
   be public — they only grant what the Row Level Security policies in
   `schema.sql` allow).
-- **service_role key** → NEVER put this in the frontend. It's only used by
-  the local admin script in step 5, on your own machine.
+- **service_role key** → NEVER put this in the frontend. It's only used
+  in two places, both server-side: the `local-admin-tools` script on your
+  own machine (optional, see below), and the `admin-create-client` Edge
+  Function (see step 5).
 
 ## 4. Configure the frontend
 
 Edit `clients/assets/supabase-config.js` and replace the two placeholder
 values with your Project URL and anon key from step 3. Commit and push —
 Netlify will redeploy automatically if it's already connected to this repo.
+The admin panel (`/admin`) reads the same config file, so this one edit
+covers both.
 
-## 5. Create your first client account
+## 5. Make yourself an admin and deploy the create-client function
+
+**Become an admin:**
+1. Supabase dashboard → **Authentication → Users → Add user**. Use your
+   own email, set a password, check **Auto Confirm User**.
+2. Copy the new user's UID.
+3. **Table Editor → admin_users → Insert row**: `user_id` = that UID,
+   `full_name` = your name.
+4. Log in at `/admin/login/` with that email/password.
+
+**Deploy the admin-create-client Edge Function** (lets you create client
+logins from a form in `/admin/`, instead of the command line):
 
 ```
-cd admin
+npm install -g supabase
+supabase login
+supabase link --project-ref <your-project-ref>      # e.g. qnysvjbqltnwkjkvjwov
+supabase functions deploy admin-create-client
+```
+
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are
+automatically available to the function — you don't need to configure
+secrets manually. Once deployed, the **Add a New Client** form on
+`/admin/` works end-to-end: it creates the login, creates the matching
+`client_profiles` row, and shows you a one-time temporary password to
+send the client.
+
+**No Supabase CLI / don't want to deploy a function?** Use the offline
+fallback instead — see `local-admin-tools/README.md`. It does the exact
+same thing from your terminal, using the service_role key directly:
+
+```
+cd local-admin-tools
 npm install
 cp .env.example .env
 # edit .env: paste your Project URL and service_role key
 node create-client.js --email jane@example.com --name "Jane Client" --reference MC-00123
 ```
 
-This prints a username (their email) and a temporary password. Send that
-to the client over a secure channel. They'll be forced to set their own
-password the first time they log in at `/clients/login/`.
+## 6. Day-to-day admin — now via `/admin`
 
-Repeat this command for each client. There's no self-serve signup — every
-account is created by you, on purpose.
+Log in at `/admin/login/` with any account listed in `admin_users`.
+From there:
 
-## 6. Day-to-day admin
+- **Dashboard** (`/admin/`) — pending-item counts across onboarding,
+  address/bank updates, and withdrawals; the client list; the "Add a New
+  Client" form.
+- **Client page** (`/admin/client/?u=<uuid>`, reached by clicking
+  "Manage" on any client) — everything about one client in one place:
+  - Edit their profile and **address of record** (this is what shows on
+    their dashboard — update it here once you've verified a change, it's
+    never automatic).
+  - Add/edit/delete their **investment vehicles** — one row per
+    product/currency they hold. These show as separate cards on their
+    dashboard and become quick-pick currencies on their Withdrawal
+    Request and Payout Currency forms.
+  - Upload/delete **documents** (statements, tax docs, agreements) —
+    they appear in the client's Document Center immediately.
+  - Review **onboarding submissions**, including a direct link to view
+    the passport copy and proof-of-address PDFs, with Approve/Reject
+    buttons.
+  - Review **address & bank update requests** — Approve applies the new
+    address straight to the profile in the same click. **Verify the
+    client by phone before clicking Approve** — this step doesn't
+    verify anything for you, and nothing here ever touches your actual
+    banking/custodian system automatically.
+  - Review **withdrawal requests** — same rule: verify by phone, then
+    mark approved/rejected. Approving here is a record-keeping action
+    only; you still action the actual payment separately.
 
-Everything below is done from the Supabase dashboard (**Table Editor**),
-no code needed:
+Everything in the admin panel respects the same rule we designed from
+the start: **no financial or identity change ever applies itself.** The
+UI just makes the review/approve workflow faster than hand-editing
+tables — it still relies on you doing the out-of-band verification call.
 
-- **Client address of record**: edit the `address_line1` / `address_line2`
-  / `city` / `state_province` / `postal_code` / `country` columns directly
-  on the client's row in `client_profiles`. This is what shows on their
-  dashboard — update it here after you've approved an address change (see
-  below), not automatically.
-- **Investment vehicles** (replaces the old single-balance overview):
-  a client can hold several, one row each, in the `investment_vehicles`
-  table (added in `supabase/003_investment_vehicles_and_address.sql` —
-  run that migration once in the SQL Editor if you set the portal up
-  before this was added). Insert one row per product/currency the client
-  holds:
-  `user_id`, `vehicle_name` (e.g. "Systematic Multi-Asset Fund"),
-  `currency`, `balance`, `ytd_performance_pct`,
-  `inception_performance_pct`, `as_of_date`, `notes`. All of these show
-  up as separate cards on the client's dashboard, and their currencies
-  are offered as quick picks on the Withdrawal Request and Payout
-  Currency forms.
-- **Documents**: upload a file in **Storage -> client-documents** under a
-  folder named with the client's `user_id`, then add a row to the
-  `documents` table pointing at that path so it shows up in their portal.
-- **Address / bank update requests**: review new rows in
-  `address_update_requests`. **Verify the client out-of-band (phone call
-  to the number already on file) before actually changing anything in
-  your systems** — this form only records a request, it never applies a
-  change automatically. Mark `status` as `approved` or `rejected` once
-  handled.
-- **Withdrawal requests**: review new rows in `withdrawal_requests`
-  (added in `supabase/002_withdrawal_requests.sql` — run that migration
-  once in the SQL Editor if you set the portal up before this was added).
-  Same rule as above: **verify the client by phone before releasing any
-  funds** — this table only records a request, nothing here moves money.
-  Mark `status` as `approved` or `rejected` once handled.
-- **Onboarding submissions**: review `onboarding_submissions`, including
-  the linked passport and proof-of-address PDFs in the `kyc-files`
-  bucket, before marking a client active.
+The Supabase Table Editor is still there as a fallback if you ever need
+to fix something the UI doesn't cover.
 
 ## Security notes
 
-- The GitHub token used earlier in this project should already be treated
-  as compromised (it was shared in chat) — rotate it in GitHub settings if
-  you haven't.
+- The GitHub token and Supabase secret key used earlier in this project
+  should be treated as compromised (they were shared in chat) — rotate
+  them if you haven't.
 - The Supabase **anon key** is meant to be public; the **service_role
-  key** is not — keep `admin/.env` out of git (already handled by
-  `.gitignore`) and never paste it into the `/clients` frontend.
-- All client data access is enforced by Postgres Row Level Security: a
-  logged-in client can only ever read/write rows where `user_id` matches
-  their own auth ID. Don't remove those policies.
+  key** is not. It's used in exactly two places — the Edge Function
+  (server-side, never sent to a browser) and `local-admin-tools/.env`
+  (kept out of git by `.gitignore`, never in the frontend).
+- Being listed in the `admin_users` table is what grants admin access —
+  there's no self-serve way for a client account to add itself there
+  (no INSERT policy exists for normal users). Only add rows to it from
+  the Supabase dashboard yourself.
+- All data access is enforced by Postgres Row Level Security: clients
+  only ever see their own rows; admins see everything, but only because
+  they're listed in `admin_users`. Don't remove these policies.
 - For real production use, also consider: enforcing MFA for your own
   Supabase dashboard login, enabling Supabase's leaked-password
-  protection, and periodically auditing the `client_profiles` table for
-  accounts that should be suspended.
+  protection, and periodically auditing `admin_users` and
+  `client_profiles` for accounts that should be removed/suspended.

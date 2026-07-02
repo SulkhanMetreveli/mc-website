@@ -1,0 +1,109 @@
+/* Admin-panel-specific additions on top of /clients/assets/portal.css */
+
+.admin-topbar {
+  background: var(--black);
+  color: var(--white);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: center;
+  padding: 0.4rem;
+}
+
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  padding: 1.25rem 1.5rem;
+}
+
+.stat-card .stat-value {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--black);
+}
+
+.stat-card .stat-label {
+  font-size: 0.75rem;
+  color: var(--gray);
+  margin-top: 0.25rem;
+}
+
+.stat-card.warn { border-left-color: #D9B94A; }
+
+table.admin-table { width: 100%; border-collapse: collapse; }
+table.admin-table th, table.admin-table td {
+  text-align: left;
+  padding: 0.75rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.875rem;
+  vertical-align: top;
+}
+table.admin-table th {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gray-light);
+}
+table.admin-table tr:hover td { background: var(--off-white); }
+
+.btn-small {
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--gray-dark);
+  cursor: pointer;
+}
+.btn-small:hover { border-color: var(--black); }
+.btn-small.approve { border-color: var(--green); color: var(--green); }
+.btn-small.reject { border-color: var(--red); color: var(--red); }
+.btn-small.danger { border-color: var(--red); color: var(--red); }
+.btn-small + .btn-small { margin-left: 0.5rem; }
+
+.section-block {
+  margin-bottom: 2.5rem;
+}
+.section-block h2 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: 1rem;
+}
+
+.inline-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+.inline-form-grid .field label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gray-light);
+  margin-bottom: 0.3rem;
+}
+
+.request-detail-box {
+  background: var(--off-white);
+  border: 1px solid var(--border);
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+}
+.request-detail-box .status-pill { margin-bottom: 0.5rem; }
+.request-detail-box dt { color: var(--gray-light); font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.5rem; }
+.request-detail-box dd { color: var(--gray-dark); }
