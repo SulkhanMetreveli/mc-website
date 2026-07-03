@@ -10,6 +10,10 @@
 //   supabase link --project-ref <your-project-ref>
 //   supabase functions deploy admin-create-client
 //
+// Or, without a terminal: Supabase dashboard -> Edge Functions -> Deploy a
+// new function -> name it "admin-create-client" -> paste this file's
+// contents into the code editor -> Deploy.
+//
 // SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY are
 // automatically available as env vars inside every Supabase Edge Function
 // — you don't need to set them manually.
@@ -63,15 +67,20 @@ Deno.serve(async (req: Request) => {
     const email = String(body.email || "").trim().toLowerCase();
     const fullName = String(body.full_name || "").trim();
     const clientReference = String(body.client_reference || "").trim() || null;
+    const requestedPassword = String(body.password || "").trim();
 
     if (!email || !fullName) {
       return jsonResponse({ error: "email and full_name are required." }, 400);
     }
 
+    if (requestedPassword && requestedPassword.length < 10) {
+      return jsonResponse({ error: "Password must be at least 10 characters." }, 400);
+    }
+
     // Full-privilege client, only ever used server-side, never sent to
     // the browser.
     const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-    const password = randomPassword();
+    const password = requestedPassword || randomPassword();
 
     const { data: userData, error: userError } = await adminClient.auth.admin.createUser({
       email,

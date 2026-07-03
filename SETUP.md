@@ -53,9 +53,11 @@ covers both.
    `full_name` = your name.
 4. Log in at `/admin/login/` with that email/password.
 
-**Deploy the admin-create-client Edge Function** (lets you create client
-logins from a form in `/admin/`, instead of the command line):
+**Deploy the Edge Functions** (`admin-create-client` and
+`admin-reset-password` — these power the "Add a New Client" form and the
+"Reset Password" button in `/admin/`):
 
+Via the CLI, if you have a terminal:
 ```
 npm install -g supabase
 supabase login
@@ -63,6 +65,14 @@ supabase link --project-ref <your-project-ref>      # e.g. qnysvjbqltnwkjkvjwov
 supabase functions deploy admin-create-client
 supabase functions deploy admin-reset-password
 ```
+
+Or with no terminal at all: Supabase dashboard -> **Edge Functions** ->
+**Deploy a new function** -> name it exactly `admin-create-client` ->
+paste the contents of `supabase/functions/admin-create-client/index.ts`
+into the code editor -> **Deploy**. Repeat with `admin-reset-password`
+and `supabase/functions/admin-reset-password/index.ts`. (Note: dashboard
+deployment isn't available on every Supabase plan — if the deploy button
+is missing or greyed out, the CLI route above is the fallback.)
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are
 automatically available to the function — you don't need to configure

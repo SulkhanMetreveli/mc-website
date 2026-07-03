@@ -62,6 +62,13 @@
             <input type="text" id="nc_reference" placeholder="e.g. MC-00123">
           </div>
         </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="nc_password">Initial Password</label>
+            <input type="text" id="nc_password" minlength="10" placeholder="Leave blank to auto-generate">
+            <div class="file-hint">At least 10 characters if set. Leave blank and a strong random one is generated for you. Either way, the client must set their own on first login.</div>
+          </div>
+        </div>
         <button type="submit" class="btn-primary" id="newClientBtn">Create Client</button>
       </form>
     </div>
@@ -197,6 +204,12 @@
       var form = e.target;
       if (!form.checkValidity()) { form.reportValidity(); return; }
 
+      var chosenPassword = document.getElementById('nc_password').value.trim();
+      if (chosenPassword && chosenPassword.length < 10) {
+        showAlert('newClientAlert', 'Password must be at least 10 characters, or leave it blank to auto-generate one.', 'error');
+        return;
+      }
+
       var btn = document.getElementById('newClientBtn');
       btn.disabled = true;
       btn.textContent = 'Creating…';
@@ -206,7 +219,8 @@
           body: {
             full_name: document.getElementById('nc_full_name').value.trim(),
             email: document.getElementById('nc_email').value.trim(),
-            client_reference: document.getElementById('nc_reference').value.trim()
+            client_reference: document.getElementById('nc_reference').value.trim(),
+            password: chosenPassword || undefined
           }
         });
 
