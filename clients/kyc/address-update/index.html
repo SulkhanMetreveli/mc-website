@@ -141,14 +141,6 @@
         </div>
       </div>
 
-      <div class="form-section">
-        <h3>Additional Notes</h3>
-        <div class="field">
-          <label for="additional_notes">Notes (optional)</label>
-          <textarea id="additional_notes"></textarea>
-        </div>
-      </div>
-
       <button type="submit" class="btn-primary" id="submitBtn">Submit Request for Review</button>
     </form>
   </main>
@@ -240,7 +232,7 @@
           bank_country: document.getElementById('bank_country').value.trim(),
           payout_currency: document.getElementById('payout_currency').value,
           bank_address: document.getElementById('bank_address').value.trim(),
-          additional_notes: document.getElementById('additional_notes').value.trim()
+          additional_notes: null
         };
 
         var insert = await window.mcClient.from('address_update_requests').insert(payload);

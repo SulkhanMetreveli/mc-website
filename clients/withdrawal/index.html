@@ -109,10 +109,6 @@
           </div>
         </div>
 
-        <div class="field">
-          <label for="additional_notes">Additional Notes (optional)</label>
-          <textarea id="additional_notes"></textarea>
-        </div>
       </div>
 
       <div class="form-section">
@@ -268,7 +264,7 @@
           currency: currency,
           reason: document.getElementById('reason').value,
           confirm_bank_on_file: true,
-          additional_notes: document.getElementById('additional_notes').value.trim()
+          additional_notes: null
         };
 
         var insert = await window.mcClient.from('withdrawal_requests').insert(payload);
