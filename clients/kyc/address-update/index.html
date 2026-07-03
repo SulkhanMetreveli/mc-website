@@ -28,21 +28,26 @@
     <div class="page-label">KYC · Change Request</div>
     <h1 class="page-title">Address &amp; Bank Update Request</h1>
     <p class="page-subtitle">
-      Use this form to request an update to your address on file and/or your payout bank
-      account. Submitting this form does <strong>not</strong> apply the change immediately —
-      a member of our operations team will verify the request with you directly (including a
-      call to the phone number already on file) before anything is updated.
+      Update your address, your payout bank account, and/or your passport on file — fill in
+      only the sections that apply to you. Proof of address is always required, even if you're
+      only updating your bank details or passport. Submitting this form does <strong>not</strong>
+      apply any change immediately — a member of our operations team will verify the request
+      with you directly (including a call to the phone number already on file) before anything
+      is updated.
     </p>
 
     <div id="formAlert"></div>
 
     <form id="requestForm" class="card" novalidate>
       <div class="form-section">
-        <h3>New Address</h3>
+        <h3>Address Update (Optional)</h3>
+        <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:1rem;">
+          Leave this section blank if you're not changing your address.
+        </p>
         <div class="form-row">
           <div class="field">
-            <label for="address_line1">Address Line 1 <span class="required">*</span></label>
-            <input type="text" id="address_line1" required>
+            <label for="address_line1">Address Line 1</label>
+            <input type="text" id="address_line1">
           </div>
           <div class="field">
             <label for="address_line2">Address Line 2</label>
@@ -51,20 +56,20 @@
         </div>
         <div class="form-row">
           <div class="field">
-            <label for="city">City <span class="required">*</span></label>
-            <input type="text" id="city" required>
+            <label for="city">City</label>
+            <input type="text" id="city">
           </div>
           <div class="field">
             <label for="state_province">State / Province</label>
             <input type="text" id="state_province">
           </div>
           <div class="field">
-            <label for="postal_code">Postal Code <span class="required">*</span></label>
-            <input type="text" id="postal_code" required>
+            <label for="postal_code">Postal Code</label>
+            <input type="text" id="postal_code">
           </div>
           <div class="field">
-            <label for="country">Country <span class="required">*</span></label>
-            <input type="text" id="country" required placeholder="e.g. United Kingdom">
+            <label for="country">Country</label>
+            <input type="text" id="country" placeholder="e.g. United Kingdom">
           </div>
         </div>
       </div>
@@ -73,7 +78,8 @@
         <h3>Proof of Address</h3>
         <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:1rem;">
           Upload a recent utility bill, bank statement, or government-issued letter (dated
-          within the last 3 months) showing your full name and the new address above.
+          within the last 3 months) showing your full name and address. Required on every
+          submission of this form.
         </p>
         <div class="file-field">
           <label for="proof_file" style="font-weight:500; font-size:0.875rem;">Proof of Address (PDF only) <span class="required">*</span></label><br>
@@ -84,21 +90,38 @@
       </div>
 
       <div class="form-section">
-        <h3>Payout Bank Account</h3>
+        <h3>Passport Update (Optional)</h3>
+        <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:1rem;">
+          Upload a copy of your current passport if it has changed or renewed since you last
+          gave us a copy. Leave this blank otherwise.
+        </p>
+        <div class="file-field">
+          <label for="passport_file" style="font-weight:500; font-size:0.875rem;">Passport Copy (PDF only)</label><br>
+          <input type="file" id="passport_file" accept="application/pdf" style="margin-top:0.6rem;">
+          <div class="file-hint">PDF format only, maximum 25MB.</div>
+          <div class="file-status" id="passportStatus"></div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Payout Bank Update (Optional)</h3>
+        <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:1rem;">
+          Leave this section blank if you're not changing your payout bank account.
+        </p>
         <div class="form-row">
           <div class="field">
-            <label for="bank_account_holder_name">Account Holder Name <span class="required">*</span></label>
-            <input type="text" id="bank_account_holder_name" required>
+            <label for="bank_account_holder_name">Account Holder Name</label>
+            <input type="text" id="bank_account_holder_name">
           </div>
           <div class="field">
-            <label for="bank_name">Bank Name <span class="required">*</span></label>
-            <input type="text" id="bank_name" required>
+            <label for="bank_name">Bank Name</label>
+            <input type="text" id="bank_name">
           </div>
         </div>
         <div class="form-row">
           <div class="field">
-            <label for="bank_account_number">Account Number / IBAN <span class="required">*</span></label>
-            <input type="text" id="bank_account_number" required>
+            <label for="bank_account_number">Account Number / IBAN</label>
+            <input type="text" id="bank_account_number">
           </div>
           <div class="field">
             <label for="bank_swift_bic">SWIFT / BIC</label>
@@ -111,12 +134,12 @@
         </div>
         <div class="form-row">
           <div class="field">
-            <label for="bank_country">Bank Country <span class="required">*</span></label>
-            <input type="text" id="bank_country" required>
+            <label for="bank_country">Bank Country</label>
+            <input type="text" id="bank_country">
           </div>
           <div class="field">
-            <label for="payout_currency">Payout Currency <span class="required">*</span></label>
-            <select id="payout_currency" required>
+            <label for="payout_currency">Payout Currency</label>
+            <select id="payout_currency">
               <option value="">Select currency…</option>
               <optgroup label="Your Account Currencies" id="accountCurrencyGroup" style="display:none;"></optgroup>
               <optgroup label="Other Currencies">
@@ -158,45 +181,66 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    var proofInput = document.getElementById('proof_file');
-    proofInput.addEventListener('change', function () {
-      var status = document.getElementById('proofStatus');
-      var file = proofInput.files[0];
-      if (!file) { status.textContent = ''; return; }
-      if (file.type !== 'application/pdf') {
-        status.textContent = 'This file is not a PDF. Please select a PDF file.';
-        status.className = 'file-status error';
-        proofInput.value = '';
-        return;
-      }
-      if (file.size > 25 * 1024 * 1024) {
-        status.textContent = 'File is too large (max 25MB).';
-        status.className = 'file-status error';
-        proofInput.value = '';
-        return;
-      }
-      status.textContent = 'Selected: ' + file.name;
-      status.className = 'file-status ok';
-    });
+    function wireFileValidation(inputId, statusId) {
+      var input = document.getElementById(inputId);
+      input.addEventListener('change', function () {
+        var status = document.getElementById(statusId);
+        var file = input.files[0];
+        if (!file) { status.textContent = ''; return; }
+        if (file.type !== 'application/pdf') {
+          status.textContent = 'This file is not a PDF. Please select a PDF file.';
+          status.className = 'file-status error';
+          input.value = '';
+          return;
+        }
+        if (file.size > 25 * 1024 * 1024) {
+          status.textContent = 'File is too large (max 25MB).';
+          status.className = 'file-status error';
+          input.value = '';
+          return;
+        }
+        status.textContent = 'Selected: ' + file.name;
+        status.className = 'file-status ok';
+      });
+    }
+    wireFileValidation('proof_file', 'proofStatus');
+    wireFileValidation('passport_file', 'passportStatus');
+
+    var ADDRESS_FIELD_IDS = ['address_line1', 'city', 'postal_code', 'country'];
+    var BANK_FIELD_IDS = ['bank_account_holder_name', 'bank_name', 'bank_account_number', 'bank_country', 'payout_currency'];
+
+    function fieldVal(id) { return document.getElementById(id).value.trim(); }
+    function sectionTouched(ids) { return ids.some(function (id) { return fieldVal(id) !== ''; }); }
+    function sectionComplete(ids) { return ids.every(function (id) { return fieldVal(id) !== ''; }); }
 
     document.getElementById('requestForm').addEventListener('submit', async function (e) {
       e.preventDefault();
 
-      var form = e.target;
-      var proofFile = proofInput.files[0];
+      var proofFile = document.getElementById('proof_file').files[0];
+      var passportFile = document.getElementById('passport_file').files[0];
 
-      // Mandatory field check (native + explicit re-check on the file input,
-      // since file inputs don't always block submit consistently).
-      if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-      }
       if (!proofFile) {
         showAlert('Proof of address is required. Please attach a PDF before submitting.', 'error');
         return;
       }
       if (proofFile.type !== 'application/pdf') {
         showAlert('Proof of address must be a PDF file.', 'error');
+        return;
+      }
+      if (passportFile && passportFile.type !== 'application/pdf') {
+        showAlert('Passport copy must be a PDF file.', 'error');
+        return;
+      }
+
+      var addressTouched = sectionTouched(ADDRESS_FIELD_IDS);
+      if (addressTouched && !sectionComplete(ADDRESS_FIELD_IDS)) {
+        showAlert('Please complete Address Line 1, City, Postal Code, and Country, or clear the Address Update section entirely if you\'re not changing your address.', 'error');
+        return;
+      }
+
+      var bankTouched = sectionTouched(BANK_FIELD_IDS);
+      if (bankTouched && !sectionComplete(BANK_FIELD_IDS)) {
+        showAlert('Please complete Account Holder Name, Bank Name, Account Number, Bank Country, and Payout Currency, or clear the Payout Bank Update section entirely if you\'re not changing your bank details.', 'error');
         return;
       }
 
@@ -206,40 +250,51 @@
 
       try {
         var userId = mcSession.user.id;
-        var safeName = proofFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        var path = userId + '/address-proof-' + Date.now() + '-' + safeName;
 
-        var upload = await window.mcClient.storage
+        function safe(name) { return name.replace(/[^a-zA-Z0-9._-]/g, '_'); }
+
+        var proofPath = userId + '/address-proof-' + Date.now() + '-' + safe(proofFile.name);
+        var uploadProof = await window.mcClient.storage
           .from('kyc-files')
-          .upload(path, proofFile, { contentType: 'application/pdf' });
+          .upload(proofPath, proofFile, { contentType: 'application/pdf' });
+        if (uploadProof.error) throw uploadProof.error;
 
-        if (upload.error) throw upload.error;
+        var passportPath = null;
+        if (passportFile) {
+          passportPath = userId + '/address-request-passport-' + Date.now() + '-' + safe(passportFile.name);
+          var uploadPassport = await window.mcClient.storage
+            .from('kyc-files')
+            .upload(passportPath, passportFile, { contentType: 'application/pdf' });
+          if (uploadPassport.error) throw uploadPassport.error;
+        }
 
         var payload = {
           user_id: userId,
-          address_line1: document.getElementById('address_line1').value.trim(),
-          address_line2: document.getElementById('address_line2').value.trim(),
-          city: document.getElementById('city').value.trim(),
-          state_province: document.getElementById('state_province').value.trim(),
-          postal_code: document.getElementById('postal_code').value.trim(),
-          country: document.getElementById('country').value.trim(),
-          proof_of_address_path: path,
-          bank_account_holder_name: document.getElementById('bank_account_holder_name').value.trim(),
-          bank_name: document.getElementById('bank_name').value.trim(),
-          bank_account_number: document.getElementById('bank_account_number').value.trim(),
-          bank_swift_bic: document.getElementById('bank_swift_bic').value.trim(),
-          bank_routing_number: document.getElementById('bank_routing_number').value.trim(),
-          bank_country: document.getElementById('bank_country').value.trim(),
-          payout_currency: document.getElementById('payout_currency').value,
-          bank_address: document.getElementById('bank_address').value.trim(),
+          address_line1: addressTouched ? fieldVal('address_line1') : null,
+          address_line2: addressTouched ? (fieldVal('address_line2') || null) : null,
+          city: addressTouched ? fieldVal('city') : null,
+          state_province: addressTouched ? (fieldVal('state_province') || null) : null,
+          postal_code: addressTouched ? fieldVal('postal_code') : null,
+          country: addressTouched ? fieldVal('country') : null,
+          proof_of_address_path: proofPath,
+          passport_copy_path: passportPath,
+          bank_account_holder_name: bankTouched ? fieldVal('bank_account_holder_name') : null,
+          bank_name: bankTouched ? fieldVal('bank_name') : null,
+          bank_account_number: bankTouched ? fieldVal('bank_account_number') : null,
+          bank_swift_bic: bankTouched ? (fieldVal('bank_swift_bic') || null) : null,
+          bank_routing_number: bankTouched ? (fieldVal('bank_routing_number') || null) : null,
+          bank_country: bankTouched ? fieldVal('bank_country') : null,
+          payout_currency: bankTouched ? fieldVal('payout_currency') : null,
+          bank_address: bankTouched ? (fieldVal('bank_address') || null) : null,
           additional_notes: null
         };
 
         var insert = await window.mcClient.from('address_update_requests').insert(payload);
         if (insert.error) throw insert.error;
 
-        form.reset();
+        document.getElementById('requestForm').reset();
         document.getElementById('proofStatus').textContent = '';
+        document.getElementById('passportStatus').textContent = '';
         showAlert('Your request has been submitted for review. A member of our operations team will verify these changes with you directly before they take effect — no changes are made automatically.', 'success');
       } catch (err) {
         console.error(err);

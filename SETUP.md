@@ -122,11 +122,18 @@ From there:
   - Review **onboarding submissions**, including a direct link to view
     the passport copy and proof-of-address PDFs, with Approve/Reject
     buttons.
-  - Review **address & bank update requests** — Approve applies the new
-    address straight to the profile in the same click. **Verify the
-    client by phone before clicking Approve** — this step doesn't
-    verify anything for you, and nothing here ever touches your actual
-    banking/custodian system automatically.
+  - Review **address & bank update requests** — a client can submit an
+    address change, a payout bank change, a passport refresh, or any
+    combination, in one form (added in
+    `supabase/006_address_update_optional_sections.sql` — run that
+    migration if you set the portal up before this existed). Proof of
+    address is required on every submission regardless of what else is
+    included. Approving copies the new address straight to the profile
+    in the same click, only if an address change was actually part of
+    the request. **Verify the client by phone before clicking Approve**
+    — this step doesn't verify anything for you, and nothing here ever
+    touches your actual banking/custodian system or physical records
+    automatically.
   - Review **withdrawal requests** — same rule: verify by phone, then
     mark approved/rejected. Approving here is a record-keeping action
     only; you still action the actual payment separately.

@@ -562,14 +562,15 @@
           statusPill(r.status) +
           '<dl>' +
           '<dt>Submitted</dt><dd>' + new Date(r.submitted_at).toLocaleString() + '</dd>' +
-          '<dt>New Address</dt><dd>' + [r.address_line1, r.address_line2, r.city, r.state_province, r.postal_code, r.country].filter(Boolean).join(', ') + '</dd>' +
+          '<dt>Address Update</dt><dd>' + (r.address_line1 ? [r.address_line1, r.address_line2, r.city, r.state_province, r.postal_code, r.country].filter(Boolean).join(', ') : 'Not requested') + '</dd>' +
           '<dt>Proof of Address</dt><dd><a href="#" data-view-doc="' + r.proof_of_address_path + '">View PDF</a></dd>' +
-          '<dt>Payout Bank</dt><dd>' + r.bank_account_holder_name + ' — ' + r.bank_name + ' (' + r.bank_country + '), ' + r.bank_account_number + (r.bank_swift_bic ? ', SWIFT ' + r.bank_swift_bic : '') + ', ' + r.payout_currency + '</dd>' +
+          '<dt>Passport Update</dt><dd>' + (r.passport_copy_path ? '<a href="#" data-view-doc="' + r.passport_copy_path + '">View PDF</a>' : 'Not requested') + '</dd>' +
+          '<dt>Payout Bank Update</dt><dd>' + (r.bank_account_holder_name ? (r.bank_account_holder_name + ' — ' + r.bank_name + ' (' + r.bank_country + '), ' + r.bank_account_number + (r.bank_swift_bic ? ', SWIFT ' + r.bank_swift_bic : '') + ', ' + r.payout_currency) : 'Not requested') + '</dd>' +
           (r.additional_notes ? '<dt>Client Notes</dt><dd>' + r.additional_notes + '</dd>' : '') +
           '</dl>' +
           (r.status === 'pending' ?
             '<div style="margin-top:0.75rem;">' +
-              '<button type="button" class="btn-small approve" data-addr-approve=\'' + JSON.stringify(r).replace(/'/g, "&#39;") + '\'>Approve &amp; Apply to Profile</button>' +
+              '<button type="button" class="btn-small approve" data-addr-approve=\'' + JSON.stringify(r).replace(/'/g, "&#39;") + '\'>' + (r.address_line1 ? 'Approve &amp; Apply Address to Profile' : 'Approve') + '</button>' +
               '<button type="button" class="btn-small reject" data-addr-reject="' + r.id + '">Reject</button>' +
             '</div>' :
             '<div style="margin-top:0.5rem; font-size:0.75rem; color:var(--gray-light);">Reviewed ' + (r.reviewed_at ? new Date(r.reviewed_at).toLocaleString() : '') + '</div>') +
@@ -580,18 +581,22 @@
       el.querySelectorAll('[data-view-doc]').forEach(function (a) { bindPdfLink(a, 'kyc-files', a.getAttribute('data-view-doc')); });
       el.querySelectorAll('[data-addr-approve]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
-          if (!confirm('This will mark the request approved AND copy the new address into the client profile. Have you already verified the client by phone?')) return;
+          if (!confirm('Mark this request approved? If it includes an address change, the new address will be copied into the client profile. Have you already verified the client by phone?')) return;
           var r = JSON.parse(btn.getAttribute('data-addr-approve'));
-          await window.mcAdminClient.from('client_profiles').update({
-            address_line1: r.address_line1, address_line2: r.address_line2, city: r.city,
-            state_province: r.state_province, postal_code: r.postal_code, country: r.country
-          }).eq('user_id', targetUserId);
+
+          if (r.address_line1) {
+            await window.mcAdminClient.from('client_profiles').update({
+              address_line1: r.address_line1, address_line2: r.address_line2, city: r.city,
+              state_province: r.state_province, postal_code: r.postal_code, country: r.country
+            }).eq('user_id', targetUserId);
+          }
+
           await window.mcAdminClient.from('address_update_requests').update({
             status: 'approved', reviewed_at: new Date().toISOString()
           }).eq('id', r.id);
           loadProfile();
           loadAddressRequests();
-          showAlert('Address request approved and applied to profile. Remember to update the payout bank details in your banking/custodian system separately — nothing here does that automatically.', 'success');
+          showAlert('Request approved' + (r.address_line1 ? ' and the new address applied to the profile' : '') + '. Remember to action any bank/passport changes in your banking/custodian and records systems separately — nothing here does that automatically.', 'success');
         });
       });
       el.querySelectorAll('[data-addr-reject]').forEach(function (btn) {

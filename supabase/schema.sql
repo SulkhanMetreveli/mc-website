@@ -98,23 +98,31 @@ create table if not exists address_update_requests (
   reviewed_by                 text,
   reviewer_notes              text,
 
-  address_line1               text not null,
+  -- Address update: optional section. If the client isn't changing their
+  -- address, these are all left null.
+  address_line1               text,
   address_line2               text,
-  city                        text not null,
+  city                        text,
   state_province              text,
-  postal_code                 text not null,
-  country                     text not null,
+  postal_code                 text,
+  country                     text,
 
+  -- Always required, regardless of which optional sections are filled in.
   proof_of_address_path       text not null,
 
-  bank_account_holder_name    text not null,
-  bank_name                   text not null,
-  bank_account_number         text not null,
+  -- Bank update: optional section. If the client isn't changing their
+  -- payout bank, these are all left null.
+  bank_account_holder_name    text,
+  bank_name                   text,
+  bank_account_number         text,
   bank_swift_bic               text,
   bank_routing_number          text,
-  bank_country                 text not null,
-  payout_currency               text not null,
+  bank_country                 text,
+  payout_currency               text,
   bank_address                  text,
+
+  -- Passport refresh: optional document upload.
+  passport_copy_path            text,
 
   additional_notes              text
 );
