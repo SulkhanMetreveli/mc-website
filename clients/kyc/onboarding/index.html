@@ -346,9 +346,18 @@
         document.getElementById('onboardingForm').style.display = 'none';
         var box = document.getElementById('alreadySubmitted');
         box.style.display = 'block';
+
+        var statusLabels = {
+          pending: 'Pending review',
+          in_transit_documents_review: 'In transit — documents in review',
+          approved: 'Approved',
+          rejected: 'Rejected'
+        };
+        var statusLabel = statusLabels[existing[0].status] || existing[0].status;
+
         document.getElementById('alreadySubmittedText').textContent =
           'You submitted onboarding information on ' + new Date(existing[0].submitted_at).toLocaleDateString() +
-          '. Status: ' + existing[0].status + '. Contact us if you need to update any details.';
+          '. Status: ' + statusLabel + '. Contact us if you need to update any details.';
       }
     })();
   </script>

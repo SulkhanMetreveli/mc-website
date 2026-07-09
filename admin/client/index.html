@@ -199,8 +199,20 @@
       return code === 'MULTI' ? 'Multicurrency Account' : (code || '—');
     }
 
+    var REQUEST_STATUS_META = {
+      pending: { label: 'Pending', cls: 'pending' },
+      in_transit_documents_review: { label: 'In Transit — Documents in Review', cls: 'info' },
+      approved: { label: 'Approved', cls: 'approved' },
+      rejected: { label: 'Rejected', cls: 'rejected' }
+    };
+
     function statusPill(status) {
-      return '<span class="status-pill ' + status + '">' + status + '</span>';
+      var meta = REQUEST_STATUS_META[status] || { label: status, cls: 'neutral' };
+      return '<span class="status-pill ' + meta.cls + '">' + meta.label + '</span>';
+    }
+
+    function isOpenStatus(status) {
+      return status === 'pending' || status === 'in_transit_documents_review';
     }
 
     var VEHICLE_STATUS_META = {
@@ -521,8 +533,9 @@
           '<dt>Documents</dt><dd><a href="#" data-view-doc="' + r.passport_copy_path + '">Passport Copy</a> · <a href="#" data-view-doc="' + r.proof_of_address_path + '">Proof of Address</a></dd>' +
           '<dt>Payout Bank</dt><dd>' + r.bank_account_holder_name + ' — ' + r.bank_name + ' (' + r.bank_country + '), ' + r.bank_account_number + (r.bank_swift_bic ? ', SWIFT ' + r.bank_swift_bic : '') + ', ' + r.payout_currency + '</dd>' +
           '</dl>' +
-          (r.status === 'pending' ?
+          (isOpenStatus(r.status) ?
             '<div style="margin-top:0.75rem;">' +
+              (r.status === 'pending' ? '<button type="button" class="btn-small" data-onboard-review="' + r.id + '">Mark In Review</button>' : '') +
               '<button type="button" class="btn-small approve" data-onboard-approve="' + r.id + '">Approve</button>' +
               '<button type="button" class="btn-small reject" data-onboard-reject="' + r.id + '">Reject</button>' +
             '</div>' : '') +
@@ -531,6 +544,12 @@
       el.innerHTML = html;
 
       el.querySelectorAll('[data-view-doc]').forEach(function (a) { bindPdfLink(a, 'kyc-files', a.getAttribute('data-view-doc')); });
+      el.querySelectorAll('[data-onboard-review]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          await window.mcAdminClient.from('onboarding_submissions').update({ status: 'in_transit_documents_review' }).eq('id', btn.getAttribute('data-onboard-review'));
+          loadOnboarding();
+        });
+      });
       el.querySelectorAll('[data-onboard-approve]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
           await window.mcAdminClient.from('onboarding_submissions').update({ status: 'approved' }).eq('id', btn.getAttribute('data-onboard-approve'));
@@ -568,8 +587,9 @@
           '<dt>Payout Bank Update</dt><dd>' + (r.bank_account_holder_name ? (r.bank_account_holder_name + ' — ' + r.bank_name + ' (' + r.bank_country + '), ' + r.bank_account_number + (r.bank_swift_bic ? ', SWIFT ' + r.bank_swift_bic : '') + ', ' + r.payout_currency) : 'Not requested') + '</dd>' +
           (r.additional_notes ? '<dt>Client Notes</dt><dd>' + r.additional_notes + '</dd>' : '') +
           '</dl>' +
-          (r.status === 'pending' ?
+          (isOpenStatus(r.status) ?
             '<div style="margin-top:0.75rem;">' +
+              (r.status === 'pending' ? '<button type="button" class="btn-small" data-addr-review="' + r.id + '">Mark In Review</button>' : '') +
               '<button type="button" class="btn-small approve" data-addr-approve=\'' + JSON.stringify(r).replace(/'/g, "&#39;") + '\'>' + (r.address_line1 ? 'Approve &amp; Apply Address to Profile' : 'Approve') + '</button>' +
               '<button type="button" class="btn-small reject" data-addr-reject="' + r.id + '">Reject</button>' +
             '</div>' :
@@ -579,6 +599,12 @@
       el.innerHTML = html;
 
       el.querySelectorAll('[data-view-doc]').forEach(function (a) { bindPdfLink(a, 'kyc-files', a.getAttribute('data-view-doc')); });
+      el.querySelectorAll('[data-addr-review]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          await window.mcAdminClient.from('address_update_requests').update({ status: 'in_transit_documents_review' }).eq('id', btn.getAttribute('data-addr-review'));
+          loadAddressRequests();
+        });
+      });
       el.querySelectorAll('[data-addr-approve]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
           if (!confirm('Mark this request approved? If it includes an address change, the new address will be copied into the client profile. Have you already verified the client by phone?')) return;

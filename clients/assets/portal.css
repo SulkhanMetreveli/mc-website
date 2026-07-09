@@ -325,6 +325,7 @@ button.btn-primary:disabled { background: var(--gray-light); cursor: not-allowed
 .status-pill.approved { color: #14502A; border-color: var(--green); background: #EAF4EC; }
 .status-pill.rejected { color: #8A1128; border-color: var(--red); background: #FBEAEC; }
 .status-pill.neutral { color: var(--gray); border-color: var(--gray-light); background: var(--off-white); }
+.status-pill.info { color: var(--blue); border-color: var(--blue); background: #EEF1F8; }
 
 /* Tables */
 table.simple-table { width: 100%; border-collapse: collapse; }

@@ -121,16 +121,23 @@ From there:
     they appear in the client's Document Center immediately.
   - Review **onboarding submissions**, including a direct link to view
     the passport copy and proof-of-address PDFs, with Approve/Reject
-    buttons.
+    buttons — plus a **Mark In Review** button that moves a pending
+    submission into an "In Transit — Documents in Review" state (added
+    in `supabase/007_document_review_status.sql`), useful for signalling
+    you've started looking at it without committing to approve/reject
+    yet. The client sees this status too if they check their onboarding
+    page again.
   - Review **address & bank update requests** — a client can submit an
     address change, a payout bank change, a passport refresh, or any
     combination, in one form (added in
     `supabase/006_address_update_optional_sections.sql` — run that
     migration if you set the portal up before this existed). Proof of
     address is required on every submission regardless of what else is
-    included. Approving copies the new address straight to the profile
-    in the same click, only if an address change was actually part of
-    the request. **Verify the client by phone before clicking Approve**
+    included. Also has a **Mark In Review** button for the same "In
+    Transit — Documents in Review" status as onboarding. Approving
+    copies the new address straight to the profile in the same click,
+    only if an address change was actually part of the request.
+    **Verify the client by phone before clicking Approve**
     — this step doesn't verify anything for you, and nothing here ever
     touches your actual banking/custodian system or physical records
     automatically.
