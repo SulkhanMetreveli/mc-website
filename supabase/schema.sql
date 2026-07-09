@@ -247,6 +247,7 @@ create table if not exists investment_vehicles (
   status                      text not null default 'active' check (status in (
                                  'active', 'on_hold', 'liquidating', 'withdrawing',
                                  'in_transfer_awaiting_client', 'in_transfer',
+                                 'in_transit_documents_review',
                                  'liquidated', 'rejected'
                                )),
   created_at                  timestamptz not null default now(),
