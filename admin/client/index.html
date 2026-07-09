@@ -656,8 +656,9 @@
           '<dt>Reason</dt><dd>' + r.reason + '</dd>' +
           (r.additional_notes ? '<dt>Client Notes</dt><dd>' + r.additional_notes + '</dd>' : '') +
           '</dl>' +
-          (r.status === 'pending' ?
+          (isOpenStatus(r.status) ?
             '<div style="margin-top:0.75rem;">' +
+              (r.status === 'pending' ? '<button type="button" class="btn-small" data-wd-review="' + r.id + '">Mark In Review</button>' : '') +
               '<button type="button" class="btn-small approve" data-wd-approve="' + r.id + '">Approve</button>' +
               '<button type="button" class="btn-small reject" data-wd-reject="' + r.id + '">Reject</button>' +
             '</div>' :
@@ -666,6 +667,12 @@
       });
       el.innerHTML = html;
 
+      el.querySelectorAll('[data-wd-review]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          await window.mcAdminClient.from('withdrawal_requests').update({ status: 'in_transit_documents_review' }).eq('id', btn.getAttribute('data-wd-review'));
+          loadWithdrawalRequests();
+        });
+      });
       el.querySelectorAll('[data-wd-approve]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
           if (!confirm('Mark this withdrawal approved? This does not move any money — action the payment in your banking/custodian system separately, after verifying the client by phone.')) return;

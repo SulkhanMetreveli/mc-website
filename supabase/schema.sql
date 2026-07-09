@@ -205,7 +205,7 @@ create table if not exists withdrawal_requests (
   id                     uuid primary key default gen_random_uuid(),
   user_id                uuid not null references auth.users(id) on delete cascade,
   submitted_at           timestamptz not null default now(),
-  status                 text not null default 'pending' check (status in ('pending','approved','rejected')),
+  status                 text not null default 'pending' check (status in ('pending','in_transit_documents_review','approved','rejected')),
   reviewed_at            timestamptz,
   reviewed_by            text,
   reviewer_notes         text,

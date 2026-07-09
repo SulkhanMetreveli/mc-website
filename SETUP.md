@@ -142,8 +142,13 @@ From there:
     touches your actual banking/custodian system or physical records
     automatically.
   - Review **withdrawal requests** — same rule: verify by phone, then
-    mark approved/rejected. Approving here is a record-keeping action
-    only; you still action the actual payment separately.
+    mark approved/rejected. Also has a **Mark In Review** button (added
+    in `supabase/008_withdrawal_in_review_status.sql`) if you want to
+    flag one as "In Transit — Documents in Review" for any reason —
+    there's currently no client-facing page that shows withdrawal
+    request status, so this is admin-visible only. Approving here is a
+    record-keeping action only; you still action the actual payment
+    separately.
   - **Reset Password** — generates a new temporary password and forces
     the client to set their own on next login. Nothing is ever emailed
     automatically anywhere in this system; the new password is shown to
