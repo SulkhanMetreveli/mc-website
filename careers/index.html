@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-31H9J154M6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-31H9J154M6');
+</script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Careers at Met Capital. We seek exceptional individuals in quantitative research, technology, and operations.">
+    <meta name="robots" content="index, follow">
+
+    <meta property="og:title" content="Careers — Met Capital">
+    <meta property="og:description" content="Join Met Capital.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://met.capital/careers/">
+
+    <link rel="canonical" href="https://met.capital/careers/">
+    <title>Careers — Met Capital</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --black: #000000;
+            --gray-dark: #333333;
+            --gray: #666666;
+            --gray-light: #999999;
+            --red: #C41E3A;
+            --blue: #1E3A8A;
+            --white: #FFFFFF;
+            --off-white: #F7F7F7;
+            --border: #E0E0E0;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-weight: 400;
+            line-height: 1.6;
+            color: var(--gray-dark);
+            background: var(--white);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Header */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+        }
+
+        .header-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo { height: 26px; }
+
+        nav { display: flex; align-items: center; gap: 2rem; }
+
+        nav a {
+            text-decoration: none;
+            color: var(--gray);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            transition: color 0.2s;
+        }
+
+        nav a:hover { color: var(--black); }
+        nav a.active { color: var(--black); }
+
+        /* Page */
+        .page-hero {
+            padding: 9rem 2rem 3rem;
+        }
+
+        .page-hero-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        section {
+            padding: 3rem 2rem 6rem;
+        }
+
+        .section-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-label {
+            font-size: 0.6875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--gray-light);
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--black);
+            letter-spacing: -0.02em;
+            margin-bottom: 1rem;
+        }
+
+        .page-intro {
+            font-size: 1.0625rem;
+            color: var(--gray);
+            max-width: 620px;
+            line-height: 1.75;
+        }
+
+        /* Career areas (mirrors homepage careers-grid) */
+        .careers-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-top: 3rem;
+        }
+
+        .career-area {
+            padding: 1.5rem;
+            background: var(--off-white);
+            border-left: 3px solid var(--border);
+            transition: border-color 0.2s;
+        }
+
+        .career-area:hover { border-color: var(--blue); }
+
+        .career-area h3 {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: var(--black);
+            margin-bottom: 0.5rem;
+        }
+
+        .career-area p {
+            font-size: 0.8125rem;
+            color: var(--gray);
+            line-height: 1.6;
+        }
+
+        /* Form */
+        .form-card {
+            max-width: 640px;
+            margin-top: 3rem;
+            padding-top: 3rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .field {
+            margin-bottom: 1.5rem;
+        }
+
+        .field label {
+            display: block;
+            font-size: 0.6875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--gray-light);
+            margin-bottom: 0.5rem;
+        }
+
+        .field label .required { color: var(--red); }
+
+        .field input,
+        .field select,
+        .field textarea {
+            width: 100%;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 0.9375rem;
+            color: var(--black);
+            background: var(--white);
+            border: 1px solid var(--border);
+            padding: 0.75rem;
+            transition: border-color 0.2s;
+        }
+
+        .field input:focus,
+        .field select:focus,
+        .field textarea:focus {
+            outline: none;
+            border-color: var(--blue);
+        }
+
+        .field textarea { resize: vertical; min-height: 140px; }
+
+        /* Honeypot -- hidden from real visitors, left for bots to fill in */
+        .hp-field {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .btn-submit {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--white);
+            background: var(--black);
+            border: none;
+            padding: 0.875rem 2rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-submit:hover { background: var(--gray-dark); }
+        .btn-submit:disabled { background: var(--gray-light); cursor: default; }
+
+        .form-note {
+            margin-top: 1.25rem;
+            font-size: 0.8125rem;
+            color: var(--gray-light);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--black);
+            border-top: 1px solid #222;
+            padding: 2rem;
+        }
+
+        .footer-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid #222;
+        }
+
+        .footer-reg p {
+            font-size: 0.75rem;
+            color: var(--gray);
+            line-height: 1.7;
+            max-width: 500px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .footer-links a {
+            font-size: 0.75rem;
+            color: var(--gray);
+            text-decoration: none;
+        }
+
+        .footer-links a:hover { color: var(--white); }
+
+        .footer-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-bottom p {
+            font-size: 0.6875rem;
+            color: #555;
+        }
+
+        .footer-warning {
+            background: #111;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            border-left: 2px solid var(--red);
+        }
+
+        .footer-warning p {
+            font-size: 0.6875rem;
+            color: var(--gray);
+            line-height: 1.6;
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .careers-grid { grid-template-columns: 1fr; }
+            .form-row { grid-template-columns: 1fr; gap: 0; }
+            .footer-top { flex-direction: column; gap: 1.5rem; }
+        }
+
+        @media (max-width: 600px) {
+            .header-inner { padding: 0.875rem 1.25rem; }
+            nav { gap: 1rem; }
+            .page-hero { padding: 7rem 1.25rem 2rem; }
+            section { padding: 2rem 1.25rem 4rem; }
+            h1 { font-size: 1.625rem; }
+            .footer-inner { padding: 0; }
+            .footer-links { flex-wrap: wrap; gap: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-inner">
+            <a href="/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+            <nav>
+                <a href="/#about">About</a>
+                <a href="/#leadership">Leadership</a>
+                <a href="/careers/" class="active">Careers</a>
+                <a href="/contact/">Contact</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="page-hero">
+        <div class="page-hero-inner">
+            <div class="section-label">Careers</div>
+            <h1>Join Us</h1>
+            <p class="page-intro">We seek exceptional individuals who combine intellectual rigour with practical capability. Experience in finance is not required — we value analytical ability, technical depth, and intellectual curiosity.</p>
+        </div>
+    </div>
+
+    <section>
+        <div class="section-inner">
+            <div class="careers-grid">
+                <div class="career-area">
+                    <h3>Quantitative Research</h3>
+                    <p>Develop systematic investment strategies through statistical analysis, machine learning, and empirical research across global markets.</p>
+                </div>
+                <div class="career-area">
+                    <h3>Technology</h3>
+                    <p>Build and maintain the computational infrastructure that supports our research and trading operations. Distributed systems, data engineering, platform development.</p>
+                </div>
+                <div class="career-area">
+                    <h3>Operations</h3>
+                    <p>Ensure operational excellence across trading, compliance, and business functions. Institutional rigour applied to every process.</p>
+                </div>
+            </div>
+
+            <form name="careers" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/thank-you/" class="form-card">
+                <input type="hidden" name="form-name" value="careers">
+                <p class="hp-field" aria-hidden="true">
+                    <label>Leave this field blank<input tabindex="-1" autocomplete="off" name="bot-field"></label>
+                </p>
+
+                <div class="form-row">
+                    <div class="field">
+                        <label for="k_name">Full Name <span class="required">*</span></label>
+                        <input type="text" id="k_name" name="name" required>
+                    </div>
+                    <div class="field">
+                        <label for="k_email">Email <span class="required">*</span></label>
+                        <input type="email" id="k_email" name="email" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="field">
+                        <label for="k_area">Area of Interest <span class="required">*</span></label>
+                        <select id="k_area" name="area_of_interest" required>
+                            <option value="">Select an area…</option>
+                            <option value="Quantitative Research">Quantitative Research</option>
+                            <option value="Technology">Technology</option>
+                            <option value="Operations">Operations</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="k_link">LinkedIn / Portfolio URL</label>
+                        <input type="url" id="k_link" name="profile_url" placeholder="https://…">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="k_message">Message / Cover Letter <span class="required">*</span></label>
+                    <textarea id="k_message" name="message" required placeholder="Tell us about your background and why you're interested in Met Capital."></textarea>
+                </div>
+
+                <button type="submit" class="btn-submit">Submit Application</button>
+                <p class="form-note">We review every submission individually and manually — no automated replies are sent.</p>
+            </form>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-inner">
+            <div class="footer-top">
+                <div class="footer-reg">
+                    <p>Met Capital Ltd is registered in England and Wales (Company No. 12735600). This website does not constitute an offer or solicitation to any person in any jurisdiction. The information provided is for general informational purposes only.</p>
+                </div>
+                <div class="footer-links">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Use</a>
+                    <a href="#">Disclosures</a>
+                </div>
+            </div>
+
+            <div class="footer-warning">
+                <p><strong>Important Notice:</strong> met.capital is the only official website of Met Capital Ltd. We do not operate any other publicly available websites, mobile applications, or social media accounts offering investment services. Please verify you are on our official website before sharing any information.</p>
+            </div>
+
+            <div class="footer-bottom">
+                <p>© 2020 - 2026 Met Capital Ltd. All rights reserved.</p>
+                <p>London · Zurich</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
