@@ -154,6 +154,17 @@
       </div>
     </div>
 
+    <!-- DOCUMENT SUBMISSIONS -->
+    <div class="section-block">
+      <h2>Document Submissions</h2>
+      <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:0.75rem;">
+        Client-submitted passport copies and proof of address, outside of onboarding or an
+        address/bank change request. Approving one copies the file into Documents below,
+        where the client can see it.
+      </p>
+      <div class="card"><div id="documentSubmissionsContent"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
+    </div>
+
     <!-- ONBOARDING -->
     <div class="section-block">
       <h2>Onboarding Submissions</h2>
@@ -506,6 +517,97 @@
       }
     });
 
+    // ---------------- DOCUMENT SUBMISSIONS ----------------
+    async function loadDocumentSubmissions() {
+      var { data: rows } = await window.mcAdminClient
+        .from('document_submissions').select('*').eq('user_id', targetUserId).order('submitted_at', { ascending: false });
+
+      var el = document.getElementById('documentSubmissionsContent');
+      if (!rows || rows.length === 0) {
+        el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No document submissions yet.</p>';
+        return;
+      }
+
+      var html = '';
+      rows.forEach(function (r) {
+        html += '<div class="request-detail-box">' +
+          statusPill(r.status) +
+          '<dl>' +
+          '<dt>Submitted</dt><dd>' + new Date(r.submitted_at).toLocaleString() + '</dd>' +
+          '<dt>Passport Copy</dt><dd>' + (r.passport_path ? '<a href="#" data-view-doc="' + r.passport_path + '">View PDF</a>' : 'Not submitted') + '</dd>' +
+          '<dt>Proof of Address</dt><dd>' + (r.proof_of_address_path ? '<a href="#" data-view-doc="' + r.proof_of_address_path + '">View PDF</a>' : 'Not submitted') + '</dd>' +
+          '</dl>' +
+          (isOpenStatus(r.status) ?
+            '<div style="margin-top:0.75rem;">' +
+              (r.status === 'pending' ? '<button type="button" class="btn-small" data-doc-review="' + r.id + '">Mark In Review</button>' : '') +
+              '<button type="button" class="btn-small approve" data-doc-approve=\'' + JSON.stringify(r).replace(/'/g, "&#39;") + '\'>Approve &amp; Add to Documents</button>' +
+              '<button type="button" class="btn-small reject" data-doc-reject="' + r.id + '">Reject</button>' +
+            '</div>' :
+            '<div style="margin-top:0.5rem; font-size:0.75rem; color:var(--gray-light);">Reviewed ' + (r.reviewed_at ? new Date(r.reviewed_at).toLocaleString() : '') + '</div>') +
+        '</div>';
+      });
+      el.innerHTML = html;
+
+      el.querySelectorAll('[data-view-doc]').forEach(function (a) { bindPdfLink(a, 'kyc-files', a.getAttribute('data-view-doc')); });
+
+      el.querySelectorAll('[data-doc-review]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          await window.mcAdminClient.from('document_submissions').update({ status: 'in_transit_documents_review' }).eq('id', btn.getAttribute('data-doc-review'));
+          loadDocumentSubmissions();
+        });
+      });
+
+      el.querySelectorAll('[data-doc-reject]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          await window.mcAdminClient.from('document_submissions').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', btn.getAttribute('data-doc-reject'));
+          loadDocumentSubmissions();
+        });
+      });
+
+      el.querySelectorAll('[data-doc-approve]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          if (!confirm('Approve this submission? The file(s) will be copied into this client\'s Document Center, visible to them immediately.')) return;
+
+          var r = JSON.parse(btn.getAttribute('data-doc-approve'));
+          btn.disabled = true;
+          btn.textContent = 'Approving…';
+
+          async function promote(path, title, category) {
+            if (!path) return;
+            var dl = await window.mcAdminClient.storage.from('kyc-files').download(path);
+            if (dl.error) throw dl.error;
+            var filename = path.split('/').pop();
+            var newPath = targetUserId + '/' + Date.now() + '-' + filename;
+            var up = await window.mcAdminClient.storage.from('client-documents').upload(newPath, dl.data, { contentType: 'application/pdf' });
+            if (up.error) throw up.error;
+            var ins = await window.mcAdminClient.from('documents').insert({
+              user_id: targetUserId, title: title, category: category, storage_path: newPath
+            });
+            if (ins.error) throw ins.error;
+          }
+
+          try {
+            await promote(r.passport_path, 'Passport Copy', 'passport');
+            await promote(r.proof_of_address_path, 'Proof of Address', 'proof_of_address');
+
+            var upd = await window.mcAdminClient.from('document_submissions').update({
+              status: 'approved', reviewed_at: new Date().toISOString()
+            }).eq('id', r.id);
+            if (upd.error) throw upd.error;
+
+            loadDocuments();
+            loadDocumentSubmissions();
+            showAlert('Approved. The document(s) now appear in this client\'s Document Center.', 'success');
+          } catch (err) {
+            console.error(err);
+            showAlert('Could not approve: ' + err.message + '. The submission was left as-is -- no partial changes were saved to its status.', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Approve & Add to Documents';
+          }
+        });
+      });
+    }
+
     // ---------------- ONBOARDING ----------------
     async function loadOnboarding() {
       var { data: rows } = await window.mcAdminClient
@@ -697,6 +799,7 @@
       await loadProfile();
       loadVehicles();
       loadDocuments();
+      loadDocumentSubmissions();
       loadOnboarding();
       loadAddressRequests();
       loadWithdrawalRequests();

@@ -119,6 +119,15 @@ From there:
     locked automatically.
   - Upload/delete **documents** (statements, tax docs, agreements) —
     they appear in the client's Document Center immediately.
+  - Review **document submissions** — a client can submit a new
+    passport copy and/or proof of address at any time from their
+    Documents page, separate from onboarding or an address/bank update
+    request (added in `supabase/010_document_submissions.sql`). Has the
+    same Mark In Review / Approve / Reject flow as everything else.
+    **Approving copies the file(s) straight into that client's Document
+    Center** (the same "documents" table/bucket you upload to above) —
+    that's the whole point of this feature, so nothing further needed
+    on your end after clicking Approve.
   - Review **onboarding submissions**, including a direct link to view
     the passport copy and proof-of-address PDFs, with Approve/Reject
     buttons — plus a **Mark In Review** button that moves a pending

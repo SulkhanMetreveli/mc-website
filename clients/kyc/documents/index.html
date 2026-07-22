@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Submit a Document — Met Capital Client Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+</head>
+<body>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/clients/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/clients/" class="dashboard-link">Dashboard</a>
+        <a href="/clients/documents/" class="active">Documents</a>
+        <a href="/clients/withdrawal/">Withdrawal Request</a>
+        <a href="/clients/kyc/address-update/">Address &amp; Bank Update</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="page-label"><a href="/clients/documents/">← Documents</a></div>
+    <h1 class="page-title">Submit a Document</h1>
+    <p class="page-subtitle">
+      Submit a new passport copy and/or proof of address. At least one is required — you
+      can send both at once if you're updating both. Once approved, it will appear in your
+      <a href="/clients/documents/">Document Center</a>.
+    </p>
+
+    <div id="pageAlert"></div>
+
+    <div id="existingBox" class="card" style="display:none;">
+      <h2>Submission Under Review</h2>
+      <p id="existingText" style="font-size:0.875rem; color:var(--gray);"></p>
+    </div>
+
+    <form id="requestForm" class="card" novalidate>
+      <div class="form-section">
+        <h3>Passport Copy</h3>
+        <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:1rem;">
+          Upload a copy of your current passport, if that's what you're submitting.
+        </p>
+        <div class="file-field">
+          <label for="passport_file" style="font-weight:500; font-size:0.875rem;">Passport Copy (PDF only)</label><br>
+          <input type="file" id="passport_file" accept="application/pdf" style="margin-top:0.6rem;">
+          <div class="file-hint">PDF format only, maximum 25MB.</div>
+          <div class="file-status" id="passportStatus"></div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Proof of Address</h3>
+        <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:1rem;">
+          Upload a recent utility bill, bank statement, or government-issued letter (dated
+          within the last 3 months) showing your full name and address, if that's what
+          you're submitting.
+        </p>
+        <div class="file-field">
+          <label for="proof_file" style="font-weight:500; font-size:0.875rem;">Proof of Address (PDF only)</label><br>
+          <input type="file" id="proof_file" accept="application/pdf" style="margin-top:0.6rem;">
+          <div class="file-hint">PDF format only, maximum 25MB.</div>
+          <div class="file-status" id="proofStatus"></div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary" id="submitBtn">Submit for Review</button>
+    </form>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/clients/assets/auth.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcLogout);
+
+    var mcSession = null;
+
+    function showAlert(message, type) {
+      document.getElementById('pageAlert').innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function wireFileValidation(inputId, statusId) {
+      var input = document.getElementById(inputId);
+      input.addEventListener('change', function () {
+        var status = document.getElementById(statusId);
+        var file = input.files[0];
+        if (!file) { status.textContent = ''; return; }
+        if (file.type !== 'application/pdf') {
+          status.textContent = 'This file is not a PDF. Please select a PDF file.';
+          status.className = 'file-status error';
+          input.value = '';
+          return;
+        }
+        if (file.size > 25 * 1024 * 1024) {
+          status.textContent = 'File is too large (max 25MB).';
+          status.className = 'file-status error';
+          input.value = '';
+          return;
+        }
+        status.textContent = 'Selected: ' + file.name;
+        status.className = 'file-status ok';
+      });
+    }
+    wireFileValidation('passport_file', 'passportStatus');
+    wireFileValidation('proof_file', 'proofStatus');
+
+    var statusLabels = {
+      pending: 'Pending review',
+      in_transit_documents_review: 'In transit — documents in review',
+      approved: 'Approved',
+      rejected: 'Rejected'
+    };
+
+    document.getElementById('requestForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      var passportFile = document.getElementById('passport_file').files[0];
+      var proofFile = document.getElementById('proof_file').files[0];
+
+      if (!passportFile && !proofFile) {
+        showAlert('Please attach at least one document — a passport copy, a proof of address, or both.', 'error');
+        return;
+      }
+      if (passportFile && passportFile.type !== 'application/pdf') {
+        showAlert('Passport copy must be a PDF file.', 'error');
+        return;
+      }
+      if (proofFile && proofFile.type !== 'application/pdf') {
+        showAlert('Proof of address must be a PDF file.', 'error');
+        return;
+      }
+
+      var btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      try {
+        var userId = mcSession.user.id;
+        function safe(name) { return name.replace(/[^a-zA-Z0-9._-]/g, '_'); }
+
+        var passportPath = null;
+        if (passportFile) {
+          passportPath = userId + '/document-submission-passport-' + Date.now() + '-' + safe(passportFile.name);
+          var uploadPassport = await window.mcClient.storage
+            .from('kyc-files')
+            .upload(passportPath, passportFile, { contentType: 'application/pdf' });
+          if (uploadPassport.error) throw uploadPassport.error;
+        }
+
+        var proofPath = null;
+        if (proofFile) {
+          proofPath = userId + '/document-submission-proof-' + Date.now() + '-' + safe(proofFile.name);
+          var uploadProof = await window.mcClient.storage
+            .from('kyc-files')
+            .upload(proofPath, proofFile, { contentType: 'application/pdf' });
+          if (uploadProof.error) throw uploadProof.error;
+        }
+
+        var insert = await window.mcClient.from('document_submissions').insert({
+          user_id: userId,
+          passport_path: passportPath,
+          proof_of_address_path: proofPath
+        });
+        if (insert.error) throw insert.error;
+
+        document.getElementById('requestForm').style.display = 'none';
+        showAlert('Your document(s) have been submitted for review. Once approved, they will appear in your Document Center.', 'success');
+      } catch (err) {
+        console.error(err);
+        showAlert('Something went wrong submitting your document(s). Please try again, or reach us via the Contact page.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit for Review';
+      }
+    });
+
+    (async function init() {
+      var session = await window.mcRequireSession('/clients/kyc/documents/');
+      if (!session) return;
+      mcSession = session;
+      await window.mcLoadProfile();
+
+      var { data: existing } = await window.mcClient
+        .from('document_submissions')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .in('status', ['pending', 'in_transit_documents_review'])
+        .order('submitted_at', { ascending: false })
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        document.getElementById('requestForm').style.display = 'none';
+        var box = document.getElementById('existingBox');
+        box.style.display = '';
+        var statusLabel = statusLabels[existing[0].status] || existing[0].status;
+        document.getElementById('existingText').textContent =
+          'You submitted a document on ' + new Date(existing[0].submitted_at).toLocaleDateString() +
+          '. Status: ' + statusLabel + '. Once it\'s reviewed, you\'ll be able to submit another.';
+      }
+    })();
+  </script>
+</body>
+</html>

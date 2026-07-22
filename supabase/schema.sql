@@ -70,7 +70,7 @@ create table if not exists documents (
   id            uuid primary key default gen_random_uuid(),
   user_id       uuid not null references auth.users(id) on delete cascade,
   title         text not null,
-  category      text not null default 'other' check (category in ('statement','tax','agreement','other')),
+  category      text not null default 'other' check (category in ('statement','tax','agreement','passport','proof_of_address','other')),
   storage_path  text not null,
   uploaded_at   timestamptz not null default now()
 );
@@ -266,6 +266,37 @@ alter table withdrawal_requests
   add column if not exists investment_vehicle_id uuid references investment_vehicles(id);
 
 -- ---------------------------------------------------------------------------
+-- document_submissions
+--    Client submits a new passport copy and/or proof of address at any
+--    time (not just onboarding). At least one of the two files is
+--    required, both are allowed together. Like every other request type,
+--    this only ever stages a pending request — nothing lands in the
+--    shared 'documents' table until an admin approves it, at which point
+--    the file is copied into the client-documents bucket and a normal
+--    documents row is created for it.
+-- ---------------------------------------------------------------------------
+create table if not exists document_submissions (
+  id                     uuid primary key default gen_random_uuid(),
+  user_id                uuid not null references auth.users(id) on delete cascade,
+  submitted_at           timestamptz not null default now(),
+  status                 text not null default 'pending' check (status in ('pending','in_transit_documents_review','approved','rejected')),
+  reviewed_at            timestamptz,
+  passport_path          text,
+  proof_of_address_path  text,
+  constraint document_submissions_has_file check (passport_path is not null or proof_of_address_path is not null)
+);
+
+alter table document_submissions enable row level security;
+
+create policy "clients select own document_submissions"
+  on document_submissions for select
+  using (auth.uid() = user_id);
+
+create policy "clients insert own document_submissions"
+  on document_submissions for insert
+  with check (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
 -- 8. Storage buckets
 -- ---------------------------------------------------------------------------
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -393,6 +424,16 @@ create policy "admins select all onboarding_submissions"
   on onboarding_submissions for select using (is_admin());
 create policy "admins update onboarding_submissions"
   on onboarding_submissions for update using (is_admin()) with check (is_admin());
+
+-- ---------------------------------------------------------------------------
+-- document_submissions — admins review (select + update status), and can
+-- insert into 'documents' once approved (covered by the existing
+-- "admins insert documents" policy above)
+-- ---------------------------------------------------------------------------
+create policy "admins select all document_submissions"
+  on document_submissions for select using (is_admin());
+create policy "admins update document_submissions"
+  on document_submissions for update using (is_admin()) with check (is_admin());
 
 -- ---------------------------------------------------------------------------
 -- Storage — admins can manage client-documents for anyone, and view
