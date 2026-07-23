@@ -107,7 +107,13 @@ From there:
   "Manage" on any client) — everything about one client in one place:
   - Edit their profile and **address of record** (this is what shows on
     their dashboard — update it here once you've verified a change, it's
-    never automatic).
+    never automatic). Also has optional fields for **phone number** and
+    **banking details on file** (account holder, bank name, account
+    number/IBAN, SWIFT/BIC, bank country) — added in
+    `supabase/011_client_profile_extra_fields.sql`. These are for your
+    own records only: nothing client-facing reads them, saving here
+    doesn't move money, and they're separate from the client-submitted
+    address/bank update request workflow.
   - Add/edit/delete their **investment vehicles** — one row per
     product/currency they hold. These show as separate cards on their
     dashboard and become quick-pick currencies on their Withdrawal

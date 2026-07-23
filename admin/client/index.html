@@ -50,6 +50,10 @@
               <option value="suspended">Suspended</option>
             </select>
           </div>
+          <div class="field">
+            <label for="p_phone">Phone Number</label>
+            <input type="text" id="p_phone" placeholder="Optional">
+          </div>
         </div>
         <div class="form-section">
           <h3>Address of Record</h3>
@@ -62,6 +66,22 @@
             <div class="field"><label for="p_state_province">State / Province</label><input type="text" id="p_state_province"></div>
             <div class="field"><label for="p_postal_code">Postal Code</label><input type="text" id="p_postal_code"></div>
             <div class="field"><label for="p_country">Country</label><input type="text" id="p_country"></div>
+          </div>
+        </div>
+        <div class="form-section">
+          <h3>Banking Details (On File)</h3>
+          <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:1rem;">
+            Optional. For your records only — saving here does not move money or verify
+            anything, and does not go through the client-facing update/review flow.
+          </p>
+          <div class="form-row">
+            <div class="field"><label for="p_bank_account_holder_name">Account Holder Name</label><input type="text" id="p_bank_account_holder_name"></div>
+            <div class="field"><label for="p_bank_name">Bank Name</label><input type="text" id="p_bank_name"></div>
+          </div>
+          <div class="form-row">
+            <div class="field"><label for="p_bank_account_number">Account Number / IBAN</label><input type="text" id="p_bank_account_number"></div>
+            <div class="field"><label for="p_bank_swift_bic">SWIFT / BIC</label><input type="text" id="p_bank_swift_bic"></div>
+            <div class="field"><label for="p_bank_country">Bank Country</label><input type="text" id="p_bank_country"></div>
           </div>
         </div>
         <button type="submit" class="btn-primary" id="profileSaveBtn">Save Profile</button>
@@ -279,12 +299,18 @@
       document.getElementById('p_full_name').value = profile.full_name || '';
       document.getElementById('p_reference').value = profile.client_reference || '';
       document.getElementById('p_status').value = profile.status || 'active';
+      document.getElementById('p_phone').value = profile.phone_number || '';
       document.getElementById('p_address_line1').value = profile.address_line1 || '';
       document.getElementById('p_address_line2').value = profile.address_line2 || '';
       document.getElementById('p_city').value = profile.city || '';
       document.getElementById('p_state_province').value = profile.state_province || '';
       document.getElementById('p_postal_code').value = profile.postal_code || '';
       document.getElementById('p_country').value = profile.country || '';
+      document.getElementById('p_bank_account_holder_name').value = profile.bank_account_holder_name || '';
+      document.getElementById('p_bank_name').value = profile.bank_name || '';
+      document.getElementById('p_bank_account_number').value = profile.bank_account_number || '';
+      document.getElementById('p_bank_swift_bic').value = profile.bank_swift_bic || '';
+      document.getElementById('p_bank_country').value = profile.bank_country || '';
       return profile;
     }
 
@@ -296,12 +322,18 @@
         full_name: document.getElementById('p_full_name').value.trim(),
         client_reference: document.getElementById('p_reference').value.trim() || null,
         status: document.getElementById('p_status').value,
+        phone_number: document.getElementById('p_phone').value.trim() || null,
         address_line1: document.getElementById('p_address_line1').value.trim() || null,
         address_line2: document.getElementById('p_address_line2').value.trim() || null,
         city: document.getElementById('p_city').value.trim() || null,
         state_province: document.getElementById('p_state_province').value.trim() || null,
         postal_code: document.getElementById('p_postal_code').value.trim() || null,
-        country: document.getElementById('p_country').value.trim() || null
+        country: document.getElementById('p_country').value.trim() || null,
+        bank_account_holder_name: document.getElementById('p_bank_account_holder_name').value.trim() || null,
+        bank_name: document.getElementById('p_bank_name').value.trim() || null,
+        bank_account_number: document.getElementById('p_bank_account_number').value.trim() || null,
+        bank_swift_bic: document.getElementById('p_bank_swift_bic').value.trim() || null,
+        bank_country: document.getElementById('p_bank_country').value.trim() || null
       }).eq('user_id', targetUserId);
       btn.disabled = false; btn.textContent = 'Save Profile';
       if (error) { showAlert('Could not save profile: ' + error.message, 'error'); return; }

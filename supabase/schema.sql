@@ -24,7 +24,15 @@ create table if not exists client_profiles (
   city                text,
   state_province      text,
   postal_code         text,
-  country             text
+  country             text,
+
+  -- additional optional details, admin-entered, for internal records only
+  phone_number             text,
+  bank_account_holder_name text,
+  bank_name                text,
+  bank_account_number      text,   -- IBAN or account number
+  bank_swift_bic           text,
+  bank_country             text
 );
 
 alter table client_profiles enable row level security;
