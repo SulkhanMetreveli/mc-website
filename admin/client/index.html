@@ -309,6 +309,16 @@
       loadProfile();
     });
 
+    async function edgeFunctionErrorMessage(error) {
+      if (error && error.context && typeof error.context.json === 'function') {
+        try {
+          var body = await error.context.json();
+          if (body && body.error) return body.error;
+        } catch (parseErr) { /* fall through to generic message */ }
+      }
+      return error ? error.message : 'Unknown error.';
+    }
+
     document.getElementById('resetPasswordBtn').addEventListener('click', async function () {
       if (!confirm('Reset this client\'s password? Their current password will stop working immediately, and they will be required to set a new one on next login.')) return;
 
@@ -322,7 +332,7 @@
         });
 
         if (error || (data && data.error)) {
-          throw new Error((data && data.error) || error.message);
+          throw new Error((data && data.error) || await edgeFunctionErrorMessage(error));
         }
 
         showAlert(

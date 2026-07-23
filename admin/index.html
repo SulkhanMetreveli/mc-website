@@ -209,6 +209,16 @@
         '<tbody>' + rows + '</tbody></table>';
     }
 
+    async function edgeFunctionErrorMessage(error) {
+      if (error && error.context && typeof error.context.json === 'function') {
+        try {
+          var body = await error.context.json();
+          if (body && body.error) return body.error;
+        } catch (parseErr) { /* fall through to generic message */ }
+      }
+      return error ? error.message : 'Unknown error.';
+    }
+
     document.getElementById('newClientForm').addEventListener('submit', async function (e) {
       e.preventDefault();
       var form = e.target;
@@ -235,7 +245,7 @@
         });
 
         if (error || (data && data.error)) {
-          throw new Error((data && data.error) || error.message);
+          throw new Error((data && data.error) || await edgeFunctionErrorMessage(error));
         }
 
         form.reset();
