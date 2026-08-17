@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Upload a Document — Met Capital Client Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+</head>
+<body>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/clients/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/clients/" class="dashboard-link">Dashboard</a>
+        <a href="/clients/documents/" class="active">Documents</a>
+        <a href="/clients/withdrawal/">Withdrawal Request</a>
+        <a href="/clients/kyc/address-update/">Address &amp; Bank Update</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="page-label"><a href="/clients/documents/">← Documents</a></div>
+    <h1 class="page-title">Upload a Document</h1>
+    <p class="page-subtitle">
+      Send us any document — give it a short title so we know what it is. Once approved,
+      it will appear in your <a href="/clients/documents/">Document Center</a>. For a new
+      passport copy or proof of address specifically, use
+      <a href="/clients/kyc/documents/">Submit Passport / Proof of Address</a> instead.
+    </p>
+
+    <div id="pageAlert"></div>
+
+    <form id="uploadForm" class="card" novalidate>
+      <div class="field">
+        <label for="g_title">Document Title <span class="required">*</span></label>
+        <input type="text" id="g_title" placeholder="e.g. Insurance Certificate" required>
+      </div>
+
+      <div class="file-field">
+        <label for="g_file" style="font-weight:500; font-size:0.875rem;">File (PDF only) <span class="required">*</span></label><br>
+        <input type="file" id="g_file" accept="application/pdf" required style="margin-top:0.6rem;">
+        <div class="file-hint">PDF format only, maximum 25MB.</div>
+        <div class="file-status" id="fileStatus"></div>
+      </div>
+
+      <button type="submit" class="btn-primary" id="submitBtn" style="margin-top:1rem;">Submit for Review</button>
+    </form>
+
+    <div class="section-block" style="margin-top:2rem;">
+      <h2 style="font-size:1.125rem; margin-bottom:0.75rem;">Your Submissions</h2>
+      <div class="card">
+        <div id="historyContent">
+          <p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/clients/assets/auth.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcLogout);
+
+    var mcSession = null;
+
+    function showAlert(message, type) {
+      document.getElementById('pageAlert').innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    document.getElementById('g_file').addEventListener('change', function () {
+      var status = document.getElementById('fileStatus');
+      var file = this.files[0];
+      if (!file) { status.textContent = ''; return; }
+      if (file.type !== 'application/pdf') {
+        status.textContent = 'This file is not a PDF. Please select a PDF file.';
+        status.className = 'file-status error';
+        this.value = '';
+        return;
+      }
+      if (file.size > 25 * 1024 * 1024) {
+        status.textContent = 'File is too large (max 25MB).';
+        status.className = 'file-status error';
+        this.value = '';
+        return;
+      }
+      status.textContent = 'Selected: ' + file.name;
+      status.className = 'file-status ok';
+    });
+
+    var statusLabels = {
+      pending: 'Pending review',
+      in_transit_documents_review: 'In transit — documents in review',
+      approved: 'Approved',
+      rejected: 'Rejected'
+    };
+
+    async function loadHistory() {
+      var el = document.getElementById('historyContent');
+      var { data: rows } = await window.mcClient
+        .from('general_document_submissions')
+        .select('*')
+        .eq('user_id', mcSession.user.id)
+        .order('submitted_at', { ascending: false });
+
+      if (!rows || rows.length === 0) {
+        el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No submissions yet.</p>';
+        return;
+      }
+
+      var rowsHtml = '';
+      rows.forEach(function (r) {
+        rowsHtml += '<tr>' +
+          '<td>' + r.title + '</td>' +
+          '<td>' + new Date(r.submitted_at).toLocaleDateString() + '</td>' +
+          '<td>' + (statusLabels[r.status] || r.status) + '</td>' +
+          '<td><a href="#" data-path="' + r.file_path + '" class="view-link">View</a></td>' +
+        '</tr>';
+      });
+
+      el.innerHTML =
+        '<table class="simple-table"><thead><tr><th>Title</th><th>Submitted</th><th>Status</th><th></th></tr></thead>' +
+        '<tbody>' + rowsHtml + '</tbody></table>';
+
+      el.querySelectorAll('.view-link').forEach(function (link) {
+        link.addEventListener('click', async function (e) {
+          e.preventDefault();
+          var { data, error } = await window.mcClient.storage
+            .from('kyc-files')
+            .createSignedUrl(link.getAttribute('data-path'), 60);
+          if (error || !data) { alert('Could not generate a link. Please try again.'); return; }
+          window.open(data.signedUrl, '_blank');
+        });
+      });
+    }
+
+    document.getElementById('uploadForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      var title = document.getElementById('g_title').value.trim();
+      var file = document.getElementById('g_file').files[0];
+
+      if (!title) { showAlert('Please give the document a title.', 'error'); return; }
+      if (!file) { showAlert('Please attach a PDF file.', 'error'); return; }
+      if (file.type !== 'application/pdf') { showAlert('File must be a PDF.', 'error'); return; }
+
+      var btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      try {
+        var userId = mcSession.user.id;
+        function safe(name) { return name.replace(/[^a-zA-Z0-9._-]/g, '_'); }
+
+        var path = userId + '/general-document-' + Date.now() + '-' + safe(file.name);
+        var upload = await window.mcClient.storage
+          .from('kyc-files')
+          .upload(path, file, { contentType: 'application/pdf' });
+        if (upload.error) throw upload.error;
+
+        var insert = await window.mcClient.from('general_document_submissions').insert({
+          user_id: userId,
+          title: title,
+          file_path: path
+        });
+        if (insert.error) throw insert.error;
+
+        document.getElementById('uploadForm').reset();
+        document.getElementById('fileStatus').textContent = '';
+        showAlert('Document submitted for review. Once approved, it will appear in your Document Center.', 'success');
+        loadHistory();
+      } catch (err) {
+        console.error(err);
+        showAlert('Something went wrong submitting your document. Please try again, or reach us via the Contact page.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit for Review';
+      }
+    });
+
+    (async function init() {
+      var session = await window.mcRequireSession('/clients/documents/upload/');
+      if (!session) return;
+      mcSession = session;
+      await window.mcLoadProfile();
+      loadHistory();
+    })();
+  </script>
+</body>
+</html>

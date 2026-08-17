@@ -134,6 +134,16 @@ From there:
     Center** (the same "documents" table/bucket you upload to above) —
     that's the whole point of this feature, so nothing further needed
     on your end after clicking Approve.
+  - Review **general document submissions** — a client can also upload
+    any single document with a title of their own choosing, from a
+    separate "Upload a Document" button on their Documents page (added
+    in `supabase/012_general_document_submissions.sql`). Not limited to
+    passport/proof of address, and not bundled with any other field.
+    Same Mark In Review / Approve / Reject flow, and approving copies
+    it into the Document Center the same way. If you reject one, the
+    file itself is never deleted — you (and the client, on their own
+    submissions list) can still open and view it, it just never gets
+    copied into their Document Center.
   - Review **onboarding submissions**, including a direct link to view
     the passport copy and proof-of-address PDFs, with Approve/Reject
     buttons — plus a **Mark In Review** button that moves a pending

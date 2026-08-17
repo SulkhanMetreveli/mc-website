@@ -34,6 +34,7 @@
       <div class="stat-card warn"><div class="stat-value">—</div><div class="stat-label">Pending Address/Bank Updates</div></div>
       <div class="stat-card warn"><div class="stat-value">—</div><div class="stat-label">Pending Withdrawals</div></div>
       <div class="stat-card warn"><div class="stat-value">—</div><div class="stat-label">Pending Document Submissions</div></div>
+      <div class="stat-card warn"><div class="stat-value">—</div><div class="stat-label">Pending General Documents</div></div>
     </div>
 
     <div class="section-block">
@@ -97,12 +98,13 @@
     async function loadStats() {
       var cards = document.querySelectorAll('#statCards .stat-card .stat-value');
 
-      var [{ count: clientCount }, { count: onboardingCount }, { count: addressCount }, { count: withdrawalCount }, { count: documentCount }] = await Promise.all([
+      var [{ count: clientCount }, { count: onboardingCount }, { count: addressCount }, { count: withdrawalCount }, { count: documentCount }, { count: generalDocCount }] = await Promise.all([
         window.mcAdminClient.from('client_profiles').select('*', { count: 'exact', head: true }),
         window.mcAdminClient.from('onboarding_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         window.mcAdminClient.from('address_update_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         window.mcAdminClient.from('withdrawal_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        window.mcAdminClient.from('document_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+        window.mcAdminClient.from('document_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        window.mcAdminClient.from('general_document_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending')
       ]);
 
       cards[0].textContent = clientCount ?? '0';
@@ -110,17 +112,19 @@
       cards[2].textContent = addressCount ?? '0';
       cards[3].textContent = withdrawalCount ?? '0';
       cards[4].textContent = documentCount ?? '0';
+      cards[5].textContent = generalDocCount ?? '0';
     }
 
     async function loadPendingRequests() {
       var el = document.getElementById('pendingRequestsContent');
 
-      var [profilesRes, onboardingRes, addressRes, withdrawalRes, documentRes] = await Promise.all([
+      var [profilesRes, onboardingRes, addressRes, withdrawalRes, documentRes, generalDocRes] = await Promise.all([
         window.mcAdminClient.from('client_profiles').select('user_id, full_name, email'),
         window.mcAdminClient.from('onboarding_submissions').select('id, user_id, submitted_at').eq('status', 'pending'),
         window.mcAdminClient.from('address_update_requests').select('id, user_id, submitted_at, country').eq('status', 'pending'),
         window.mcAdminClient.from('withdrawal_requests').select('id, user_id, submitted_at, withdrawal_type, amount, currency').eq('status', 'pending'),
-        window.mcAdminClient.from('document_submissions').select('id, user_id, submitted_at, passport_path, proof_of_address_path').eq('status', 'pending')
+        window.mcAdminClient.from('document_submissions').select('id, user_id, submitted_at, passport_path, proof_of_address_path').eq('status', 'pending'),
+        window.mcAdminClient.from('general_document_submissions').select('id, user_id, submitted_at, title').eq('status', 'pending')
       ]);
 
       var nameMap = {};
@@ -142,6 +146,9 @@
         if (r.passport_path) parts.push('Passport');
         if (r.proof_of_address_path) parts.push('Proof of Address');
         items.push({ type: 'Document Submission', detail: parts.join(' + '), submitted_at: r.submitted_at, user_id: r.user_id });
+      });
+      (generalDocRes.data || []).forEach(function (r) {
+        items.push({ type: 'General Document', detail: r.title, submitted_at: r.submitted_at, user_id: r.user_id });
       });
 
       items.sort(function (a, b) { return new Date(b.submitted_at) - new Date(a.submitted_at); });

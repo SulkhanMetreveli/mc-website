@@ -185,6 +185,18 @@
       <div class="card"><div id="documentSubmissionsContent"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
     </div>
 
+    <!-- GENERAL DOCUMENT SUBMISSIONS -->
+    <div class="section-block">
+      <h2>General Document Submissions</h2>
+      <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:0.75rem;">
+        Any document a client uploads with their own title, outside of the passport/proof of
+        address flow above. Approving copies it into Documents below. Rejecting just marks
+        it as rejected -- the file itself is never deleted, so you (and the client) can
+        still view it afterwards.
+      </p>
+      <div class="card"><div id="generalDocumentSubmissionsContent"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
+    </div>
+
     <!-- ONBOARDING -->
     <div class="section-block">
       <h2>Onboarding Submissions</h2>
@@ -650,6 +662,91 @@
       });
     }
 
+    // ---------------- GENERAL DOCUMENT SUBMISSIONS ----------------
+    async function loadGeneralDocumentSubmissions() {
+      var { data: rows } = await window.mcAdminClient
+        .from('general_document_submissions').select('*').eq('user_id', targetUserId).order('submitted_at', { ascending: false });
+
+      var el = document.getElementById('generalDocumentSubmissionsContent');
+      if (!rows || rows.length === 0) {
+        el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No general document submissions yet.</p>';
+        return;
+      }
+
+      var html = '';
+      rows.forEach(function (r) {
+        html += '<div class="request-detail-box">' +
+          statusPill(r.status) +
+          '<dl>' +
+          '<dt>Title</dt><dd>' + r.title + '</dd>' +
+          '<dt>Submitted</dt><dd>' + new Date(r.submitted_at).toLocaleString() + '</dd>' +
+          '<dt>File</dt><dd><a href="#" data-view-gendoc="' + r.file_path + '">View PDF</a></dd>' +
+          '</dl>' +
+          (isOpenStatus(r.status) ?
+            '<div style="margin-top:0.75rem;">' +
+              (r.status === 'pending' ? '<button type="button" class="btn-small" data-gendoc-review="' + r.id + '">Mark In Review</button>' : '') +
+              '<button type="button" class="btn-small approve" data-gendoc-approve=\'' + JSON.stringify(r).replace(/'/g, "&#39;") + '\'>Approve &amp; Add to Documents</button>' +
+              '<button type="button" class="btn-small reject" data-gendoc-reject="' + r.id + '">Reject</button>' +
+            '</div>' :
+            '<div style="margin-top:0.5rem; font-size:0.75rem; color:var(--gray-light);">Reviewed ' + (r.reviewed_at ? new Date(r.reviewed_at).toLocaleString() : '') + '</div>') +
+        '</div>';
+      });
+      el.innerHTML = html;
+
+      el.querySelectorAll('[data-view-gendoc]').forEach(function (a) { bindPdfLink(a, 'kyc-files', a.getAttribute('data-view-gendoc')); });
+
+      el.querySelectorAll('[data-gendoc-review]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          await window.mcAdminClient.from('general_document_submissions').update({ status: 'in_transit_documents_review' }).eq('id', btn.getAttribute('data-gendoc-review'));
+          loadGeneralDocumentSubmissions();
+        });
+      });
+
+      el.querySelectorAll('[data-gendoc-reject]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          await window.mcAdminClient.from('general_document_submissions').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', btn.getAttribute('data-gendoc-reject'));
+          loadGeneralDocumentSubmissions();
+        });
+      });
+
+      el.querySelectorAll('[data-gendoc-approve]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          if (!confirm('Approve this submission? The file will be copied into this client\'s Document Center, visible to them immediately.')) return;
+
+          var r = JSON.parse(btn.getAttribute('data-gendoc-approve'));
+          btn.disabled = true;
+          btn.textContent = 'Approving…';
+
+          try {
+            var dl = await window.mcAdminClient.storage.from('kyc-files').download(r.file_path);
+            if (dl.error) throw dl.error;
+            var filename = r.file_path.split('/').pop();
+            var newPath = targetUserId + '/' + Date.now() + '-' + filename;
+            var up = await window.mcAdminClient.storage.from('client-documents').upload(newPath, dl.data, { contentType: 'application/pdf' });
+            if (up.error) throw up.error;
+            var ins = await window.mcAdminClient.from('documents').insert({
+              user_id: targetUserId, title: r.title, category: 'other', storage_path: newPath
+            });
+            if (ins.error) throw ins.error;
+
+            var upd = await window.mcAdminClient.from('general_document_submissions').update({
+              status: 'approved', reviewed_at: new Date().toISOString()
+            }).eq('id', r.id);
+            if (upd.error) throw upd.error;
+
+            loadDocuments();
+            loadGeneralDocumentSubmissions();
+            showAlert('Approved. The document now appears in this client\'s Document Center.', 'success');
+          } catch (err) {
+            console.error(err);
+            showAlert('Could not approve: ' + err.message + '. The submission was left as-is -- no partial changes were saved to its status.', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Approve & Add to Documents';
+          }
+        });
+      });
+    }
+
     // ---------------- ONBOARDING ----------------
     async function loadOnboarding() {
       var { data: rows } = await window.mcAdminClient
@@ -842,6 +939,7 @@
       loadVehicles();
       loadDocuments();
       loadDocumentSubmissions();
+      loadGeneralDocumentSubmissions();
       loadOnboarding();
       loadAddressRequests();
       loadWithdrawalRequests();
