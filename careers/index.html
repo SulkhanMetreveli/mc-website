@@ -22,6 +22,7 @@
     <meta property="og:url" content="https://met.capital/careers/">
 
     <link rel="canonical" href="https://met.capital/careers/">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <title>Careers — Met Capital</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -64,7 +65,9 @@
             top: 0;
             left: 0;
             right: 0;
-            background: var(--white);
+            background: rgba(255, 255, 255, 0.85);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
             border-bottom: 1px solid var(--border);
             z-index: 1000;
         }
@@ -91,7 +94,7 @@
             transition: color 0.2s;
         }
 
-        nav a:hover { color: var(--black); }
+        nav a:hover { color: var(--blue); }
         nav a.active { color: var(--black); }
 
         /* Page */
@@ -121,6 +124,15 @@
             margin-bottom: 1.5rem;
         }
 
+        .section-label::before {
+            content: '';
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            background: var(--blue);
+            margin-right: 0.6rem;
+        }
+
         h1 {
             font-size: 2rem;
             font-weight: 600;
@@ -148,10 +160,14 @@
             padding: 1.5rem;
             background: var(--off-white);
             border-left: 3px solid var(--border);
-            transition: border-color 0.2s;
+            transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
         }
 
-        .career-area:hover { border-color: var(--blue); }
+        .career-area:hover {
+            border-color: var(--blue);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+        }
 
         .career-area h3 {
             font-size: 0.9375rem;
@@ -205,7 +221,7 @@
             background: var(--white);
             border: 1px solid var(--border);
             padding: 0.75rem;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
         .field input:focus,
@@ -213,6 +229,7 @@
         .field textarea:focus {
             outline: none;
             border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.12);
         }
 
         .field textarea { resize: vertical; min-height: 140px; }
@@ -252,8 +269,18 @@
         /* Footer */
         footer {
             background: var(--black);
-            border-top: 1px solid #222;
-            padding: 2rem;
+            padding: 0 2rem 2rem;
+        }
+
+        footer::before {
+            content: '';
+            display: block;
+            height: 3px;
+            margin: 0 -2rem 2rem;
+            background: linear-gradient(90deg,
+                var(--blue) 0 34%,
+                var(--white) 34% 67%,
+                var(--red) 67% 100%);
         }
 
         .footer-inner {
@@ -288,7 +315,7 @@
             text-decoration: none;
         }
 
-        .footer-links a:hover { color: var(--white); }
+        .footer-links a:hover { color: #7C9BD9; }
 
         .footer-bottom {
             display: flex;
