@@ -95,6 +95,24 @@
         nav a:hover { color: var(--blue); }
         nav a.active { color: var(--black); }
 
+        nav a { position: relative; }
+
+        nav a::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -5px;
+            width: 100%;
+            height: 1.5px;
+            background: var(--blue);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.25s ease;
+        }
+
+        nav a:hover::after, nav a.active::after { transform: scaleX(1); }
+        nav a.active::after { background: var(--black); }
+
         /* Page */
         .page-hero {
             padding: 9rem 2rem 3rem;
@@ -103,6 +121,27 @@
         .page-hero-inner {
             max-width: 1200px;
             margin: 0 auto;
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+            .page-hero-inner > *,
+            .form-card,
+            .careers-grid .career-area {
+                opacity: 0;
+                transform: translateY(18px);
+                animation: mc-rise 0.65s ease forwards;
+            }
+
+            .page-hero-inner > *:nth-child(2) { animation-delay: 0.1s; }
+            .page-hero-inner > *:nth-child(3) { animation-delay: 0.2s; }
+            .careers-grid .career-area:nth-child(1) { animation-delay: 0.25s; }
+            .careers-grid .career-area:nth-child(2) { animation-delay: 0.37s; }
+            .careers-grid .career-area:nth-child(3) { animation-delay: 0.49s; }
+            .form-card { animation-delay: 0.3s; }
+        }
+
+        @keyframes mc-rise {
+            to { opacity: 1; transform: none; }
         }
 
         section {
@@ -210,7 +249,8 @@
             transition: background 0.2s;
         }
 
-        .btn-submit:hover { background: var(--gray-dark); }
+        .btn-submit { transition: background 0.2s ease, transform 0.2s ease; }
+        .btn-submit:hover { background: var(--gray-dark); transform: translateY(-1px); }
         .btn-submit:disabled { background: var(--gray-light); cursor: default; }
 
         .form-note {

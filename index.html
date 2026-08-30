@@ -76,6 +76,23 @@
 
         nav { display: flex; gap: 40px; font-size: 14px; }
 
+        nav a { position: relative; }
+
+        nav a::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -5px;
+            width: 100%;
+            height: 1.5px;
+            background: var(--blue);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.25s ease;
+        }
+
+        nav a:hover::after { transform: scaleX(1); }
+
         /* Section grid scaffolding */
         .rule-bottom { border-bottom: 1px solid var(--black); }
 
@@ -136,13 +153,42 @@
         .hero-comp .block-split .w { background: var(--white); border-right: 1px solid var(--black); }
         .hero-comp .block-split .r { background: var(--red); }
 
+        @media (prefers-reduced-motion: no-preference) {
+            .hero-text h1,
+            .hero-text p {
+                opacity: 0;
+                transform: translateY(18px);
+                animation: mc-rise 0.7s ease forwards;
+            }
+
+            .hero-text p { animation-delay: 0.15s; }
+
+            .hero-comp .block-blue,
+            .hero-comp .block-split .r {
+                opacity: 0;
+                animation: mc-fade 0.8s ease forwards;
+            }
+
+            .hero-comp .block-blue { animation-delay: 0.25s; }
+            .hero-comp .block-split .r { animation-delay: 0.5s; }
+        }
+
+        @keyframes mc-rise {
+            to { opacity: 1; transform: none; }
+        }
+
+        @keyframes mc-fade {
+            to { opacity: 1; }
+        }
+
         /* Facts */
         .facts {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
         }
 
-        .fact { padding: 32px 64px; border-right: 1px solid var(--black); }
+        .fact { padding: 32px 64px; border-right: 1px solid var(--black); transition: background 0.25s ease; }
+        .fact:hover { background: #F7F7F7; }
         .fact:last-child { border-right: none; }
 
         .fact-label {
@@ -183,9 +229,11 @@
             border-top: 1px solid var(--black);
         }
 
-        .role { padding: 48px 48px 56px 64px; border-right: 1px solid var(--black); }
+        .role { padding: 48px 48px 56px 64px; border-right: 1px solid var(--black); transition: background 0.25s ease; }
+        .role:hover { background: #F7F7F7; }
         .role:last-child { border-right: none; }
-        .role-tick { width: 32px; height: 4px; background: var(--blue); }
+        .role-tick { width: 32px; height: 4px; background: var(--blue); transition: width 0.3s ease; }
+        .role:hover .role-tick { width: 64px; }
         .role h3 { margin-top: 28px; font-size: 18px; font-weight: 600; }
         .role p { margin-top: 14px; font-size: 15px; line-height: 1.65; }
 
@@ -209,6 +257,13 @@
         }
 
         .link-accent:hover { color: var(--black); border-color: var(--black); }
+
+        .link-accent .arrow {
+            display: inline-block;
+            transition: transform 0.25s ease;
+        }
+
+        .link-accent:hover .arrow { transform: translateX(4px); }
 
         /* Contact */
         .contact-cols { display: grid; grid-template-columns: repeat(3, 1fr); }
@@ -416,7 +471,7 @@
         </div>
         <div class="careers-cta">
             <span>Interested in joining us?</span>
-            <a href="/careers/" class="link-accent">Apply here →</a>
+            <a href="/careers/" class="link-accent">Apply here <span class="arrow">→</span></a>
         </div>
     </section>
 
@@ -427,11 +482,11 @@
         <div class="contact-cols">
             <div class="contact-col">
                 <h3>General Enquiries</h3>
-                <a href="/contact/" class="link-accent">Get in touch →</a>
+                <a href="/contact/" class="link-accent">Get in touch <span class="arrow">→</span></a>
             </div>
             <div class="contact-col">
                 <h3>Careers</h3>
-                <a href="/careers/" class="link-accent">Apply here →</a>
+                <a href="/careers/" class="link-accent">Apply here <span class="arrow">→</span></a>
             </div>
             <div class="contact-col">
                 <h3>Headquarters</h3>
@@ -460,6 +515,7 @@
         (function () {
             if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
             if (!('IntersectionObserver' in window)) return;
+
             var obs = new IntersectionObserver(function (entries) {
                 entries.forEach(function (e) {
                     if (e.isIntersecting) {
@@ -468,11 +524,22 @@
                     }
                 });
             }, { threshold: 0.1 });
-            document.querySelectorAll('section').forEach(function (el) {
+
+            function prep(el, delay) {
                 if (el.getBoundingClientRect().top < window.innerHeight) return;
                 el.classList.add('reveal-init');
+                if (delay) el.style.transitionDelay = delay + 'ms';
                 obs.observe(el);
-            });
+            }
+
+            // whole-section reveals
+            document.querySelectorAll('#about, #leadership').forEach(function (el) { prep(el, 0); });
+            document.querySelectorAll('#careers .section-grid, .careers-cta, #contact .section-labelcol').forEach(function (el) { prep(el, 0); });
+
+            // staggered groups
+            document.querySelectorAll('.fact').forEach(function (el, i) { prep(el, i * 90); });
+            document.querySelectorAll('.role').forEach(function (el, i) { prep(el, i * 120); });
+            document.querySelectorAll('.contact-col').forEach(function (el, i) { prep(el, i * 120); });
         })();
     </script>
 </body>
