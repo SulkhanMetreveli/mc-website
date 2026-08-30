@@ -42,7 +42,7 @@
             --gray: #666666;
             --gray-light: #999999;
             --red: #C41E3A;
-            --blue: #1E3A8A;
+            --blue: #003DA5;
             --white: #FFFFFF;
             --off-white: #F7F7F7;
             --border: #E0E0E0;
@@ -65,10 +65,8 @@
             top: 0;
             left: 0;
             right: 0;
-            background: rgba(255, 255, 255, 0.85);
-            -webkit-backdrop-filter: blur(10px);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border);
+            background: var(--white);
+            border-bottom: 1px solid var(--black);
             z-index: 1000;
         }
 
@@ -117,24 +115,15 @@
         }
 
         .section-label {
-            font-size: 0.6875rem;
+            font-size: 12px;
             text-transform: uppercase;
-            letter-spacing: 0.15em;
-            color: var(--gray-light);
+            letter-spacing: 0.08em;
+            color: var(--gray);
             margin-bottom: 1.5rem;
         }
 
-        .section-label::before {
-            content: '';
-            display: inline-block;
-            width: 9px;
-            height: 9px;
-            background: var(--blue);
-            margin-right: 0.6rem;
-        }
-
         h1 {
-            font-size: 2rem;
+            font-size: clamp(2rem, 3.5vw, 2.5rem);
             font-weight: 600;
             color: var(--black);
             letter-spacing: -0.02em;
@@ -158,15 +147,15 @@
 
         .career-area {
             padding: 1.5rem;
-            background: var(--off-white);
-            border-left: 3px solid var(--border);
-            transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+            background: var(--white);
+            border: 1px solid var(--black);
+            border-left: 4px solid var(--blue);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
         }
 
         .career-area:hover {
-            border-color: var(--blue);
             transform: translateY(-3px);
-            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
         }
 
         .career-area h3 {
@@ -187,7 +176,7 @@
             max-width: 640px;
             margin-top: 3rem;
             padding-top: 3rem;
-            border-top: 1px solid var(--border);
+            border-top: 1px solid var(--black);
         }
 
         .form-row {
@@ -219,7 +208,7 @@
             font-size: 0.9375rem;
             color: var(--black);
             background: var(--white);
-            border: 1px solid var(--border);
+            border: 1px solid var(--black);
             padding: 0.75rem;
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
@@ -268,19 +257,9 @@
 
         /* Footer */
         footer {
-            background: var(--black);
-            padding: 0 2rem 2rem;
-        }
-
-        footer::before {
-            content: '';
-            display: block;
-            height: 3px;
-            margin: 0 -2rem 2rem;
-            background: linear-gradient(90deg,
-                var(--blue) 0 34%,
-                var(--white) 34% 67%,
-                var(--red) 67% 100%);
+            background: var(--white);
+            border-top: 1px solid var(--black);
+            padding: 3rem 2rem 2rem;
         }
 
         .footer-inner {
@@ -293,15 +272,13 @@
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 2rem;
-            padding-bottom: 2rem;
-            border-bottom: 1px solid #222;
         }
 
         .footer-reg p {
-            font-size: 0.75rem;
+            font-size: 0.8125rem;
             color: var(--gray);
             line-height: 1.7;
-            max-width: 500px;
+            max-width: 560px;
         }
 
         .footer-links {
@@ -310,12 +287,12 @@
         }
 
         .footer-links a {
-            font-size: 0.75rem;
-            color: var(--gray);
+            font-size: 0.8125rem;
+            color: var(--black);
             text-decoration: none;
         }
 
-        .footer-links a:hover { color: #7C9BD9; }
+        .footer-links a:hover { color: var(--blue); }
 
         .footer-bottom {
             display: flex;
@@ -324,22 +301,23 @@
         }
 
         .footer-bottom p {
-            font-size: 0.6875rem;
-            color: #555;
+            font-size: 0.8125rem;
+            color: var(--gray);
         }
 
         .footer-warning {
-            background: #111;
-            padding: 1rem;
+            border-top: 1px solid var(--black);
+            padding-top: 1.5rem;
             margin-top: 1.5rem;
-            border-left: 2px solid var(--red);
         }
 
         .footer-warning p {
-            font-size: 0.6875rem;
+            font-size: 0.8125rem;
             color: var(--gray);
-            line-height: 1.6;
+            line-height: 1.7;
         }
+
+        .footer-warning strong { color: var(--black); }
 
         /* Responsive */
         @media (max-width: 968px) {
