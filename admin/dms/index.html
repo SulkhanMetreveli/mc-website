@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Document Management — Met Capital</title>
+<link rel="stylesheet" href="/admin/dms/dms.css">
+</head>
+<body>
+  <div class="topbar">
+    <a href="/admin/" class="brand">Met Capital — Document Management</a>
+    <div class="nav">
+      <a href="/admin/">← All Apps</a>
+      <button class="linklike" id="logoutBtn">Log out</button>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="page-title">Document Management</div>
+
+    <div class="layout-2col">
+      <div>
+        <div class="tree" id="categoryTree"></div>
+        <button class="btn secondary small stack-top full-width" id="addCategoryBtn">+ New category</button>
+      </div>
+
+      <div>
+        <div class="toolbar">
+          <input class="text flex-fill" type="search" id="searchInput" placeholder="Search documents…">
+          <label class="checkbox-row"><input type="checkbox" id="actionOnlyChk"> Needs action only</label>
+          <button class="btn" id="addDocBtn">+ New document</button>
+        </div>
+        <div class="bulkbar hidden" id="bulkBar">
+          <label class="checkbox-row"><input type="checkbox" id="selectAllChk"> <span id="bulkCount">0 selected</span></label>
+          <span class="toolbar-spacer"></span>
+          <button class="btn secondary small" id="bulkMoveBtn">Move to…</button>
+          <button class="btn secondary small" id="bulkClearBtn">Clear</button>
+        </div>
+        <div class="card-list" id="docList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category modal: new and edit -->
+  <div class="modal-overlay" id="categoryModal">
+    <div class="modal">
+      <h3 id="categoryModalTitle">New category</h3>
+      <div class="field">
+        <label for="categoryName">Name</label>
+        <input class="text" id="categoryName">
+      </div>
+      <div class="field">
+        <label for="categoryParent">Parent category</label>
+        <select id="categoryParent"><option value="">— None (top level) —</option></select>
+        <div class="hint hint-tight">Move this category by changing its parent.</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn danger hidden push-right" id="deleteCategoryBtn">Delete</button>
+        <button class="btn secondary" data-close="categoryModal">Cancel</button>
+        <button class="btn" id="saveCategoryBtn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Asked only when a category still has contents -->
+  <div class="modal-overlay" id="catDeleteModal">
+    <div class="modal modal-narrow">
+      <h3>Delete category</h3>
+      <div class="help" id="catDeleteBody"></div>
+      <div class="modal-actions">
+        <button class="btn secondary" data-close="catDeleteModal">Cancel</button>
+        <button class="btn secondary" id="catPromoteBtn">Move contents up</button>
+        <button class="btn danger" id="catCascadeBtn">Delete everything</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk move -->
+  <div class="modal-overlay" id="moveModal">
+    <div class="modal modal-narrow">
+      <h3 id="moveModalTitle">Move documents</h3>
+      <div class="field">
+        <label for="moveTarget">Move to</label>
+        <select id="moveTarget"><option value="">Uncategorized</option></select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn secondary" data-close="moveModal">Cancel</button>
+        <button class="btn" id="confirmMoveBtn">Move</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Document modal -->
+  <div class="modal-overlay" id="docModal">
+    <div class="modal modal-narrow">
+      <h3 id="docModalTitle">New document</h3>
+      <div class="field">
+        <label>Title</label>
+        <input class="text" id="docTitle">
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Category</label>
+          <select id="docCategory"><option value="">Uncategorized</option></select>
+        </div>
+        <div class="field">
+          <label>Type</label>
+          <select id="docType">
+            <option value="court">Court document</option>
+            <option value="warranty">Warranty</option>
+            <option value="bill">Bill</option>
+            <option value="id">ID / Personal</option>
+            <option value="property">Property / Estate</option>
+            <option value="contract">Contract</option>
+            <option value="insurance">Insurance</option>
+            <option value="tax">Tax</option>
+            <option value="other" selected>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <textarea id="docDescription" rows="3"></textarea>
+      </div>
+      <div class="field">
+        <label>Related party</label>
+        <input class="text" id="docRelatedParty" placeholder="e.g. court name, insurer, counterparty">
+      </div>
+      <div class="checkbox-row row-spaced">
+        <input type="checkbox" id="docActionRequired">
+        <label for="docActionRequired" class="inline-label">This needs a response / action</label>
+      </div>
+      <div class="form-row hidden" id="actionFields">
+        <div class="field">
+          <label>Respond by</label>
+          <input class="text" type="date" id="docActionDue">
+        </div>
+        <div class="field">
+          <label>Action note</label>
+          <input class="text" id="docActionNote" placeholder="What needs to happen">
+        </div>
+      </div>
+      <div class="field hidden" id="actionStatusField">
+        <label>Action status</label>
+        <select id="docActionStatus">
+          <option value="pending">Pending</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>File</label>
+        <input type="file" id="docFile">
+        <div class="hint" id="docUploadStatus"></div>
+        <div id="existingFile" class="hint"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn danger hidden push-right" id="deleteDocBtn">Delete</button>
+        <button class="btn secondary" data-close="docModal">Cancel</button>
+        <button class="btn" id="saveDocBtn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/admin/assets/admin.js"></script>
+  <script src="/admin/dms/dms.js"></script>
+</body>
+</html>

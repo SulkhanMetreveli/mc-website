@@ -111,6 +111,14 @@ the signed-in admin can access. The apps:
   — internal task board: title, priority, status, due date, assignee.
 - **Sales Pipeline** (`/admin/sales/`, app key `sales`) — leads from
   first contact to won/lost, with stage, value, and notes.
+- **Document Management** (`/admin/dms/`, app key `dms`, added in
+  `supabase/015_dms.sql`) — port of the metreveli.org intranet document
+  system: nested categories (rename/move/promote/cascade delete),
+  documents with type, description, related party, and an
+  action-required workflow (respond-by date, note, pending/done, overdue
+  badges), search, bulk move, and file attachments of any type up to
+  50MB in the private dms-files bucket. Everyone granted the app has
+  full create/edit/delete rights.
 
 Roles:
 

@@ -77,6 +77,12 @@
         <p>Prospects and leads from first contact to won or lost, with stage, value, and notes.</p>
         <span class="open-hint">Open →</span>
       </a>
+      <a href="/admin/dms/" class="app-tile" data-app="dms" style="display:none;">
+        <div class="tick"></div>
+        <h3>Document Management</h3>
+        <p>Company document archive — nested categories, files, and response deadlines with action tracking.</p>
+        <span class="open-hint">Open →</span>
+      </a>
     </div>
 
     <p id="noApps" style="display:none; color:var(--gray); font-size:0.875rem;">
@@ -114,6 +120,7 @@
               <label style="font-weight:400;"><input type="checkbox" class="au-app" value="client_dashboard"> Client Dashboard</label>
               <label style="font-weight:400;"><input type="checkbox" class="au-app" value="operations"> Operations Management</label>
               <label style="font-weight:400;"><input type="checkbox" class="au-app" value="sales"> Sales Pipeline</label>
+              <label style="font-weight:400;"><input type="checkbox" class="au-app" value="dms"> Document Management</label>
             </div>
           </div>
           <button type="submit" class="btn-small" id="adminUserSaveBtn">Add Admin</button>
@@ -128,7 +135,7 @@
   <script>
     document.getElementById('logoutBtn').addEventListener('click', window.mcAdminLogout);
 
-    var APP_LABELS = { client_dashboard: 'Client Dashboard', operations: 'Operations Management', sales: 'Sales Pipeline' };
+    var APP_LABELS = { client_dashboard: 'Client Dashboard', operations: 'Operations Management', sales: 'Sales Pipeline', dms: 'Document Management' };
 
     function showAlert(id, message, type) {
       document.getElementById(id).innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
