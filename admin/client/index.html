@@ -86,7 +86,7 @@
         </div>
         <button type="submit" class="btn-primary" id="profileSaveBtn">Save Profile</button>
       </form>
-      <div class="card" style="margin-top:1rem;">
+      <div class="card" style="margin-top:1rem;" id="passwordCard">
         <h2>Password</h2>
         <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:1rem;">
           Generates a new temporary password for this client and forces them to set their own
@@ -98,7 +98,7 @@
     </div>
 
     <!-- INVESTMENT VEHICLES -->
-    <div class="section-block">
+    <div class="section-block" id="vehiclesSection">
       <h2>Investment Vehicles</h2>
       <div class="card">
         <div id="vehiclesTable"></div>
@@ -150,7 +150,7 @@
     </div>
 
     <!-- DOCUMENTS -->
-    <div class="section-block">
+    <div class="section-block" id="documentsSection">
       <h2>Documents</h2>
       <div class="card">
         <div id="documentsTable"></div>
@@ -175,7 +175,7 @@
     </div>
 
     <!-- DOCUMENT SUBMISSIONS -->
-    <div class="section-block">
+    <div class="section-block" id="docSubsSection">
       <h2>Document Submissions</h2>
       <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:0.75rem;">
         Client-submitted passport copies and proof of address, outside of onboarding or an
@@ -186,7 +186,7 @@
     </div>
 
     <!-- GENERAL DOCUMENT SUBMISSIONS -->
-    <div class="section-block">
+    <div class="section-block" id="generalDocSubsSection">
       <h2>General Document Submissions</h2>
       <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:0.75rem;">
         Any document a client uploads with their own title, outside of the passport/proof of
@@ -198,19 +198,19 @@
     </div>
 
     <!-- ONBOARDING -->
-    <div class="section-block">
+    <div class="section-block" id="onboardingSection">
       <h2>Onboarding Submissions</h2>
       <div class="card"><div id="onboardingContent"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
     </div>
 
     <!-- ADDRESS UPDATE REQUESTS -->
-    <div class="section-block">
+    <div class="section-block" id="addressSection">
       <h2>Address &amp; Bank Update Requests</h2>
       <div class="card"><div id="addressRequestsContent"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
     </div>
 
     <!-- WITHDRAWAL REQUESTS -->
-    <div class="section-block">
+    <div class="section-block" id="withdrawalsSection">
       <h2>Withdrawal Requests</h2>
       <div class="card"><div id="withdrawalRequestsContent"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
     </div>
@@ -931,18 +931,34 @@
       });
     }
 
+    function gate(id, app) {
+      var allowed = window.mcHasApp(app);
+      if (!allowed) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      }
+      return allowed;
+    }
+
     (async function init() {
       var session = await window.mcRequireAdminSession('/admin/client/?u=' + targetUserId);
       if (!session) return;
 
       await loadProfile();
-      loadVehicles();
-      loadDocuments();
-      loadDocumentSubmissions();
-      loadGeneralDocumentSubmissions();
-      loadOnboarding();
-      loadAddressRequests();
-      loadWithdrawalRequests();
+
+      if (!window.mcHasApp('clients')) {
+        document.getElementById('profileSaveBtn').style.display = 'none';
+        document.getElementById('passwordCard').style.display = 'none';
+        document.querySelectorAll('#profileForm input, #profileForm select').forEach(function (el) { el.disabled = true; });
+      }
+
+      if (gate('vehiclesSection', 'vehicles')) loadVehicles();
+      if (gate('documentsSection', 'documents')) loadDocuments();
+      if (gate('docSubsSection', 'documents')) loadDocumentSubmissions();
+      if (gate('generalDocSubsSection', 'documents')) loadGeneralDocumentSubmissions();
+      if (gate('onboardingSection', 'onboarding')) loadOnboarding();
+      if (gate('addressSection', 'updates')) loadAddressRequests();
+      if (gate('withdrawalsSection', 'withdrawals')) loadWithdrawalRequests();
     })();
   </script>
 </body>

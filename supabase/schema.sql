@@ -378,6 +378,9 @@ create policy "clients read own folder in kyc-files"
 create table if not exists admin_users (
   user_id     uuid primary key references auth.users(id) on delete cascade,
   full_name   text not null,
+  email       text,
+  role        text not null default 'admin' check (role in ('super_admin','admin')),
+  apps        text[] not null default '{}',   -- app keys: clients, vehicles, documents, onboarding, updates, withdrawals
   created_at  timestamptz not null default now()
 );
 
@@ -399,9 +402,40 @@ as $$
   select exists (select 1 from admin_users where user_id = auth.uid());
 $$;
 
+create or replace function is_super_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from admin_users where user_id = auth.uid() and role = 'super_admin');
+$$;
+
+create or replace function has_app_access(app text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from admin_users
+    where user_id = auth.uid()
+      and (role = 'super_admin' or app = any(apps))
+  );
+$$;
+
 create policy "admins can read admin_users"
   on admin_users for select
   using (is_admin());
+
+create policy "super admins insert admin_users"
+  on admin_users for insert with check (is_super_admin());
+create policy "super admins update admin_users"
+  on admin_users for update using (is_super_admin()) with check (is_super_admin());
+create policy "super admins delete admin_users"
+  on admin_users for delete using (is_super_admin());
 
 -- ---------------------------------------------------------------------------
 -- client_profiles — admins can see and manage every client
@@ -409,58 +443,60 @@ create policy "admins can read admin_users"
 create policy "admins select all client_profiles"
   on client_profiles for select using (is_admin());
 create policy "admins insert client_profiles"
-  on client_profiles for insert with check (is_admin());
+  on client_profiles for insert with check (has_app_access('clients'));
 create policy "admins update client_profiles"
-  on client_profiles for update using (is_admin()) with check (is_admin());
+  on client_profiles for update
+  using (has_app_access('clients') or has_app_access('updates'))
+  with check (has_app_access('clients') or has_app_access('updates'));
 
 -- ---------------------------------------------------------------------------
 -- investment_vehicles — admins fully manage every client's vehicles
 -- ---------------------------------------------------------------------------
 create policy "admins select all investment_vehicles"
-  on investment_vehicles for select using (is_admin());
+  on investment_vehicles for select using (has_app_access('vehicles'));
 create policy "admins insert investment_vehicles"
-  on investment_vehicles for insert with check (is_admin());
+  on investment_vehicles for insert with check (has_app_access('vehicles'));
 create policy "admins update investment_vehicles"
-  on investment_vehicles for update using (is_admin()) with check (is_admin());
+  on investment_vehicles for update using (has_app_access('vehicles')) with check (has_app_access('vehicles'));
 create policy "admins delete investment_vehicles"
-  on investment_vehicles for delete using (is_admin());
+  on investment_vehicles for delete using (has_app_access('vehicles'));
 
 -- ---------------------------------------------------------------------------
 -- documents — admins upload/manage documents for any client
 -- ---------------------------------------------------------------------------
 create policy "admins select all documents"
-  on documents for select using (is_admin());
+  on documents for select using (has_app_access('documents'));
 create policy "admins insert documents"
-  on documents for insert with check (is_admin());
+  on documents for insert with check (has_app_access('documents'));
 create policy "admins update documents"
-  on documents for update using (is_admin()) with check (is_admin());
+  on documents for update using (has_app_access('documents')) with check (has_app_access('documents'));
 create policy "admins delete documents"
-  on documents for delete using (is_admin());
+  on documents for delete using (has_app_access('documents'));
 
 -- ---------------------------------------------------------------------------
 -- address_update_requests — admins review (select + update status/notes)
 -- Clients still cannot update once submitted — that policy is unchanged.
 -- ---------------------------------------------------------------------------
 create policy "admins select all address_update_requests"
-  on address_update_requests for select using (is_admin());
+  on address_update_requests for select using (has_app_access('updates'));
 create policy "admins update address_update_requests"
-  on address_update_requests for update using (is_admin()) with check (is_admin());
+  on address_update_requests for update using (has_app_access('updates')) with check (has_app_access('updates'));
 
 -- ---------------------------------------------------------------------------
 -- withdrawal_requests — admins review (select + update status/notes)
 -- ---------------------------------------------------------------------------
 create policy "admins select all withdrawal_requests"
-  on withdrawal_requests for select using (is_admin());
+  on withdrawal_requests for select using (has_app_access('withdrawals'));
 create policy "admins update withdrawal_requests"
-  on withdrawal_requests for update using (is_admin()) with check (is_admin());
+  on withdrawal_requests for update using (has_app_access('withdrawals')) with check (has_app_access('withdrawals'));
 
 -- ---------------------------------------------------------------------------
 -- onboarding_submissions — admins review (select + update status/notes)
 -- ---------------------------------------------------------------------------
 create policy "admins select all onboarding_submissions"
-  on onboarding_submissions for select using (is_admin());
+  on onboarding_submissions for select using (has_app_access('onboarding'));
 create policy "admins update onboarding_submissions"
-  on onboarding_submissions for update using (is_admin()) with check (is_admin());
+  on onboarding_submissions for update using (has_app_access('onboarding')) with check (has_app_access('onboarding'));
 
 -- ---------------------------------------------------------------------------
 -- document_submissions — admins review (select + update status), and can
@@ -468,17 +504,17 @@ create policy "admins update onboarding_submissions"
 -- "admins insert documents" policy above)
 -- ---------------------------------------------------------------------------
 create policy "admins select all document_submissions"
-  on document_submissions for select using (is_admin());
+  on document_submissions for select using (has_app_access('documents'));
 create policy "admins update document_submissions"
-  on document_submissions for update using (is_admin()) with check (is_admin());
+  on document_submissions for update using (has_app_access('documents')) with check (has_app_access('documents'));
 
 -- ---------------------------------------------------------------------------
 -- general_document_submissions — admins review (select + update status)
 -- ---------------------------------------------------------------------------
 create policy "admins select all general_document_submissions"
-  on general_document_submissions for select using (is_admin());
+  on general_document_submissions for select using (has_app_access('documents'));
 create policy "admins update general_document_submissions"
-  on general_document_submissions for update using (is_admin()) with check (is_admin());
+  on general_document_submissions for update using (has_app_access('documents')) with check (has_app_access('documents'));
 
 -- ---------------------------------------------------------------------------
 -- Storage — admins can manage client-documents for anyone, and view
@@ -486,14 +522,16 @@ create policy "admins update general_document_submissions"
 -- ---------------------------------------------------------------------------
 create policy "admins full access client-documents"
   on storage.objects for all
-  using (bucket_id = 'client-documents' and is_admin())
-  with check (bucket_id = 'client-documents' and is_admin());
+  using (bucket_id = 'client-documents' and has_app_access('documents'))
+  with check (bucket_id = 'client-documents' and has_app_access('documents'));
 
 create policy "admins select kyc-files"
   on storage.objects for select
   using (bucket_id = 'kyc-files' and is_admin());
 
 grant execute on function is_admin() to authenticated;
+grant execute on function is_super_admin() to authenticated;
+grant execute on function has_app_access(text) to authenticated;
 
 -- ============================================================================
 -- To make yourself the first admin:

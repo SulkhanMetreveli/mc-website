@@ -48,9 +48,9 @@ Deno.serve(async (req: Request) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: isAdmin, error: adminCheckError } = await callerClient.rpc("is_admin");
-    if (adminCheckError || !isAdmin) {
-      return jsonResponse({ error: "Not authorized." }, 403);
+    const { data: hasAccess, error: adminCheckError } = await callerClient.rpc("has_app_access", { app: "clients" });
+    if (adminCheckError || !hasAccess) {
+      return jsonResponse({ error: "Not authorized. This action requires the Clients app (or Super Admin)." }, 403);
     }
 
     const body = await req.json().catch(() => ({}));

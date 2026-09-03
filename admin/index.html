@@ -28,13 +28,15 @@
     <h1 class="page-title" id="welcomeTitle">Dashboard</h1>
     <p class="page-subtitle">Pending items need your review before anything is actioned in your banking/custodian systems.</p>
 
+    <p id="accessBanner" style="font-size:0.8125rem; color:var(--gray); margin-bottom:1rem;"></p>
+
     <div class="stat-cards" id="statCards">
-      <div class="stat-card"><div class="stat-value">—</div><div class="stat-label">Clients</div></div>
-      <div class="stat-card warn"><div class="stat-value">—</div><div class="stat-label">Pending Onboarding</div></div>
-      <div class="stat-card warn"><div class="stat-value">—</div><div class="stat-label">Pending Address/Bank Updates</div></div>
-      <div class="stat-card warn"><div class="stat-value">—</div><div class="stat-label">Pending Withdrawals</div></div>
-      <div class="stat-card warn"><div class="stat-value">—</div><div class="stat-label">Pending Document Submissions</div></div>
-      <div class="stat-card warn"><div class="stat-value">—</div><div class="stat-label">Pending General Documents</div></div>
+      <div class="stat-card" data-stat="clients"><div class="stat-value">—</div><div class="stat-label">Clients</div></div>
+      <div class="stat-card warn" data-stat="onboarding" data-app="onboarding"><div class="stat-value">—</div><div class="stat-label">Pending Onboarding</div></div>
+      <div class="stat-card warn" data-stat="updates" data-app="updates"><div class="stat-value">—</div><div class="stat-label">Pending Address/Bank Updates</div></div>
+      <div class="stat-card warn" data-stat="withdrawals" data-app="withdrawals"><div class="stat-value">—</div><div class="stat-label">Pending Withdrawals</div></div>
+      <div class="stat-card warn" data-stat="documents" data-app="documents"><div class="stat-value">—</div><div class="stat-label">Pending Document Submissions</div></div>
+      <div class="stat-card warn" data-stat="generaldocs" data-app="documents"><div class="stat-value">—</div><div class="stat-label">Pending General Documents</div></div>
     </div>
 
     <div class="section-block">
@@ -46,7 +48,7 @@
       </div>
     </div>
 
-    <div class="section-block">
+    <div class="section-block" id="newClientSection">
       <h2>Add a New Client</h2>
       <div id="newClientAlert"></div>
       <form id="newClientForm" class="card" novalidate>
@@ -83,6 +85,46 @@
         </div>
       </div>
     </div>
+
+    <div class="section-block" id="adminUsersSection" style="display:none;">
+      <h2>Admin Users</h2>
+      <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:0.75rem;">
+        Super admins see and manage everything. Standard admins only get the apps ticked
+        below. To add a new admin: first create their login under Authentication → Users in
+        Supabase (no automatic emails are ever sent), then add them here with their User ID.
+      </p>
+      <div id="adminUsersAlert"></div>
+      <div class="card">
+        <div id="adminUsersTable"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div>
+        <h3 style="margin-top:1.5rem; margin-bottom:0.75rem; font-size:0.8125rem; color:var(--gray);">Add an Admin</h3>
+        <form id="adminUserForm" novalidate>
+          <div class="form-row">
+            <div class="field"><label>User ID (from Supabase Auth) <span class="required">*</span></label><input type="text" id="au_user_id" required placeholder="uuid"></div>
+            <div class="field"><label>Full Name <span class="required">*</span></label><input type="text" id="au_full_name" required></div>
+            <div class="field"><label>Email (label only)</label><input type="email" id="au_email"></div>
+            <div class="field">
+              <label>Role</label>
+              <select id="au_role">
+                <option value="admin">Admin (selected apps)</option>
+                <option value="super_admin">Super Admin (everything)</option>
+              </select>
+            </div>
+          </div>
+          <div class="field" id="au_apps_field">
+            <label>App Access</label>
+            <div style="display:flex; gap:1rem; flex-wrap:wrap; font-size:0.8125rem; margin-top:0.25rem;">
+              <label style="font-weight:400;"><input type="checkbox" class="au-app" value="clients"> Clients</label>
+              <label style="font-weight:400;"><input type="checkbox" class="au-app" value="vehicles"> Investment Vehicles</label>
+              <label style="font-weight:400;"><input type="checkbox" class="au-app" value="documents"> Documents</label>
+              <label style="font-weight:400;"><input type="checkbox" class="au-app" value="onboarding"> Onboarding</label>
+              <label style="font-weight:400;"><input type="checkbox" class="au-app" value="updates"> Address &amp; Bank Updates</label>
+              <label style="font-weight:400;"><input type="checkbox" class="au-app" value="withdrawals"> Withdrawals</label>
+            </div>
+          </div>
+          <button type="submit" class="btn-small" id="adminUserSaveBtn">Add Admin</button>
+        </form>
+      </div>
+    </div>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -95,36 +137,53 @@
       document.getElementById(id).innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
     }
 
+    function setStat(key, value) {
+      var card = document.querySelector('#statCards .stat-card[data-stat="' + key + '"] .stat-value');
+      if (card) card.textContent = value ?? '0';
+    }
+
     async function loadStats() {
-      var cards = document.querySelectorAll('#statCards .stat-card .stat-value');
+      // hide cards for apps this admin can't access
+      document.querySelectorAll('#statCards .stat-card[data-app]').forEach(function (card) {
+        if (!window.mcHasApp(card.getAttribute('data-app'))) card.style.display = 'none';
+      });
 
-      var [{ count: clientCount }, { count: onboardingCount }, { count: addressCount }, { count: withdrawalCount }, { count: documentCount }, { count: generalDocCount }] = await Promise.all([
-        window.mcAdminClient.from('client_profiles').select('*', { count: 'exact', head: true }),
-        window.mcAdminClient.from('onboarding_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        window.mcAdminClient.from('address_update_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        window.mcAdminClient.from('withdrawal_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        window.mcAdminClient.from('document_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        window.mcAdminClient.from('general_document_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending')
-      ]);
-
-      cards[0].textContent = clientCount ?? '0';
-      cards[1].textContent = onboardingCount ?? '0';
-      cards[2].textContent = addressCount ?? '0';
-      cards[3].textContent = withdrawalCount ?? '0';
-      cards[4].textContent = documentCount ?? '0';
-      cards[5].textContent = generalDocCount ?? '0';
+      var jobs = [
+        window.mcAdminClient.from('client_profiles').select('*', { count: 'exact', head: true })
+          .then(function (r) { setStat('clients', r.count); })
+      ];
+      if (window.mcHasApp('onboarding')) jobs.push(
+        window.mcAdminClient.from('onboarding_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+          .then(function (r) { setStat('onboarding', r.count); }));
+      if (window.mcHasApp('updates')) jobs.push(
+        window.mcAdminClient.from('address_update_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+          .then(function (r) { setStat('updates', r.count); }));
+      if (window.mcHasApp('withdrawals')) jobs.push(
+        window.mcAdminClient.from('withdrawal_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+          .then(function (r) { setStat('withdrawals', r.count); }));
+      if (window.mcHasApp('documents')) {
+        jobs.push(window.mcAdminClient.from('document_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+          .then(function (r) { setStat('documents', r.count); }));
+        jobs.push(window.mcAdminClient.from('general_document_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+          .then(function (r) { setStat('generaldocs', r.count); }));
+      }
+      await Promise.all(jobs);
     }
 
     async function loadPendingRequests() {
       var el = document.getElementById('pendingRequestsContent');
 
+      function maybe(app, q) {
+        return window.mcHasApp(app) ? q : Promise.resolve({ data: [] });
+      }
+
       var [profilesRes, onboardingRes, addressRes, withdrawalRes, documentRes, generalDocRes] = await Promise.all([
         window.mcAdminClient.from('client_profiles').select('user_id, full_name, email'),
-        window.mcAdminClient.from('onboarding_submissions').select('id, user_id, submitted_at').eq('status', 'pending'),
-        window.mcAdminClient.from('address_update_requests').select('id, user_id, submitted_at, country').eq('status', 'pending'),
-        window.mcAdminClient.from('withdrawal_requests').select('id, user_id, submitted_at, withdrawal_type, amount, currency').eq('status', 'pending'),
-        window.mcAdminClient.from('document_submissions').select('id, user_id, submitted_at, passport_path, proof_of_address_path').eq('status', 'pending'),
-        window.mcAdminClient.from('general_document_submissions').select('id, user_id, submitted_at, title').eq('status', 'pending')
+        maybe('onboarding', window.mcAdminClient.from('onboarding_submissions').select('id, user_id, submitted_at').eq('status', 'pending')),
+        maybe('updates', window.mcAdminClient.from('address_update_requests').select('id, user_id, submitted_at, country').eq('status', 'pending')),
+        maybe('withdrawals', window.mcAdminClient.from('withdrawal_requests').select('id, user_id, submitted_at, withdrawal_type, amount, currency').eq('status', 'pending')),
+        maybe('documents', window.mcAdminClient.from('document_submissions').select('id, user_id, submitted_at, passport_path, proof_of_address_path').eq('status', 'pending')),
+        maybe('documents', window.mcAdminClient.from('general_document_submissions').select('id, user_id, submitted_at, title').eq('status', 'pending'))
       ]);
 
       var nameMap = {};
@@ -276,10 +335,94 @@
       }
     });
 
+    // ---------------- ADMIN USERS (super admins only) ----------------
+    var APP_LABELS = { clients: 'Clients', vehicles: 'Vehicles', documents: 'Documents', onboarding: 'Onboarding', updates: 'Addr/Bank Updates', withdrawals: 'Withdrawals' };
+
+    async function loadAdminUsers() {
+      var { data: rows } = await window.mcAdminClient
+        .from('admin_users').select('*').order('created_at');
+
+      var el = document.getElementById('adminUsersTable');
+      if (!rows || rows.length === 0) {
+        el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No admin users.</p>';
+        return;
+      }
+
+      var html = '';
+      rows.forEach(function (a) {
+        var access = a.role === 'super_admin'
+          ? '<span class="status-pill approved">Super Admin</span>'
+          : ((a.apps || []).map(function (k) { return APP_LABELS[k] || k; }).join(', ') || '<span style="color:var(--gray-light);">No apps</span>');
+        html += '<tr>' +
+          '<td>' + (a.full_name || '—') + '</td>' +
+          '<td>' + (a.email || '—') + '</td>' +
+          '<td>' + access + '</td>' +
+          '<td>' + new Date(a.created_at).toLocaleDateString() + '</td>' +
+          '<td>' + (a.user_id === window.mcAdminProfile.user_id
+            ? '<span style="color:var(--gray-light); font-size:0.75rem;">You</span>'
+            : '<button type="button" class="btn-small danger" data-remove-admin="' + a.user_id + '">Remove</button>') + '</td>' +
+        '</tr>';
+      });
+      el.innerHTML = '<table class="admin-table"><thead><tr><th>Name</th><th>Email</th><th>Access</th><th>Added</th><th></th></tr></thead><tbody>' + html + '</tbody></table>';
+
+      el.querySelectorAll('[data-remove-admin]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          if (!confirm('Remove this admin? They lose all admin access immediately. Their login itself is not deleted.')) return;
+          var { error } = await window.mcAdminClient.from('admin_users').delete().eq('user_id', btn.getAttribute('data-remove-admin'));
+          if (error) { showAlert('adminUsersAlert', 'Could not remove admin: ' + error.message, 'error'); return; }
+          loadAdminUsers();
+        });
+      });
+    }
+
+    if (document.getElementById('au_role')) {
+      document.getElementById('au_role').addEventListener('change', function () {
+        document.getElementById('au_apps_field').style.display = this.value === 'super_admin' ? 'none' : '';
+      });
+
+      document.getElementById('adminUserForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var userId = document.getElementById('au_user_id').value.trim();
+        var fullName = document.getElementById('au_full_name').value.trim();
+        if (!userId || !fullName) { showAlert('adminUsersAlert', 'User ID and Full Name are required.', 'error'); return; }
+
+        var role = document.getElementById('au_role').value;
+        var apps = Array.prototype.map.call(document.querySelectorAll('.au-app:checked'), function (c) { return c.value; });
+        if (role === 'admin' && apps.length === 0) {
+          showAlert('adminUsersAlert', 'Pick at least one app, or make them a Super Admin.', 'error');
+          return;
+        }
+
+        var { error } = await window.mcAdminClient.from('admin_users').insert({
+          user_id: userId,
+          full_name: fullName,
+          email: document.getElementById('au_email').value.trim() || null,
+          role: role,
+          apps: role === 'super_admin' ? [] : apps
+        });
+        if (error) { showAlert('adminUsersAlert', 'Could not add admin: ' + error.message + '. Check the User ID exists under Authentication → Users.', 'error'); return; }
+        document.getElementById('adminUserForm').reset();
+        showAlert('adminUsersAlert', 'Admin added.', 'success');
+        loadAdminUsers();
+      });
+    }
+
     (async function init() {
       var session = await window.mcRequireAdminSession('/admin/');
       if (!session) return;
       document.getElementById('welcomeTitle').textContent = 'Dashboard — ' + (window.mcAdminProfile.full_name || '');
+
+      var banner = window.mcIsSuperAdmin()
+        ? 'Signed in as Super Admin — full access to every app.'
+        : 'Signed in as Admin — access: ' + ((window.mcAdminApps || []).map(function (k) { return APP_LABELS[k] || k; }).join(', ') || 'none');
+      document.getElementById('accessBanner').textContent = banner;
+
+      if (!window.mcHasApp('clients')) document.getElementById('newClientSection').style.display = 'none';
+      if (window.mcIsSuperAdmin()) {
+        document.getElementById('adminUsersSection').style.display = '';
+        loadAdminUsers();
+      }
+
       loadStats();
       loadPendingRequests();
       loadClients();

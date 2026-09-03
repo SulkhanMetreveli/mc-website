@@ -96,6 +96,34 @@ node create-client.js --email jane@example.com --name "Jane Client" --reference 
 ## 6. Day-to-day admin — now via `/admin`
 
 Log in at `/admin/login/` with any account listed in `admin_users`.
+
+### Admin roles (added in `supabase/013_admin_roles.sql`)
+
+Every admin has a role:
+
+- **Super Admin** — sees and manages everything, including the **Admin
+  Users** section at the bottom of the dashboard where admins are added,
+  removed, and granted access. All admins who existed before migration
+  013 were automatically promoted to Super Admin.
+- **Admin** — only sees the apps they've been granted. App keys:
+  `clients` (profiles, create client, reset password), `vehicles`
+  (investment vehicles), `documents` (document center + both document
+  submission review flows), `onboarding`, `updates` (address/bank/passport
+  requests), `withdrawals`.
+
+Access is enforced twice: hidden in the dashboard UI, and blocked at the
+database level by row-level security — so even a hand-crafted API call
+with a restricted admin's login can't touch an app they weren't granted.
+
+To add an admin: create their login under Authentication → Users in the
+Supabase dashboard (nothing is emailed automatically), copy the new
+user's UUID, then as a Super Admin use "Add an Admin" on the dashboard.
+
+After running migration 013, also redeploy both Edge Functions
+(`admin-create-client`, `admin-reset-password`) from the updated files in
+`supabase/functions/` — they now require the `clients` app rather than
+any-admin.
+
 From there:
 
 - **Dashboard** (`/admin/`) — pending-item counts across onboarding,

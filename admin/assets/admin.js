@@ -28,7 +28,7 @@
 
     const { data: adminRow, error: adminError } = await window.mcAdminClient
       .from("admin_users")
-      .select("user_id, full_name")
+      .select("*")
       .eq("user_id", data.session.user.id)
       .maybeSingle();
 
@@ -39,7 +39,19 @@
     }
 
     window.mcAdminProfile = adminRow;
+    window.mcAdminRole = adminRow.role || "super_admin";
+    window.mcAdminApps = adminRow.apps || [];
     return data.session;
+  };
+
+  // App keys: clients, vehicles, documents, onboarding, updates, withdrawals
+  window.mcHasApp = function (app) {
+    if (window.mcAdminRole === "super_admin") return true;
+    return (window.mcAdminApps || []).indexOf(app) !== -1;
+  };
+
+  window.mcIsSuperAdmin = function () {
+    return window.mcAdminRole === "super_admin";
   };
 
   window.mcAdminLogout = async function () {
