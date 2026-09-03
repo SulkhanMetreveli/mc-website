@@ -115,8 +115,9 @@ create table if not exists address_update_requests (
   postal_code                 text,
   country                     text,
 
-  -- Always required, regardless of which optional sections are filled in.
-  proof_of_address_path       text not null,
+  -- Required on the full Address & Bank Update form; null for bank-only
+  -- updates submitted via /clients/kyc/bank-update/.
+  proof_of_address_path       text,
 
   -- Bank update: optional section. If the client isn't changing their
   -- payout bank, these are all left null.

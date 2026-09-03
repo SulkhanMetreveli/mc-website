@@ -203,7 +203,12 @@ From there:
     page again.
   - Review **address & bank update requests** — a client can submit an
     address change, a payout bank change, a passport refresh, or any
-    combination, in one form (added in
+    combination, in one form. There's also a standalone
+    **Update Bank Information** form (`/clients/kyc/bank-update/`,
+    enabled by `supabase/016_bank_only_updates.sql`) for bank-only
+    changes with no document required — those arrive in this same
+    review section with "Proof of Address: Not provided (bank-only
+    update)". The rest of this bullet describes the combined form (added in
     `supabase/006_address_update_optional_sections.sql` — run that
     migration if you set the portal up before this existed). Proof of
     address is required on every submission regardless of what else is

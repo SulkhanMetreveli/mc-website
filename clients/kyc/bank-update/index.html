@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Bank Update — Met Capital Client Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+</head>
+<body>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/clients/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/clients/" class="dashboard-link">Dashboard</a>
+        <a href="/clients/documents/">Documents</a>
+        <a href="/clients/withdrawal/">Withdrawal Request</a>
+        <a href="/clients/kyc/address-update/" class="active">Address &amp; Bank Update</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="page-label">Payout Details · Change Request</div>
+    <h1 class="page-title">Update Bank Information</h1>
+    <p class="page-subtitle">
+      Update the bank account we use for your payouts. Submitting this form does
+      <strong>not</strong> apply any change immediately — a member of our operations team
+      will verify the request with you directly (including a call to the phone number
+      already on file) before anything is updated. Also changing your address or documents?
+      Use the full <a href="/clients/kyc/address-update/">Address &amp; Bank Update</a> form instead.
+    </p>
+
+    <div id="formAlert"></div>
+
+    <form id="requestForm" class="card" novalidate>
+      <div class="form-section">
+        <h3>New Payout Bank Account</h3>
+        <div class="form-row">
+          <div class="field">
+            <label for="bank_account_holder_name">Account Holder Name <span class="required">*</span></label>
+            <input type="text" id="bank_account_holder_name" required>
+          </div>
+          <div class="field">
+            <label for="bank_name">Bank Name <span class="required">*</span></label>
+            <input type="text" id="bank_name" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="bank_account_number">Account Number / IBAN <span class="required">*</span></label>
+            <input type="text" id="bank_account_number" required>
+          </div>
+          <div class="field">
+            <label for="bank_swift_bic">SWIFT / BIC</label>
+            <input type="text" id="bank_swift_bic">
+          </div>
+          <div class="field">
+            <label for="bank_routing_number">Routing / Sort Code</label>
+            <input type="text" id="bank_routing_number">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="bank_country">Bank Country <span class="required">*</span></label>
+            <input type="text" id="bank_country" required>
+          </div>
+          <div class="field">
+            <label for="payout_currency">Payout Currency <span class="required">*</span></label>
+            <select id="payout_currency" required>
+              <option value="">Select currency…</option>
+              <optgroup label="Your Account Currencies" id="accountCurrencyGroup" style="display:none;"></optgroup>
+              <optgroup label="Other Currencies">
+                <option value="USD">USD — US Dollar</option>
+                <option value="EUR">EUR — Euro</option>
+                <option value="GBP">GBP — British Pound</option>
+                <option value="CHF">CHF — Swiss Franc</option>
+                <option value="SGD">SGD — Singapore Dollar</option>
+                <option value="HKD">HKD — Hong Kong Dollar</option>
+                <option value="AED">AED — UAE Dirham</option>
+                <option value="JPY">JPY — Japanese Yen</option>
+                <option value="OTHER">Other</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field" style="grid-column: 1 / -1;">
+            <label for="bank_address">Bank Address</label>
+            <input type="text" id="bank_address" placeholder="Branch address (optional but recommended)">
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary" id="submitBtn">Submit for Review</button>
+      <p style="margin-top:1rem; font-size:0.8125rem; color:var(--gray-light);">
+        No documents are required for a bank-only update. Our team may still ask you for
+        supporting documents during verification.
+      </p>
+    </form>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/clients/assets/auth.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcLogout);
+
+    var mcSession = null;
+
+    function showAlert(message, type) {
+      document.getElementById('formAlert').innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function fieldVal(id) { return document.getElementById(id).value.trim(); }
+
+    document.getElementById('requestForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      var required = ['bank_account_holder_name', 'bank_name', 'bank_account_number', 'bank_country', 'payout_currency'];
+      for (var i = 0; i < required.length; i++) {
+        if (!fieldVal(required[i])) {
+          showAlert('Please complete Account Holder Name, Bank Name, Account Number, Bank Country, and Payout Currency.', 'error');
+          return;
+        }
+      }
+
+      var btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      try {
+        var insert = await window.mcClient.from('address_update_requests').insert({
+          user_id: mcSession.user.id,
+          address_line1: null,
+          address_line2: null,
+          city: null,
+          state_province: null,
+          postal_code: null,
+          country: null,
+          proof_of_address_path: null,
+          passport_copy_path: null,
+          bank_account_holder_name: fieldVal('bank_account_holder_name'),
+          bank_name: fieldVal('bank_name'),
+          bank_account_number: fieldVal('bank_account_number'),
+          bank_swift_bic: fieldVal('bank_swift_bic') || null,
+          bank_routing_number: fieldVal('bank_routing_number') || null,
+          bank_country: fieldVal('bank_country'),
+          payout_currency: fieldVal('payout_currency'),
+          bank_address: fieldVal('bank_address') || null,
+          additional_notes: null
+        });
+        if (insert.error) throw insert.error;
+
+        document.getElementById('requestForm').reset();
+        showAlert('Your bank update has been submitted for review. A member of our operations team will verify this change with you directly before it takes effect — no changes are made automatically.', 'success');
+      } catch (err) {
+        console.error(err);
+        showAlert('Something went wrong submitting your request. Please try again, or reach us via the Contact page.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit for Review';
+      }
+    });
+
+    (async function init() {
+      var session = await window.mcRequireSession('/clients/kyc/bank-update/');
+      if (!session) return;
+      mcSession = session;
+      await window.mcLoadProfile();
+
+      var { data: vehicleRows } = await window.mcClient
+        .from('investment_vehicles')
+        .select('currency')
+        .eq('user_id', session.user.id);
+
+      if (vehicleRows && vehicleRows.length > 0) {
+        var seen = {};
+        var currencies = [];
+        vehicleRows.forEach(function (v) {
+          if (v.currency && v.currency !== 'MULTI' && !seen[v.currency]) {
+            seen[v.currency] = true;
+            currencies.push(v.currency);
+          }
+        });
+        if (currencies.length > 0) {
+          var group = document.getElementById('accountCurrencyGroup');
+          currencies.forEach(function (c) {
+            var opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = c + ' — currently held';
+            group.appendChild(opt);
+          });
+          group.style.display = '';
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

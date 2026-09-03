@@ -826,7 +826,7 @@
           '<dl>' +
           '<dt>Submitted</dt><dd>' + new Date(r.submitted_at).toLocaleString() + '</dd>' +
           '<dt>Address Update</dt><dd>' + (r.address_line1 ? [r.address_line1, r.address_line2, r.city, r.state_province, r.postal_code, r.country].filter(Boolean).join(', ') : 'Not requested') + '</dd>' +
-          '<dt>Proof of Address</dt><dd><a href="#" data-view-doc="' + r.proof_of_address_path + '">View PDF</a></dd>' +
+          '<dt>Proof of Address</dt><dd>' + (r.proof_of_address_path ? '<a href="#" data-view-doc="' + r.proof_of_address_path + '">View PDF</a>' : 'Not provided (bank-only update)') + '</dd>' +
           '<dt>Passport Update</dt><dd>' + (r.passport_copy_path ? '<a href="#" data-view-doc="' + r.passport_copy_path + '">View PDF</a>' : 'Not requested') + '</dd>' +
           '<dt>Payout Bank Update</dt><dd>' + (r.bank_account_holder_name ? (r.bank_account_holder_name + ' — ' + r.bank_name + ' (' + r.bank_country + '), ' + r.bank_account_number + (r.bank_swift_bic ? ', SWIFT ' + r.bank_swift_bic : '') + ', ' + r.payout_currency) : 'Not requested') + '</dd>' +
           (r.additional_notes ? '<dt>Client Notes</dt><dd>' + r.additional_notes + '</dd>' : '') +
