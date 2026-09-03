@@ -1,5 +1,4 @@
 /qo    /qo.html    200
 
 # Operations Management app, proxied from the metoperationscontrol site
-/operations /operations/ 301
 /operations/* https://metoperationscontrol.netlify.app/:splat 200
