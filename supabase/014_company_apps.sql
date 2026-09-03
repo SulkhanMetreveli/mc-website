@@ -4,8 +4,8 @@
 -- App keys (replacing the fine-grained keys from migration 013):
 --   client_dashboard  -> everything for the client portal (clients, vehicles,
 --                        documents, onboarding, updates, withdrawals)
---   operations        -> Operations Management app
---   sales             -> Sales Pipeline app
+--   operations        -> tile linking to metoperationscontrol.netlify.app
+--   sales             -> tile linking to qo-lp-dashboard.netlify.app
 --
 -- Super admins see every app and manage admin users. Standard admins see
 -- only the apps they've been granted.
@@ -96,44 +96,4 @@ create policy "admins select kyc-files"
 -- Clean up any fine-grained app keys already granted (none expected)
 update admin_users set apps = '{}' where role = 'admin' and apps && array['clients','vehicles','documents','onboarding','updates','withdrawals'];
 
--- 2. Operations Management app ----------------------------------------------
-create table if not exists operations_tasks (
-  id           uuid primary key default gen_random_uuid(),
-  title        text not null,
-  details      text,
-  status       text not null default 'open' check (status in ('open','in_progress','done')),
-  priority     text not null default 'medium' check (priority in ('low','medium','high')),
-  due_date     date,
-  assigned_to  text,
-  created_at   timestamptz not null default now(),
-  updated_at   timestamptz not null default now()
-);
 
-alter table operations_tasks enable row level security;
-
-create policy "operations app full access"
-  on operations_tasks for all
-  using (has_app_access('operations'))
-  with check (has_app_access('operations'));
-
--- 3. Sales Pipeline app ------------------------------------------------------
-create table if not exists sales_leads (
-  id           uuid primary key default gen_random_uuid(),
-  name         text not null,
-  company      text,
-  email        text,
-  phone        text,
-  stage        text not null default 'lead' check (stage in ('lead','contacted','qualified','proposal','won','lost')),
-  value        numeric,
-  currency     text,
-  notes        text,
-  created_at   timestamptz not null default now(),
-  updated_at   timestamptz not null default now()
-);
-
-alter table sales_leads enable row level security;
-
-create policy "sales app full access"
-  on sales_leads for all
-  using (has_app_access('sales'))
-  with check (has_app_access('sales'));

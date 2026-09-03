@@ -107,10 +107,10 @@ the signed-in admin can access. The apps:
   documents and document-submission reviews, onboarding, address/bank
   updates, withdrawals. The per-client page stays at
   `/admin/client/?u=<uuid>`.
-- **Operations Management** (`/admin/operations/`, app key `operations`)
-  — internal task board: title, priority, status, due date, assignee.
-- **Sales Pipeline** (`/admin/sales/`, app key `sales`) — leads from
-  first contact to won/lost, with stage, value, and notes.
+- **Operations Management** (app key `operations`) — tile links out to
+  the existing metoperationscontrol.netlify.app app (its own login).
+- **Sales Pipeline** (app key `sales`) — tile links out to the existing
+  qo-lp-dashboard.netlify.app app (its own login).
 - **Document Management** (`/admin/dms/`, app key `dms`, added in
   `supabase/015_dms.sql`) — port of the metreveli.org intranet document
   system: nested categories (rename/move/promote/cascade delete),
