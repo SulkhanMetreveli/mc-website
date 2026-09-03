@@ -15,16 +15,17 @@
   <div class="admin-topbar">Met Capital — Internal Admin</div>
   <header class="portal-header">
     <div class="header-inner">
-      <a href="/admin/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <a href="/admin/clients/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
       <nav class="portal-nav">
-        <a href="/admin/">Dashboard</a>
+        <a href="/admin/">← All Apps</a>
+        <a href="/admin/clients/">Client Dashboard</a>
         <button class="logout" id="logoutBtn">Log Out</button>
       </nav>
     </div>
   </header>
 
   <main class="portal-main">
-    <div class="page-label"><a href="/admin/">← All Clients</a></div>
+    <div class="page-label"><a href="/admin/clients/">← All Clients</a></div>
     <h1 class="page-title" id="clientTitle">Loading…</h1>
     <p class="page-subtitle" id="clientSubtitle"></p>
 
@@ -291,7 +292,7 @@
     }
 
     if (!targetUserId) {
-      document.body.innerHTML = '<main class="portal-main"><div class="alert error">No client specified. Go back to the <a href="/admin/">dashboard</a> and click Manage on a client.</div></main>';
+      document.body.innerHTML = '<main class="portal-main"><div class="alert error">No client specified. Go back to the <a href="/admin/clients/">dashboard</a> and click Manage on a client.</div></main>';
       throw new Error('missing ?u= param');
     }
 
@@ -931,34 +932,23 @@
       });
     }
 
-    function gate(id, app) {
-      var allowed = window.mcHasApp(app);
-      if (!allowed) {
-        var el = document.getElementById(id);
-        if (el) el.style.display = 'none';
-      }
-      return allowed;
-    }
-
     (async function init() {
       var session = await window.mcRequireAdminSession('/admin/client/?u=' + targetUserId);
       if (!session) return;
 
-      await loadProfile();
-
-      if (!window.mcHasApp('clients')) {
-        document.getElementById('profileSaveBtn').style.display = 'none';
-        document.getElementById('passwordCard').style.display = 'none';
-        document.querySelectorAll('#profileForm input, #profileForm select').forEach(function (el) { el.disabled = true; });
+      if (!window.mcHasApp('client_dashboard')) {
+        window.location.href = '/admin/?denied_app=client_dashboard';
+        return;
       }
 
-      if (gate('vehiclesSection', 'vehicles')) loadVehicles();
-      if (gate('documentsSection', 'documents')) loadDocuments();
-      if (gate('docSubsSection', 'documents')) loadDocumentSubmissions();
-      if (gate('generalDocSubsSection', 'documents')) loadGeneralDocumentSubmissions();
-      if (gate('onboardingSection', 'onboarding')) loadOnboarding();
-      if (gate('addressSection', 'updates')) loadAddressRequests();
-      if (gate('withdrawalsSection', 'withdrawals')) loadWithdrawalRequests();
+      await loadProfile();
+      loadVehicles();
+      loadDocuments();
+      loadDocumentSubmissions();
+      loadGeneralDocumentSubmissions();
+      loadOnboarding();
+      loadAddressRequests();
+      loadWithdrawalRequests();
     })();
   </script>
 </body>

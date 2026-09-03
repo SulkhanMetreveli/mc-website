@@ -4,94 +4,92 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>Admin Dashboard — Met Capital</title>
+<title>Met Capital — Company Panel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/clients/assets/portal.css">
 <link rel="stylesheet" href="/admin/assets/admin.css">
+<style>
+  .app-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .app-tile {
+    display: block;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    background: var(--white);
+    padding: 1.5rem;
+    transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .app-tile:hover {
+    border-color: var(--blue);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+  }
+
+  .app-tile .tick { width: 32px; height: 4px; background: var(--blue); margin-bottom: 1rem; }
+  .app-tile h3 { font-size: 1rem; font-weight: 600; color: var(--black); margin-bottom: 0.375rem; }
+  .app-tile p { font-size: 0.8125rem; color: var(--gray); line-height: 1.55; }
+  .app-tile .open-hint { display: inline-block; margin-top: 0.875rem; font-size: 0.8125rem; font-weight: 500; color: var(--blue); }
+</style>
 </head>
 <body>
-  <div class="admin-topbar">Met Capital — Internal Admin</div>
+  <div class="admin-topbar">Met Capital — Internal</div>
   <header class="portal-header">
     <div class="header-inner">
       <a href="/admin/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
       <nav class="portal-nav">
-        <a href="/admin/" class="active">Dashboard</a>
+        <a href="/admin/" class="active">Company Panel</a>
         <button class="logout" id="logoutBtn">Log Out</button>
       </nav>
     </div>
   </header>
 
   <main class="portal-main">
-    <div class="page-label">Admin</div>
-    <h1 class="page-title" id="welcomeTitle">Dashboard</h1>
-    <p class="page-subtitle">Pending items need your review before anything is actioned in your banking/custodian systems.</p>
+    <div class="page-label">Company Panel</div>
+    <h1 class="page-title" id="welcomeTitle">Apps</h1>
+    <p class="page-subtitle" id="accessBanner"></p>
 
-    <p id="accessBanner" style="font-size:0.8125rem; color:var(--gray); margin-bottom:1rem;"></p>
+    <div id="pageAlert"></div>
 
-    <div class="stat-cards" id="statCards">
-      <div class="stat-card" data-stat="clients"><div class="stat-value">—</div><div class="stat-label">Clients</div></div>
-      <div class="stat-card warn" data-stat="onboarding" data-app="onboarding"><div class="stat-value">—</div><div class="stat-label">Pending Onboarding</div></div>
-      <div class="stat-card warn" data-stat="updates" data-app="updates"><div class="stat-value">—</div><div class="stat-label">Pending Address/Bank Updates</div></div>
-      <div class="stat-card warn" data-stat="withdrawals" data-app="withdrawals"><div class="stat-value">—</div><div class="stat-label">Pending Withdrawals</div></div>
-      <div class="stat-card warn" data-stat="documents" data-app="documents"><div class="stat-value">—</div><div class="stat-label">Pending Document Submissions</div></div>
-      <div class="stat-card warn" data-stat="generaldocs" data-app="documents"><div class="stat-value">—</div><div class="stat-label">Pending General Documents</div></div>
+    <div class="app-grid" id="appGrid">
+      <a href="/admin/clients/" class="app-tile" data-app="client_dashboard" style="display:none;">
+        <div class="tick"></div>
+        <h3>Client Dashboard</h3>
+        <p>Clients, investment vehicles, documents, KYC onboarding, address &amp; bank updates, and withdrawal requests.</p>
+        <span class="open-hint">Open →</span>
+      </a>
+      <a href="/admin/operations/" class="app-tile" data-app="operations" style="display:none;">
+        <div class="tick"></div>
+        <h3>Operations Management</h3>
+        <p>Internal operations task board — track what needs doing, who owns it, and when it's due.</p>
+        <span class="open-hint">Open →</span>
+      </a>
+      <a href="/admin/sales/" class="app-tile" data-app="sales" style="display:none;">
+        <div class="tick"></div>
+        <h3>Sales Pipeline</h3>
+        <p>Prospects and leads from first contact to won or lost, with stage, value, and notes.</p>
+        <span class="open-hint">Open →</span>
+      </a>
     </div>
 
-    <div class="section-block">
-      <h2>Pending Requests</h2>
-      <div class="card">
-        <div id="pendingRequestsContent">
-          <p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="section-block" id="newClientSection">
-      <h2>Add a New Client</h2>
-      <div id="newClientAlert"></div>
-      <form id="newClientForm" class="card" novalidate>
-        <div class="form-row">
-          <div class="field">
-            <label for="nc_full_name">Full Name <span class="required">*</span></label>
-            <input type="text" id="nc_full_name" required>
-          </div>
-          <div class="field">
-            <label for="nc_email">Email (becomes their username) <span class="required">*</span></label>
-            <input type="email" id="nc_email" required>
-          </div>
-          <div class="field">
-            <label for="nc_reference">Client Reference</label>
-            <input type="text" id="nc_reference" placeholder="e.g. MC-00123">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="field">
-            <label for="nc_password">Initial Password</label>
-            <input type="text" id="nc_password" minlength="10" placeholder="Leave blank to auto-generate">
-            <div class="file-hint">At least 10 characters if set. Leave blank and a strong random one is generated for you. Either way, the client must set their own on first login.</div>
-          </div>
-        </div>
-        <button type="submit" class="btn-primary" id="newClientBtn">Create Client</button>
-      </form>
-    </div>
-
-    <div class="section-block">
-      <h2>Clients</h2>
-      <div class="card">
-        <div id="clientsContent">
-          <p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p>
-        </div>
-      </div>
-    </div>
+    <p id="noApps" style="display:none; color:var(--gray); font-size:0.875rem;">
+      You don't have access to any apps yet. Ask a super admin to grant you access.
+    </p>
 
     <div class="section-block" id="adminUsersSection" style="display:none;">
       <h2>Admin Users</h2>
       <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:0.75rem;">
-        Super admins see and manage everything. Standard admins only get the apps ticked
-        below. To add a new admin: first create their login under Authentication → Users in
-        Supabase (no automatic emails are ever sent), then add them here with their User ID.
+        Super admins see and manage every app, including this section. Standard admins only
+        get the apps ticked below. To add a new admin: first create their login under
+        Authentication → Users in Supabase (no automatic emails are ever sent), then add
+        them here with their User ID.
       </p>
       <div id="adminUsersAlert"></div>
       <div class="card">
@@ -113,12 +111,9 @@
           <div class="field" id="au_apps_field">
             <label>App Access</label>
             <div style="display:flex; gap:1rem; flex-wrap:wrap; font-size:0.8125rem; margin-top:0.25rem;">
-              <label style="font-weight:400;"><input type="checkbox" class="au-app" value="clients"> Clients</label>
-              <label style="font-weight:400;"><input type="checkbox" class="au-app" value="vehicles"> Investment Vehicles</label>
-              <label style="font-weight:400;"><input type="checkbox" class="au-app" value="documents"> Documents</label>
-              <label style="font-weight:400;"><input type="checkbox" class="au-app" value="onboarding"> Onboarding</label>
-              <label style="font-weight:400;"><input type="checkbox" class="au-app" value="updates"> Address &amp; Bank Updates</label>
-              <label style="font-weight:400;"><input type="checkbox" class="au-app" value="withdrawals"> Withdrawals</label>
+              <label style="font-weight:400;"><input type="checkbox" class="au-app" value="client_dashboard"> Client Dashboard</label>
+              <label style="font-weight:400;"><input type="checkbox" class="au-app" value="operations"> Operations Management</label>
+              <label style="font-weight:400;"><input type="checkbox" class="au-app" value="sales"> Sales Pipeline</label>
             </div>
           </div>
           <button type="submit" class="btn-small" id="adminUserSaveBtn">Add Admin</button>
@@ -133,210 +128,11 @@
   <script>
     document.getElementById('logoutBtn').addEventListener('click', window.mcAdminLogout);
 
+    var APP_LABELS = { client_dashboard: 'Client Dashboard', operations: 'Operations Management', sales: 'Sales Pipeline' };
+
     function showAlert(id, message, type) {
       document.getElementById(id).innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
     }
-
-    function setStat(key, value) {
-      var card = document.querySelector('#statCards .stat-card[data-stat="' + key + '"] .stat-value');
-      if (card) card.textContent = value ?? '0';
-    }
-
-    async function loadStats() {
-      // hide cards for apps this admin can't access
-      document.querySelectorAll('#statCards .stat-card[data-app]').forEach(function (card) {
-        if (!window.mcHasApp(card.getAttribute('data-app'))) card.style.display = 'none';
-      });
-
-      var jobs = [
-        window.mcAdminClient.from('client_profiles').select('*', { count: 'exact', head: true })
-          .then(function (r) { setStat('clients', r.count); })
-      ];
-      if (window.mcHasApp('onboarding')) jobs.push(
-        window.mcAdminClient.from('onboarding_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending')
-          .then(function (r) { setStat('onboarding', r.count); }));
-      if (window.mcHasApp('updates')) jobs.push(
-        window.mcAdminClient.from('address_update_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
-          .then(function (r) { setStat('updates', r.count); }));
-      if (window.mcHasApp('withdrawals')) jobs.push(
-        window.mcAdminClient.from('withdrawal_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
-          .then(function (r) { setStat('withdrawals', r.count); }));
-      if (window.mcHasApp('documents')) {
-        jobs.push(window.mcAdminClient.from('document_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending')
-          .then(function (r) { setStat('documents', r.count); }));
-        jobs.push(window.mcAdminClient.from('general_document_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending')
-          .then(function (r) { setStat('generaldocs', r.count); }));
-      }
-      await Promise.all(jobs);
-    }
-
-    async function loadPendingRequests() {
-      var el = document.getElementById('pendingRequestsContent');
-
-      function maybe(app, q) {
-        return window.mcHasApp(app) ? q : Promise.resolve({ data: [] });
-      }
-
-      var [profilesRes, onboardingRes, addressRes, withdrawalRes, documentRes, generalDocRes] = await Promise.all([
-        window.mcAdminClient.from('client_profiles').select('user_id, full_name, email'),
-        maybe('onboarding', window.mcAdminClient.from('onboarding_submissions').select('id, user_id, submitted_at').eq('status', 'pending')),
-        maybe('updates', window.mcAdminClient.from('address_update_requests').select('id, user_id, submitted_at, country').eq('status', 'pending')),
-        maybe('withdrawals', window.mcAdminClient.from('withdrawal_requests').select('id, user_id, submitted_at, withdrawal_type, amount, currency').eq('status', 'pending')),
-        maybe('documents', window.mcAdminClient.from('document_submissions').select('id, user_id, submitted_at, passport_path, proof_of_address_path').eq('status', 'pending')),
-        maybe('documents', window.mcAdminClient.from('general_document_submissions').select('id, user_id, submitted_at, title').eq('status', 'pending'))
-      ]);
-
-      var nameMap = {};
-      (profilesRes.data || []).forEach(function (p) { nameMap[p.user_id] = p.full_name || p.email; });
-
-      var items = [];
-      (onboardingRes.data || []).forEach(function (r) {
-        items.push({ type: 'Onboarding / KYC', detail: 'Initial onboarding submission', submitted_at: r.submitted_at, user_id: r.user_id });
-      });
-      (addressRes.data || []).forEach(function (r) {
-        items.push({ type: 'Address & Bank Update', detail: r.country ? ('New address in ' + r.country) : 'Address/bank change request', submitted_at: r.submitted_at, user_id: r.user_id });
-      });
-      (withdrawalRes.data || []).forEach(function (r) {
-        var detail = (r.withdrawal_type === 'full' ? 'Full balance' : fmtMoney(r.amount, r.currency)) + ' — ' + r.currency;
-        items.push({ type: 'Withdrawal Request', detail: detail, submitted_at: r.submitted_at, user_id: r.user_id });
-      });
-      (documentRes.data || []).forEach(function (r) {
-        var parts = [];
-        if (r.passport_path) parts.push('Passport');
-        if (r.proof_of_address_path) parts.push('Proof of Address');
-        items.push({ type: 'Document Submission', detail: parts.join(' + '), submitted_at: r.submitted_at, user_id: r.user_id });
-      });
-      (generalDocRes.data || []).forEach(function (r) {
-        items.push({ type: 'General Document', detail: r.title, submitted_at: r.submitted_at, user_id: r.user_id });
-      });
-
-      items.sort(function (a, b) { return new Date(b.submitted_at) - new Date(a.submitted_at); });
-
-      if (items.length === 0) {
-        el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">Nothing pending. All caught up.</p>';
-        return;
-      }
-
-      var rows = '';
-      items.forEach(function (it) {
-        rows += '<tr>' +
-          '<td>' + (nameMap[it.user_id] || it.user_id) + '</td>' +
-          '<td>' + it.type + '</td>' +
-          '<td>' + it.detail + '</td>' +
-          '<td>' + new Date(it.submitted_at).toLocaleString() + '</td>' +
-          '<td><a href="/admin/client/?u=' + it.user_id + '">Review →</a></td>' +
-        '</tr>';
-      });
-
-      el.innerHTML =
-        '<table class="admin-table"><thead><tr><th>Client</th><th>Type</th><th>Detail</th><th>Submitted</th><th></th></tr></thead>' +
-        '<tbody>' + rows + '</tbody></table>';
-    }
-
-    function fmtMoney(value, currency) {
-      if (value === null || value === undefined) return '—';
-      if (currency === 'MULTI') {
-        return new Intl.NumberFormat('en-GB').format(value) + ' (multi-currency)';
-      }
-      try { return new Intl.NumberFormat('en-GB', { style: 'currency', currency: currency || 'USD' }).format(value); }
-      catch (e) { return value + ' ' + (currency || ''); }
-    }
-
-    function currencyLabel(code) {
-      return code === 'MULTI' ? 'Multicurrency Account' : (code || '—');
-    }
-
-    async function loadClients() {
-      var { data: clients, error } = await window.mcAdminClient
-        .from('client_profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      var content = document.getElementById('clientsContent');
-      if (error || !clients || clients.length === 0) {
-        content.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No clients yet.</p>';
-        return;
-      }
-
-      var rows = '';
-      clients.forEach(function (c) {
-        rows += '<tr>' +
-          '<td>' + c.full_name + '</td>' +
-          '<td>' + c.email + '</td>' +
-          '<td>' + (c.client_reference || '—') + '</td>' +
-          '<td style="text-transform:capitalize;">' + c.status + '</td>' +
-          '<td>' + new Date(c.created_at).toLocaleDateString() + '</td>' +
-          '<td><a href="/admin/client/?u=' + c.user_id + '">Manage →</a></td>' +
-        '</tr>';
-      });
-
-      content.innerHTML =
-        '<table class="admin-table"><thead><tr><th>Name</th><th>Email</th><th>Reference</th><th>Status</th><th>Created</th><th></th></tr></thead>' +
-        '<tbody>' + rows + '</tbody></table>';
-    }
-
-    async function edgeFunctionErrorMessage(error) {
-      if (error && error.context && typeof error.context.json === 'function') {
-        try {
-          var body = await error.context.json();
-          if (body && body.error) return body.error;
-        } catch (parseErr) { /* fall through to generic message */ }
-      }
-      return error ? error.message : 'Unknown error.';
-    }
-
-    document.getElementById('newClientForm').addEventListener('submit', async function (e) {
-      e.preventDefault();
-      var form = e.target;
-      if (!form.checkValidity()) { form.reportValidity(); return; }
-
-      var chosenPassword = document.getElementById('nc_password').value.trim();
-      if (chosenPassword && chosenPassword.length < 10) {
-        showAlert('newClientAlert', 'Password must be at least 10 characters, or leave it blank to auto-generate one.', 'error');
-        return;
-      }
-
-      var btn = document.getElementById('newClientBtn');
-      btn.disabled = true;
-      btn.textContent = 'Creating…';
-
-      try {
-        var { data, error } = await window.mcAdminClient.functions.invoke('admin-create-client', {
-          body: {
-            full_name: document.getElementById('nc_full_name').value.trim(),
-            email: document.getElementById('nc_email').value.trim(),
-            client_reference: document.getElementById('nc_reference').value.trim(),
-            password: chosenPassword || undefined
-          }
-        });
-
-        if (error || (data && data.error)) {
-          throw new Error((data && data.error) || await edgeFunctionErrorMessage(error));
-        }
-
-        form.reset();
-        showAlert('newClientAlert', 
-          'Client created. Send these credentials to them over a secure channel — they will be required to change the password on first login:<br><br>' +
-          '<strong>Username:</strong> ' + data.email + '<br>' +
-          '<strong>Temporary password:</strong> ' + data.password,
-          'success'
-        );
-        loadStats();
-        loadClients();
-      } catch (err) {
-        console.error(err);
-        showAlert('newClientAlert', 
-          'Could not create client: ' + err.message + '. Make sure the admin-create-client Edge Function has been deployed (see SETUP.md).',
-          'error'
-        );
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Create Client';
-      }
-    });
-
-    // ---------------- ADMIN USERS (super admins only) ----------------
-    var APP_LABELS = { clients: 'Clients', vehicles: 'Vehicles', documents: 'Documents', onboarding: 'Onboarding', updates: 'Addr/Bank Updates', withdrawals: 'Withdrawals' };
 
     async function loadAdminUsers() {
       var { data: rows } = await window.mcAdminClient
@@ -367,7 +163,7 @@
 
       el.querySelectorAll('[data-remove-admin]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
-          if (!confirm('Remove this admin? They lose all admin access immediately. Their login itself is not deleted.')) return;
+          if (!confirm('Remove this admin? They lose all access to the company panel immediately. Their login itself is not deleted.')) return;
           var { error } = await window.mcAdminClient.from('admin_users').delete().eq('user_id', btn.getAttribute('data-remove-admin'));
           if (error) { showAlert('adminUsersAlert', 'Could not remove admin: ' + error.message, 'error'); return; }
           loadAdminUsers();
@@ -375,57 +171,62 @@
       });
     }
 
-    if (document.getElementById('au_role')) {
-      document.getElementById('au_role').addEventListener('change', function () {
-        document.getElementById('au_apps_field').style.display = this.value === 'super_admin' ? 'none' : '';
+    document.getElementById('au_role').addEventListener('change', function () {
+      document.getElementById('au_apps_field').style.display = this.value === 'super_admin' ? 'none' : '';
+    });
+
+    document.getElementById('adminUserForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var userId = document.getElementById('au_user_id').value.trim();
+      var fullName = document.getElementById('au_full_name').value.trim();
+      if (!userId || !fullName) { showAlert('adminUsersAlert', 'User ID and Full Name are required.', 'error'); return; }
+
+      var role = document.getElementById('au_role').value;
+      var apps = Array.prototype.map.call(document.querySelectorAll('.au-app:checked'), function (c) { return c.value; });
+      if (role === 'admin' && apps.length === 0) {
+        showAlert('adminUsersAlert', 'Pick at least one app, or make them a Super Admin.', 'error');
+        return;
+      }
+
+      var { error } = await window.mcAdminClient.from('admin_users').insert({
+        user_id: userId,
+        full_name: fullName,
+        email: document.getElementById('au_email').value.trim() || null,
+        role: role,
+        apps: role === 'super_admin' ? [] : apps
       });
-
-      document.getElementById('adminUserForm').addEventListener('submit', async function (e) {
-        e.preventDefault();
-        var userId = document.getElementById('au_user_id').value.trim();
-        var fullName = document.getElementById('au_full_name').value.trim();
-        if (!userId || !fullName) { showAlert('adminUsersAlert', 'User ID and Full Name are required.', 'error'); return; }
-
-        var role = document.getElementById('au_role').value;
-        var apps = Array.prototype.map.call(document.querySelectorAll('.au-app:checked'), function (c) { return c.value; });
-        if (role === 'admin' && apps.length === 0) {
-          showAlert('adminUsersAlert', 'Pick at least one app, or make them a Super Admin.', 'error');
-          return;
-        }
-
-        var { error } = await window.mcAdminClient.from('admin_users').insert({
-          user_id: userId,
-          full_name: fullName,
-          email: document.getElementById('au_email').value.trim() || null,
-          role: role,
-          apps: role === 'super_admin' ? [] : apps
-        });
-        if (error) { showAlert('adminUsersAlert', 'Could not add admin: ' + error.message + '. Check the User ID exists under Authentication → Users.', 'error'); return; }
-        document.getElementById('adminUserForm').reset();
-        showAlert('adminUsersAlert', 'Admin added.', 'success');
-        loadAdminUsers();
-      });
-    }
+      if (error) { showAlert('adminUsersAlert', 'Could not add admin: ' + error.message + '. Check the User ID exists under Authentication → Users.', 'error'); return; }
+      document.getElementById('adminUserForm').reset();
+      showAlert('adminUsersAlert', 'Admin added.', 'success');
+      loadAdminUsers();
+    });
 
     (async function init() {
       var session = await window.mcRequireAdminSession('/admin/');
       if (!session) return;
-      document.getElementById('welcomeTitle').textContent = 'Dashboard — ' + (window.mcAdminProfile.full_name || '');
 
-      var banner = window.mcIsSuperAdmin()
+      document.getElementById('welcomeTitle').textContent = 'Apps — ' + (window.mcAdminProfile.full_name || '');
+      document.getElementById('accessBanner').textContent = window.mcIsSuperAdmin()
         ? 'Signed in as Super Admin — full access to every app.'
-        : 'Signed in as Admin — access: ' + ((window.mcAdminApps || []).map(function (k) { return APP_LABELS[k] || k; }).join(', ') || 'none');
-      document.getElementById('accessBanner').textContent = banner;
+        : 'Signed in as Admin.';
 
-      if (!window.mcHasApp('clients')) document.getElementById('newClientSection').style.display = 'none';
+      if (new URLSearchParams(window.location.search).get('denied_app')) {
+        showAlert('pageAlert', "You don't have access to that app. Ask a super admin if you need it.", 'error');
+      }
+
+      var visible = 0;
+      document.querySelectorAll('.app-tile').forEach(function (tile) {
+        if (window.mcHasApp(tile.getAttribute('data-app'))) {
+          tile.style.display = '';
+          visible++;
+        }
+      });
+      if (visible === 0) document.getElementById('noApps').style.display = '';
+
       if (window.mcIsSuperAdmin()) {
         document.getElementById('adminUsersSection').style.display = '';
         loadAdminUsers();
       }
-
-      loadStats();
-      loadPendingRequests();
-      loadClients();
     })();
   </script>
 </body>

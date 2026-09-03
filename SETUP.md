@@ -97,32 +97,41 @@ node create-client.js --email jane@example.com --name "Jane Client" --reference 
 
 Log in at `/admin/login/` with any account listed in `admin_users`.
 
-### Admin roles (added in `supabase/013_admin_roles.sql`)
+### Company panel and apps (migrations 013 + 014)
 
-Every admin has a role:
+`/admin/` is the **company panel**: a launcher showing one tile per app
+the signed-in admin can access. The apps:
 
-- **Super Admin** — sees and manages everything, including the **Admin
-  Users** section at the bottom of the dashboard where admins are added,
-  removed, and granted access. All admins who existed before migration
-  013 were automatically promoted to Super Admin.
-- **Admin** — only sees the apps they've been granted. App keys:
-  `clients` (profiles, create client, reset password), `vehicles`
-  (investment vehicles), `documents` (document center + both document
-  submission review flows), `onboarding`, `updates` (address/bank/passport
-  requests), `withdrawals`.
+- **Client Dashboard** (`/admin/clients/`, app key `client_dashboard`) —
+  everything for the client portal: clients, investment vehicles,
+  documents and document-submission reviews, onboarding, address/bank
+  updates, withdrawals. The per-client page stays at
+  `/admin/client/?u=<uuid>`.
+- **Operations Management** (`/admin/operations/`, app key `operations`)
+  — internal task board: title, priority, status, due date, assignee.
+- **Sales Pipeline** (`/admin/sales/`, app key `sales`) — leads from
+  first contact to won/lost, with stage, value, and notes.
 
-Access is enforced twice: hidden in the dashboard UI, and blocked at the
-database level by row-level security — so even a hand-crafted API call
-with a restricted admin's login can't touch an app they weren't granted.
+Roles:
+
+- **Super Admin** — every app, plus the **Admin Users** section on the
+  company panel where admins are added/removed and granted apps. All
+  admins who existed before migration 013 were auto-promoted.
+- **Admin** — only the apps they've been granted.
+
+Access is enforced twice: tiles/pages hidden in the UI, and blocked at
+the database level by row-level security — a hand-crafted API call with
+a restricted admin's login can't touch an app they weren't granted.
 
 To add an admin: create their login under Authentication → Users in the
 Supabase dashboard (nothing is emailed automatically), copy the new
-user's UUID, then as a Super Admin use "Add an Admin" on the dashboard.
+user's UUID, then as a Super Admin use "Add an Admin" on the company
+panel.
 
-After running migration 013, also redeploy both Edge Functions
-(`admin-create-client`, `admin-reset-password`) from the updated files in
-`supabase/functions/` — they now require the `clients` app rather than
-any-admin.
+Run `supabase/013_admin_roles.sql` then `supabase/014_company_apps.sql`,
+and redeploy both Edge Functions (`admin-create-client`,
+`admin-reset-password`) from the updated files in `supabase/functions/`
+— they now require the `client_dashboard` app.
 
 From there:
 

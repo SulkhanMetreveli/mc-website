@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Operations Management — Met Capital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body>
+  <div class="admin-topbar">Met Capital — Internal</div>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/admin/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/admin/">← All Apps</a>
+        <a href="/admin/operations/" class="active">Operations</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="page-label"><a href="/admin/">← All Apps</a></div>
+    <h1 class="page-title">Operations Management</h1>
+    <p class="page-subtitle">Internal task board. Nothing here is client-visible.</p>
+
+    <div id="pageAlert"></div>
+
+    <div class="stat-cards" id="statCards">
+      <div class="stat-card warn"><div class="stat-value" id="stOpen">—</div><div class="stat-label">Open</div></div>
+      <div class="stat-card"><div class="stat-value" id="stProgress">—</div><div class="stat-label">In Progress</div></div>
+      <div class="stat-card"><div class="stat-value" id="stDone">—</div><div class="stat-label">Done</div></div>
+    </div>
+
+    <div class="section-block">
+      <h2 id="taskFormTitle">Add a Task</h2>
+      <div class="card">
+        <form id="taskForm" novalidate>
+          <input type="hidden" id="t_id">
+          <div class="form-row">
+            <div class="field"><label>Title <span class="required">*</span></label><input type="text" id="t_title" required></div>
+            <div class="field">
+              <label>Priority</label>
+              <select id="t_priority">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Status</label>
+              <select id="t_status">
+                <option value="open">Open</option>
+                <option value="in_progress">In Progress</option>
+                <option value="done">Done</option>
+              </select>
+            </div>
+            <div class="field"><label>Due Date</label><input type="date" id="t_due"></div>
+            <div class="field"><label>Assigned To</label><input type="text" id="t_assigned" placeholder="Name"></div>
+          </div>
+          <div class="field"><label>Details</label><input type="text" id="t_details"></div>
+          <button type="submit" class="btn-small" id="taskSaveBtn">Save Task</button>
+          <button type="button" class="btn-small" id="taskCancelBtn" style="display:none;">Cancel Edit</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h2>Tasks</h2>
+      <div class="card">
+        <div id="tasksTable"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/admin/assets/admin.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcAdminLogout);
+
+    var STATUS_META = {
+      open: { label: 'Open', cls: 'pending' },
+      in_progress: { label: 'In Progress', cls: 'info' },
+      done: { label: 'Done', cls: 'approved' }
+    };
+
+    var PRIORITY_META = {
+      low: { label: 'Low', cls: 'neutral' },
+      medium: { label: 'Medium', cls: 'info' },
+      high: { label: 'High', cls: 'rejected' }
+    };
+
+    function pill(meta, key) {
+      var m = meta[key] || { label: key, cls: 'neutral' };
+      return '<span class="status-pill ' + m.cls + '">' + m.label + '</span>';
+    }
+
+    function showAlert(message, type) {
+      document.getElementById('pageAlert').innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function loadTasks() {
+      var { data: rows, error } = await window.mcAdminClient
+        .from('operations_tasks').select('*')
+        .order('status').order('due_date', { ascending: true, nullsFirst: false });
+
+      var el = document.getElementById('tasksTable');
+      if (error) {
+        el.innerHTML = '<p style="color:var(--red); font-size:0.875rem;">Could not load tasks: ' + error.message + '. Make sure migration 014 has been run.</p>';
+        return;
+      }
+
+      document.getElementById('stOpen').textContent = (rows || []).filter(function (r) { return r.status === 'open'; }).length;
+      document.getElementById('stProgress').textContent = (rows || []).filter(function (r) { return r.status === 'in_progress'; }).length;
+      document.getElementById('stDone').textContent = (rows || []).filter(function (r) { return r.status === 'done'; }).length;
+
+      if (!rows || rows.length === 0) {
+        el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No tasks yet.</p>';
+        return;
+      }
+
+      var html = '';
+      rows.forEach(function (t) {
+        html += '<tr>' +
+          '<td>' + t.title + (t.details ? '<div style="font-size:0.75rem; color:var(--gray-light);">' + t.details + '</div>' : '') + '</td>' +
+          '<td>' + pill(PRIORITY_META, t.priority) + '</td>' +
+          '<td>' + pill(STATUS_META, t.status) + '</td>' +
+          '<td>' + (t.due_date || '—') + '</td>' +
+          '<td>' + (t.assigned_to || '—') + '</td>' +
+          '<td>' +
+            '<button type="button" class="btn-small" data-edit=\'' + JSON.stringify(t).replace(/'/g, "&#39;") + '\'>Edit</button>' +
+            (t.status !== 'done' ? '<button type="button" class="btn-small approve" data-done="' + t.id + '">Mark Done</button>' : '') +
+            '<button type="button" class="btn-small danger" data-del="' + t.id + '">Delete</button>' +
+          '</td>' +
+        '</tr>';
+      });
+      el.innerHTML = '<table class="admin-table"><thead><tr><th>Task</th><th>Priority</th><th>Status</th><th>Due</th><th>Assigned</th><th></th></tr></thead><tbody>' + html + '</tbody></table>';
+
+      el.querySelectorAll('[data-edit]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var t = JSON.parse(btn.getAttribute('data-edit'));
+          document.getElementById('t_id').value = t.id;
+          document.getElementById('t_title').value = t.title;
+          document.getElementById('t_priority').value = t.priority;
+          document.getElementById('t_status').value = t.status;
+          document.getElementById('t_due').value = t.due_date || '';
+          document.getElementById('t_assigned').value = t.assigned_to || '';
+          document.getElementById('t_details').value = t.details || '';
+          document.getElementById('taskFormTitle').textContent = 'Edit Task';
+          document.getElementById('taskCancelBtn').style.display = '';
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      });
+      el.querySelectorAll('[data-done]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          await window.mcAdminClient.from('operations_tasks').update({ status: 'done', updated_at: new Date().toISOString() }).eq('id', btn.getAttribute('data-done'));
+          loadTasks();
+        });
+      });
+      el.querySelectorAll('[data-del]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          if (!confirm('Delete this task?')) return;
+          await window.mcAdminClient.from('operations_tasks').delete().eq('id', btn.getAttribute('data-del'));
+          loadTasks();
+        });
+      });
+    }
+
+    function resetTaskForm() {
+      document.getElementById('taskForm').reset();
+      document.getElementById('t_id').value = '';
+      document.getElementById('taskFormTitle').textContent = 'Add a Task';
+      document.getElementById('taskCancelBtn').style.display = 'none';
+    }
+    document.getElementById('taskCancelBtn').addEventListener('click', resetTaskForm);
+
+    document.getElementById('taskForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var title = document.getElementById('t_title').value.trim();
+      if (!title) { showAlert('Title is required.', 'error'); return; }
+
+      var id = document.getElementById('t_id').value;
+      var payload = {
+        title: title,
+        details: document.getElementById('t_details').value.trim() || null,
+        priority: document.getElementById('t_priority').value,
+        status: document.getElementById('t_status').value,
+        due_date: document.getElementById('t_due').value || null,
+        assigned_to: document.getElementById('t_assigned').value.trim() || null,
+        updated_at: new Date().toISOString()
+      };
+
+      var result = id
+        ? await window.mcAdminClient.from('operations_tasks').update(payload).eq('id', id)
+        : await window.mcAdminClient.from('operations_tasks').insert(payload);
+
+      if (result.error) { showAlert('Could not save task: ' + result.error.message, 'error'); return; }
+      resetTaskForm();
+      loadTasks();
+    });
+
+    (async function init() {
+      var session = await window.mcRequireAdminSession('/admin/operations/');
+      if (!session) return;
+      if (!window.mcHasApp('operations')) {
+        window.location.href = '/admin/?denied_app=operations';
+        return;
+      }
+      loadTasks();
+    })();
+  </script>
+</body>
+</html>

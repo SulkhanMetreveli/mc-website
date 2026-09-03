@@ -380,7 +380,7 @@ create table if not exists admin_users (
   full_name   text not null,
   email       text,
   role        text not null default 'admin' check (role in ('super_admin','admin')),
-  apps        text[] not null default '{}',   -- app keys: clients, vehicles, documents, onboarding, updates, withdrawals
+  apps        text[] not null default '{}',   -- app keys: client_dashboard, operations, sales
   created_at  timestamptz not null default now()
 );
 
@@ -443,60 +443,60 @@ create policy "super admins delete admin_users"
 create policy "admins select all client_profiles"
   on client_profiles for select using (is_admin());
 create policy "admins insert client_profiles"
-  on client_profiles for insert with check (has_app_access('clients'));
+  on client_profiles for insert with check (has_app_access('client_dashboard'));
 create policy "admins update client_profiles"
   on client_profiles for update
-  using (has_app_access('clients') or has_app_access('updates'))
-  with check (has_app_access('clients') or has_app_access('updates'));
+  using (has_app_access('client_dashboard'))
+  with check (has_app_access('client_dashboard'));
 
 -- ---------------------------------------------------------------------------
 -- investment_vehicles — admins fully manage every client's vehicles
 -- ---------------------------------------------------------------------------
 create policy "admins select all investment_vehicles"
-  on investment_vehicles for select using (has_app_access('vehicles'));
+  on investment_vehicles for select using (has_app_access('client_dashboard'));
 create policy "admins insert investment_vehicles"
-  on investment_vehicles for insert with check (has_app_access('vehicles'));
+  on investment_vehicles for insert with check (has_app_access('client_dashboard'));
 create policy "admins update investment_vehicles"
-  on investment_vehicles for update using (has_app_access('vehicles')) with check (has_app_access('vehicles'));
+  on investment_vehicles for update using (has_app_access('client_dashboard')) with check (has_app_access('client_dashboard'));
 create policy "admins delete investment_vehicles"
-  on investment_vehicles for delete using (has_app_access('vehicles'));
+  on investment_vehicles for delete using (has_app_access('client_dashboard'));
 
 -- ---------------------------------------------------------------------------
 -- documents — admins upload/manage documents for any client
 -- ---------------------------------------------------------------------------
 create policy "admins select all documents"
-  on documents for select using (has_app_access('documents'));
+  on documents for select using (has_app_access('client_dashboard'));
 create policy "admins insert documents"
-  on documents for insert with check (has_app_access('documents'));
+  on documents for insert with check (has_app_access('client_dashboard'));
 create policy "admins update documents"
-  on documents for update using (has_app_access('documents')) with check (has_app_access('documents'));
+  on documents for update using (has_app_access('client_dashboard')) with check (has_app_access('client_dashboard'));
 create policy "admins delete documents"
-  on documents for delete using (has_app_access('documents'));
+  on documents for delete using (has_app_access('client_dashboard'));
 
 -- ---------------------------------------------------------------------------
 -- address_update_requests — admins review (select + update status/notes)
 -- Clients still cannot update once submitted — that policy is unchanged.
 -- ---------------------------------------------------------------------------
 create policy "admins select all address_update_requests"
-  on address_update_requests for select using (has_app_access('updates'));
+  on address_update_requests for select using (has_app_access('client_dashboard'));
 create policy "admins update address_update_requests"
-  on address_update_requests for update using (has_app_access('updates')) with check (has_app_access('updates'));
+  on address_update_requests for update using (has_app_access('client_dashboard')) with check (has_app_access('client_dashboard'));
 
 -- ---------------------------------------------------------------------------
 -- withdrawal_requests — admins review (select + update status/notes)
 -- ---------------------------------------------------------------------------
 create policy "admins select all withdrawal_requests"
-  on withdrawal_requests for select using (has_app_access('withdrawals'));
+  on withdrawal_requests for select using (has_app_access('client_dashboard'));
 create policy "admins update withdrawal_requests"
-  on withdrawal_requests for update using (has_app_access('withdrawals')) with check (has_app_access('withdrawals'));
+  on withdrawal_requests for update using (has_app_access('client_dashboard')) with check (has_app_access('client_dashboard'));
 
 -- ---------------------------------------------------------------------------
 -- onboarding_submissions — admins review (select + update status/notes)
 -- ---------------------------------------------------------------------------
 create policy "admins select all onboarding_submissions"
-  on onboarding_submissions for select using (has_app_access('onboarding'));
+  on onboarding_submissions for select using (has_app_access('client_dashboard'));
 create policy "admins update onboarding_submissions"
-  on onboarding_submissions for update using (has_app_access('onboarding')) with check (has_app_access('onboarding'));
+  on onboarding_submissions for update using (has_app_access('client_dashboard')) with check (has_app_access('client_dashboard'));
 
 -- ---------------------------------------------------------------------------
 -- document_submissions — admins review (select + update status), and can
@@ -504,17 +504,17 @@ create policy "admins update onboarding_submissions"
 -- "admins insert documents" policy above)
 -- ---------------------------------------------------------------------------
 create policy "admins select all document_submissions"
-  on document_submissions for select using (has_app_access('documents'));
+  on document_submissions for select using (has_app_access('client_dashboard'));
 create policy "admins update document_submissions"
-  on document_submissions for update using (has_app_access('documents')) with check (has_app_access('documents'));
+  on document_submissions for update using (has_app_access('client_dashboard')) with check (has_app_access('client_dashboard'));
 
 -- ---------------------------------------------------------------------------
 -- general_document_submissions — admins review (select + update status)
 -- ---------------------------------------------------------------------------
 create policy "admins select all general_document_submissions"
-  on general_document_submissions for select using (has_app_access('documents'));
+  on general_document_submissions for select using (has_app_access('client_dashboard'));
 create policy "admins update general_document_submissions"
-  on general_document_submissions for update using (has_app_access('documents')) with check (has_app_access('documents'));
+  on general_document_submissions for update using (has_app_access('client_dashboard')) with check (has_app_access('client_dashboard'));
 
 -- ---------------------------------------------------------------------------
 -- Storage — admins can manage client-documents for anyone, and view
@@ -522,12 +522,12 @@ create policy "admins update general_document_submissions"
 -- ---------------------------------------------------------------------------
 create policy "admins full access client-documents"
   on storage.objects for all
-  using (bucket_id = 'client-documents' and has_app_access('documents'))
-  with check (bucket_id = 'client-documents' and has_app_access('documents'));
+  using (bucket_id = 'client-documents' and has_app_access('client_dashboard'))
+  with check (bucket_id = 'client-documents' and has_app_access('client_dashboard'));
 
 create policy "admins select kyc-files"
   on storage.objects for select
-  using (bucket_id = 'kyc-files' and is_admin());
+  using (bucket_id = 'kyc-files' and has_app_access('client_dashboard'));
 
 grant execute on function is_admin() to authenticated;
 grant execute on function is_super_admin() to authenticated;
@@ -540,3 +540,46 @@ grant execute on function has_app_access(text) to authenticated;
 --      full_name = your name
 -- You can now log in at /admin/login/ with that account.
 -- ============================================================================
+
+-- ---------------------------------------------------------------------------
+-- Company apps (internal only, nothing client-visible)
+-- ---------------------------------------------------------------------------
+create table if not exists operations_tasks (
+  id           uuid primary key default gen_random_uuid(),
+  title        text not null,
+  details      text,
+  status       text not null default 'open' check (status in ('open','in_progress','done')),
+  priority     text not null default 'medium' check (priority in ('low','medium','high')),
+  due_date     date,
+  assigned_to  text,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+
+alter table operations_tasks enable row level security;
+
+create policy "operations app full access"
+  on operations_tasks for all
+  using (has_app_access('operations'))
+  with check (has_app_access('operations'));
+
+create table if not exists sales_leads (
+  id           uuid primary key default gen_random_uuid(),
+  name         text not null,
+  company      text,
+  email        text,
+  phone        text,
+  stage        text not null default 'lead' check (stage in ('lead','contacted','qualified','proposal','won','lost')),
+  value        numeric,
+  currency     text,
+  notes        text,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+
+alter table sales_leads enable row level security;
+
+create policy "sales app full access"
+  on sales_leads for all
+  using (has_app_access('sales'))
+  with check (has_app_access('sales'));

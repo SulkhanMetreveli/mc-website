@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Client Dashboard — Met Capital Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body>
+  <div class="admin-topbar">Met Capital — Internal Admin</div>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/admin/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/admin/">← All Apps</a>
+        <a href="/admin/clients/" class="active">Client Dashboard</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="page-label"><a href="/admin/">← All Apps</a></div>
+    <h1 class="page-title" id="welcomeTitle">Client Dashboard</h1>
+    <p class="page-subtitle">Pending items need your review before anything is actioned in your banking/custodian systems.</p>
+
+    <div class="stat-cards" id="statCards">
+      <div class="stat-card" data-stat="clients"><div class="stat-value">—</div><div class="stat-label">Clients</div></div>
+      <div class="stat-card warn" data-stat="onboarding" data-app="client_dashboard"><div class="stat-value">—</div><div class="stat-label">Pending Onboarding</div></div>
+      <div class="stat-card warn" data-stat="updates" data-app="client_dashboard"><div class="stat-value">—</div><div class="stat-label">Pending Address/Bank Updates</div></div>
+      <div class="stat-card warn" data-stat="withdrawals" data-app="client_dashboard"><div class="stat-value">—</div><div class="stat-label">Pending Withdrawals</div></div>
+      <div class="stat-card warn" data-stat="documents" data-app="client_dashboard"><div class="stat-value">—</div><div class="stat-label">Pending Document Submissions</div></div>
+      <div class="stat-card warn" data-stat="generaldocs" data-app="client_dashboard"><div class="stat-value">—</div><div class="stat-label">Pending General Documents</div></div>
+    </div>
+
+    <div class="section-block">
+      <h2>Pending Requests</h2>
+      <div class="card">
+        <div id="pendingRequestsContent">
+          <p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block" id="newClientSection">
+      <h2>Add a New Client</h2>
+      <div id="newClientAlert"></div>
+      <form id="newClientForm" class="card" novalidate>
+        <div class="form-row">
+          <div class="field">
+            <label for="nc_full_name">Full Name <span class="required">*</span></label>
+            <input type="text" id="nc_full_name" required>
+          </div>
+          <div class="field">
+            <label for="nc_email">Email (becomes their username) <span class="required">*</span></label>
+            <input type="email" id="nc_email" required>
+          </div>
+          <div class="field">
+            <label for="nc_reference">Client Reference</label>
+            <input type="text" id="nc_reference" placeholder="e.g. MC-00123">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="nc_password">Initial Password</label>
+            <input type="text" id="nc_password" minlength="10" placeholder="Leave blank to auto-generate">
+            <div class="file-hint">At least 10 characters if set. Leave blank and a strong random one is generated for you. Either way, the client must set their own on first login.</div>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" id="newClientBtn">Create Client</button>
+      </form>
+    </div>
+
+    <div class="section-block">
+      <h2>Clients</h2>
+      <div class="card">
+        <div id="clientsContent">
+          <p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/admin/assets/admin.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcAdminLogout);
+
+    function showAlert(id, message, type) {
+      document.getElementById(id).innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
+    }
+
+    function setStat(key, value) {
+      var card = document.querySelector('#statCards .stat-card[data-stat="' + key + '"] .stat-value');
+      if (card) card.textContent = value ?? '0';
+    }
+
+    async function loadStats() {
+      // hide cards for apps this admin can't access
+      document.querySelectorAll('#statCards .stat-card[data-app]').forEach(function (card) {
+        if (!window.mcHasApp(card.getAttribute('data-app'))) card.style.display = 'none';
+      });
+
+      var jobs = [
+        window.mcAdminClient.from('client_profiles').select('*', { count: 'exact', head: true })
+          .then(function (r) { setStat('clients', r.count); })
+      ];
+      if (window.mcHasApp('client_dashboard')) jobs.push(
+        window.mcAdminClient.from('onboarding_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+          .then(function (r) { setStat('onboarding', r.count); }));
+      if (window.mcHasApp('client_dashboard')) jobs.push(
+        window.mcAdminClient.from('address_update_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+          .then(function (r) { setStat('updates', r.count); }));
+      if (window.mcHasApp('client_dashboard')) jobs.push(
+        window.mcAdminClient.from('withdrawal_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+          .then(function (r) { setStat('withdrawals', r.count); }));
+      if (window.mcHasApp('client_dashboard')) {
+        jobs.push(window.mcAdminClient.from('document_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+          .then(function (r) { setStat('documents', r.count); }));
+        jobs.push(window.mcAdminClient.from('general_document_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+          .then(function (r) { setStat('generaldocs', r.count); }));
+      }
+      await Promise.all(jobs);
+    }
+
+    async function loadPendingRequests() {
+      var el = document.getElementById('pendingRequestsContent');
+
+      function maybe(app, q) {
+        return window.mcHasApp(app) ? q : Promise.resolve({ data: [] });
+      }
+
+      var [profilesRes, onboardingRes, addressRes, withdrawalRes, documentRes, generalDocRes] = await Promise.all([
+        window.mcAdminClient.from('client_profiles').select('user_id, full_name, email'),
+        maybe('client_dashboard', window.mcAdminClient.from('onboarding_submissions').select('id, user_id, submitted_at').eq('status', 'pending')),
+        maybe('client_dashboard', window.mcAdminClient.from('address_update_requests').select('id, user_id, submitted_at, country').eq('status', 'pending')),
+        maybe('client_dashboard', window.mcAdminClient.from('withdrawal_requests').select('id, user_id, submitted_at, withdrawal_type, amount, currency').eq('status', 'pending')),
+        maybe('client_dashboard', window.mcAdminClient.from('document_submissions').select('id, user_id, submitted_at, passport_path, proof_of_address_path').eq('status', 'pending')),
+        maybe('client_dashboard', window.mcAdminClient.from('general_document_submissions').select('id, user_id, submitted_at, title').eq('status', 'pending'))
+      ]);
+
+      var nameMap = {};
+      (profilesRes.data || []).forEach(function (p) { nameMap[p.user_id] = p.full_name || p.email; });
+
+      var items = [];
+      (onboardingRes.data || []).forEach(function (r) {
+        items.push({ type: 'Onboarding / KYC', detail: 'Initial onboarding submission', submitted_at: r.submitted_at, user_id: r.user_id });
+      });
+      (addressRes.data || []).forEach(function (r) {
+        items.push({ type: 'Address & Bank Update', detail: r.country ? ('New address in ' + r.country) : 'Address/bank change request', submitted_at: r.submitted_at, user_id: r.user_id });
+      });
+      (withdrawalRes.data || []).forEach(function (r) {
+        var detail = (r.withdrawal_type === 'full' ? 'Full balance' : fmtMoney(r.amount, r.currency)) + ' — ' + r.currency;
+        items.push({ type: 'Withdrawal Request', detail: detail, submitted_at: r.submitted_at, user_id: r.user_id });
+      });
+      (documentRes.data || []).forEach(function (r) {
+        var parts = [];
+        if (r.passport_path) parts.push('Passport');
+        if (r.proof_of_address_path) parts.push('Proof of Address');
+        items.push({ type: 'Document Submission', detail: parts.join(' + '), submitted_at: r.submitted_at, user_id: r.user_id });
+      });
+      (generalDocRes.data || []).forEach(function (r) {
+        items.push({ type: 'General Document', detail: r.title, submitted_at: r.submitted_at, user_id: r.user_id });
+      });
+
+      items.sort(function (a, b) { return new Date(b.submitted_at) - new Date(a.submitted_at); });
+
+      if (items.length === 0) {
+        el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">Nothing pending. All caught up.</p>';
+        return;
+      }
+
+      var rows = '';
+      items.forEach(function (it) {
+        rows += '<tr>' +
+          '<td>' + (nameMap[it.user_id] || it.user_id) + '</td>' +
+          '<td>' + it.type + '</td>' +
+          '<td>' + it.detail + '</td>' +
+          '<td>' + new Date(it.submitted_at).toLocaleString() + '</td>' +
+          '<td><a href="/admin/client/?u=' + it.user_id + '">Review →</a></td>' +
+        '</tr>';
+      });
+
+      el.innerHTML =
+        '<table class="admin-table"><thead><tr><th>Client</th><th>Type</th><th>Detail</th><th>Submitted</th><th></th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table>';
+    }
+
+    function fmtMoney(value, currency) {
+      if (value === null || value === undefined) return '—';
+      if (currency === 'MULTI') {
+        return new Intl.NumberFormat('en-GB').format(value) + ' (multi-currency)';
+      }
+      try { return new Intl.NumberFormat('en-GB', { style: 'currency', currency: currency || 'USD' }).format(value); }
+      catch (e) { return value + ' ' + (currency || ''); }
+    }
+
+    function currencyLabel(code) {
+      return code === 'MULTI' ? 'Multicurrency Account' : (code || '—');
+    }
+
+    async function loadClients() {
+      var { data: clients, error } = await window.mcAdminClient
+        .from('client_profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      var content = document.getElementById('clientsContent');
+      if (error || !clients || clients.length === 0) {
+        content.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No clients yet.</p>';
+        return;
+      }
+
+      var rows = '';
+      clients.forEach(function (c) {
+        rows += '<tr>' +
+          '<td>' + c.full_name + '</td>' +
+          '<td>' + c.email + '</td>' +
+          '<td>' + (c.client_reference || '—') + '</td>' +
+          '<td style="text-transform:capitalize;">' + c.status + '</td>' +
+          '<td>' + new Date(c.created_at).toLocaleDateString() + '</td>' +
+          '<td><a href="/admin/client/?u=' + c.user_id + '">Manage →</a></td>' +
+        '</tr>';
+      });
+
+      content.innerHTML =
+        '<table class="admin-table"><thead><tr><th>Name</th><th>Email</th><th>Reference</th><th>Status</th><th>Created</th><th></th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table>';
+    }
+
+    async function edgeFunctionErrorMessage(error) {
+      if (error && error.context && typeof error.context.json === 'function') {
+        try {
+          var body = await error.context.json();
+          if (body && body.error) return body.error;
+        } catch (parseErr) { /* fall through to generic message */ }
+      }
+      return error ? error.message : 'Unknown error.';
+    }
+
+    document.getElementById('newClientForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var form = e.target;
+      if (!form.checkValidity()) { form.reportValidity(); return; }
+
+      var chosenPassword = document.getElementById('nc_password').value.trim();
+      if (chosenPassword && chosenPassword.length < 10) {
+        showAlert('newClientAlert', 'Password must be at least 10 characters, or leave it blank to auto-generate one.', 'error');
+        return;
+      }
+
+      var btn = document.getElementById('newClientBtn');
+      btn.disabled = true;
+      btn.textContent = 'Creating…';
+
+      try {
+        var { data, error } = await window.mcAdminClient.functions.invoke('admin-create-client', {
+          body: {
+            full_name: document.getElementById('nc_full_name').value.trim(),
+            email: document.getElementById('nc_email').value.trim(),
+            client_reference: document.getElementById('nc_reference').value.trim(),
+            password: chosenPassword || undefined
+          }
+        });
+
+        if (error || (data && data.error)) {
+          throw new Error((data && data.error) || await edgeFunctionErrorMessage(error));
+        }
+
+        form.reset();
+        showAlert('newClientAlert', 
+          'Client created. Send these credentials to them over a secure channel — they will be required to change the password on first login:<br><br>' +
+          '<strong>Username:</strong> ' + data.email + '<br>' +
+          '<strong>Temporary password:</strong> ' + data.password,
+          'success'
+        );
+        loadStats();
+        loadClients();
+      } catch (err) {
+        console.error(err);
+        showAlert('newClientAlert', 
+          'Could not create client: ' + err.message + '. Make sure the admin-create-client Edge Function has been deployed (see SETUP.md).',
+          'error'
+        );
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Create Client';
+      }
+    });
+
+    (async function init() {
+      var session = await window.mcRequireAdminSession('/admin/clients/');
+      if (!session) return;
+
+      if (!window.mcHasApp('client_dashboard')) {
+        window.location.href = '/admin/?denied_app=client_dashboard';
+        return;
+      }
+
+      loadStats();
+      loadPendingRequests();
+      loadClients();
+    })();
+  </script>
+</body>
+</html>
