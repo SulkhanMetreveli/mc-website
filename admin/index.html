@@ -77,6 +77,12 @@
         <p>QO LP dashboard. Opens in a new tab with its own login.</p>
         <span class="open-hint">Open ↗</span>
       </a>
+      <a href="/admin/hr/" class="app-tile" data-app="hr" style="display:none;">
+        <div class="tick"></div>
+        <h3>HR — Employees</h3>
+        <p>Employee records, time-off approvals, and documents. Staff self-service portal at met.capital/staff/.</p>
+        <span class="open-hint">Open →</span>
+      </a>
       <a href="/admin/dms/" class="app-tile" data-app="dms" style="display:none;">
         <div class="tick"></div>
         <h3>Document Management</h3>
@@ -121,6 +127,7 @@
               <label style="font-weight:400;"><input type="checkbox" class="au-app" value="operations"> Operations Management</label>
               <label style="font-weight:400;"><input type="checkbox" class="au-app" value="sales"> Sales Pipeline</label>
               <label style="font-weight:400;"><input type="checkbox" class="au-app" value="dms"> Document Management</label>
+              <label style="font-weight:400;"><input type="checkbox" class="au-app" value="hr"> HR — Employees</label>
             </div>
           </div>
           <button type="submit" class="btn-small" id="adminUserSaveBtn">Add Admin</button>
@@ -135,7 +142,7 @@
   <script>
     document.getElementById('logoutBtn').addEventListener('click', window.mcAdminLogout);
 
-    var APP_LABELS = { client_dashboard: 'Client Dashboard', operations: 'Operations Management', sales: 'Sales Pipeline', dms: 'Document Management' };
+    var APP_LABELS = { client_dashboard: 'Client Dashboard', operations: 'Operations Management', sales: 'Sales Pipeline', dms: 'Document Management', hr: 'HR — Employees' };
 
     function showAlert(id, message, type) {
       document.getElementById(id).innerHTML = '<div class="alert ' + type + '">' + message + '</div>';

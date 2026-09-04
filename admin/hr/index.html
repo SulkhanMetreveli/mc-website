@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>HR — Employees — Met Capital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body>
+  <div class="admin-topbar">Met Capital — Internal</div>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/admin/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/admin/">← All Apps</a>
+        <a href="/admin/hr/" class="active">HR</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="page-label"><a href="/admin/">← All Apps</a></div>
+    <h1 class="page-title">HR — Employees</h1>
+    <p class="page-subtitle">Employee records, time off, and documents. Employees use the staff portal at <strong>met.capital/staff/</strong>. Nothing here sends automatic emails.</p>
+
+    <div id="pageAlert"></div>
+
+    <div class="stat-cards">
+      <div class="stat-card"><div class="stat-value" id="stEmployees">—</div><div class="stat-label">Active Employees</div></div>
+      <div class="stat-card"><div class="stat-value" id="stOnLeave">—</div><div class="stat-label">Away Today</div></div>
+      <div class="stat-card warn"><div class="stat-value" id="stPending">—</div><div class="stat-label">Pending Time-Off Requests</div></div>
+    </div>
+
+    <div class="section-block">
+      <h2>Pending Time-Off Requests</h2>
+      <div class="card"><div id="pendingContent"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
+    </div>
+
+    <div class="section-block">
+      <h2>Add an Employee</h2>
+      <div id="newEmpAlert"></div>
+      <form id="newEmpForm" class="card" novalidate>
+        <div class="form-row">
+          <div class="field"><label>Full Name <span class="required">*</span></label><input type="text" id="ne_full_name" required></div>
+          <div class="field"><label>Work Email (becomes their login) <span class="required">*</span></label><input type="email" id="ne_email" required></div>
+          <div class="field"><label>Employee No.</label><input type="text" id="ne_number" placeholder="e.g. MC-E-007"></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>Job Title</label><input type="text" id="ne_title"></div>
+          <div class="field"><label>Department</label><input type="text" id="ne_department"></div>
+          <div class="field"><label>Start Date</label><input type="date" id="ne_start"></div>
+          <div class="field">
+            <label>Initial Password</label>
+            <input type="text" id="ne_password" minlength="10" placeholder="Leave blank to auto-generate">
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" id="newEmpBtn">Create Employee</button>
+      </form>
+    </div>
+
+    <div class="section-block">
+      <h2>Employees</h2>
+      <div class="card"><div id="employeesContent"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/admin/assets/admin.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcAdminLogout);
+    var sb = window.mcAdminClient;
+    var TYPE_LABELS = { vacation: 'Vacation', sick: 'Sick leave', unpaid: 'Unpaid leave', other: 'Other' };
+    var STATUS_CLS = { active: 'approved', on_leave: 'pending', terminated: 'neutral' };
+    var nameMap = {};
+
+    function showAlert(id, m, t) { document.getElementById(id).innerHTML = '<div class="alert ' + t + '">' + m + '</div>'; }
+
+    async function edgeError(error) {
+      if (error && error.context && typeof error.context.json === 'function') {
+        try { var b = await error.context.json(); if (b && b.error) return b.error; } catch (e) {}
+      }
+      return error ? error.message : 'Unknown error.';
+    }
+
+    async function loadAll() {
+      var today = new Date().toISOString().slice(0, 10);
+      var [{ data: emps }, { data: pend }, { data: away }] = await Promise.all([
+        sb.from('employee_profiles').select('*').order('full_name'),
+        sb.from('vacation_requests').select('*').eq('status', 'pending').order('created_at'),
+        sb.from('vacation_requests').select('user_id').eq('status', 'approved').lte('start_date', today).gte('end_date', today)
+      ]);
+      emps = emps || []; pend = pend || []; away = away || [];
+      emps.forEach(function (e) { nameMap[e.user_id] = e.full_name; });
+
+      document.getElementById('stEmployees').textContent = emps.filter(function (e) { return e.status === 'active'; }).length;
+      document.getElementById('stOnLeave').textContent = new Set(away.map(function (a) { return a.user_id; })).size;
+      document.getElementById('stPending').textContent = pend.length;
+
+      // pending requests
+      var el = document.getElementById('pendingContent');
+      if (!pend.length) el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No pending requests.</p>';
+      else {
+        var rows = '';
+        pend.forEach(function (r) {
+          rows += '<tr><td><a href="/admin/hr/employee/?u=' + r.user_id + '">' + (nameMap[r.user_id] || r.user_id) + '</a></td>' +
+            '<td>' + (TYPE_LABELS[r.type] || r.type) + '</td><td>' + r.start_date + ' → ' + r.end_date + '</td><td>' + r.days + '</td>' +
+            '<td style="font-size:0.8125rem; color:var(--gray);">' + (r.reason || '—') + '</td>' +
+            '<td><button type="button" class="btn-small approve" data-approve="' + r.id + '">Approve</button>' +
+            '<button type="button" class="btn-small reject" data-reject="' + r.id + '">Reject</button></td></tr>';
+        });
+        el.innerHTML = '<table class="admin-table"><thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th>Days</th><th>Reason</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+        el.querySelectorAll('[data-approve]').forEach(function (b) {
+          b.addEventListener('click', async function () {
+            await sb.from('vacation_requests').update({ status: 'approved', reviewed_at: new Date().toISOString() }).eq('id', b.getAttribute('data-approve'));
+            loadAll();
+          });
+        });
+        el.querySelectorAll('[data-reject]').forEach(function (b) {
+          b.addEventListener('click', async function () {
+            var note = prompt('Reason for rejection (shown to the employee):') || null;
+            await sb.from('vacation_requests').update({ status: 'rejected', reviewed_at: new Date().toISOString(), reviewer_note: note }).eq('id', b.getAttribute('data-reject'));
+            loadAll();
+          });
+        });
+      }
+
+      // directory
+      var d = document.getElementById('employeesContent');
+      if (!emps.length) { d.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No employees yet.</p>'; return; }
+      var r2 = '';
+      emps.forEach(function (e) {
+        r2 += '<tr><td>' + e.full_name + (e.employee_number ? '<div style="font-size:0.75rem; color:var(--gray-light);">' + e.employee_number + '</div>' : '') + '</td>' +
+          '<td>' + (e.job_title || '—') + '</td><td>' + (e.department || '—') + '</td><td>' + e.work_email + '</td>' +
+          '<td>' + (e.start_date || '—') + '</td>' +
+          '<td><span class="status-pill ' + (STATUS_CLS[e.status] || 'neutral') + '">' + e.status.replace('_', ' ') + '</span></td>' +
+          '<td><a href="/admin/hr/employee/?u=' + e.user_id + '">Manage →</a></td></tr>';
+      });
+      d.innerHTML = '<table class="admin-table"><thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Work Email</th><th>Started</th><th>Status</th><th></th></tr></thead><tbody>' + r2 + '</tbody></table>';
+    }
+
+    document.getElementById('newEmpForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var pw = document.getElementById('ne_password').value.trim();
+      if (pw && pw.length < 10) { showAlert('newEmpAlert', 'Password must be at least 10 characters, or leave it blank.', 'error'); return; }
+      var btn = document.getElementById('newEmpBtn');
+      btn.disabled = true; btn.textContent = 'Creating…';
+      try {
+        var { data, error } = await sb.functions.invoke('admin-create-employee', {
+          body: {
+            full_name: document.getElementById('ne_full_name').value.trim(),
+            email: document.getElementById('ne_email').value.trim(),
+            employee_number: document.getElementById('ne_number').value.trim(),
+            job_title: document.getElementById('ne_title').value.trim(),
+            department: document.getElementById('ne_department').value.trim(),
+            start_date: document.getElementById('ne_start').value,
+            password: pw || undefined
+          }
+        });
+        if (error || (data && data.error)) throw new Error((data && data.error) || await edgeError(error));
+        e.target.reset();
+        showAlert('newEmpAlert', 'Employee created. Send these to them over a secure channel — they must change the password on first login at met.capital/staff/:<br><br><strong>Username:</strong> ' + data.email + '<br><strong>Temporary password:</strong> ' + data.password, 'success');
+        loadAll();
+      } catch (err) {
+        showAlert('newEmpAlert', 'Could not create employee: ' + err.message + '. Make sure the admin-create-employee Edge Function has been deployed (see SETUP.md).', 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Create Employee';
+      }
+    });
+
+    (async function init() {
+      var session = await window.mcRequireAdminSession('/admin/hr/');
+      if (!session) return;
+      if (!window.mcHasApp('hr')) { window.location.href = '/admin/?denied_app=hr'; return; }
+      loadAll();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>My Profile — Met Capital Staff Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/staff/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/staff/" class="dashboard-link">Dashboard</a>
+        <a href="/staff/profile/" class="active">My Profile</a>
+        <a href="/staff/vacation/">Time Off</a>
+        <a href="/staff/documents/">Documents</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="page-label">Staff Portal</div>
+    <h1 class="page-title">My Profile</h1>
+    <p class="page-subtitle">Keep your contact details current. Job details are maintained by HR — contact them if something there is wrong.</p>
+
+    <div id="pageAlert"></div>
+
+    <div class="section-block">
+      <h2>Employment (HR-maintained)</h2>
+      <div class="card request-detail-box" id="jobBox"><dl id="jobList"></dl></div>
+    </div>
+
+    <form id="profileForm" class="card" novalidate>
+      <div class="form-section">
+        <h3>Contact</h3>
+        <div class="form-row">
+          <div class="field"><label for="personal_email">Personal Email</label><input type="email" id="personal_email"></div>
+          <div class="field"><label for="phone">Phone</label><input type="text" id="phone"></div>
+          <div class="field"><label for="date_of_birth">Date of Birth</label><input type="date" id="date_of_birth"></div>
+          <div class="field"><label for="nationality">Nationality</label><input type="text" id="nationality"></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <h3>Home Address</h3>
+        <div class="form-row">
+          <div class="field"><label for="address_line1">Address Line 1</label><input type="text" id="address_line1"></div>
+          <div class="field"><label for="address_line2">Address Line 2</label><input type="text" id="address_line2"></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label for="city">City</label><input type="text" id="city"></div>
+          <div class="field"><label for="postal_code">Postal Code</label><input type="text" id="postal_code"></div>
+          <div class="field"><label for="country">Country</label><input type="text" id="country"></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <h3>Emergency Contact</h3>
+        <div class="form-row">
+          <div class="field"><label for="emergency_contact_name">Name</label><input type="text" id="emergency_contact_name"></div>
+          <div class="field"><label for="emergency_contact_phone">Phone</label><input type="text" id="emergency_contact_phone"></div>
+          <div class="field"><label for="emergency_contact_relationship">Relationship</label><input type="text" id="emergency_contact_relationship"></div>
+        </div>
+      </div>
+      <button type="submit" class="btn-primary" id="saveBtn">Save Changes</button>
+    </form>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/staff/assets/staff-auth.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcStaffLogout);
+
+    var FIELDS = ['personal_email', 'phone', 'date_of_birth', 'nationality', 'address_line1', 'address_line2', 'city', 'postal_code', 'country', 'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship'];
+    var TYPE_LABELS = { full_time: 'Full-time', part_time: 'Part-time', contractor: 'Contractor', intern: 'Intern' };
+
+    function showAlert(m, t) {
+      document.getElementById('pageAlert').innerHTML = '<div class="alert ' + t + '">' + m + '</div>';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function fill(p) {
+      document.getElementById('jobList').innerHTML =
+        '<dt>Name</dt><dd>' + p.full_name + '</dd>' +
+        '<dt>Employee No.</dt><dd>' + (p.employee_number || '—') + '</dd>' +
+        '<dt>Work Email</dt><dd>' + p.work_email + '</dd>' +
+        '<dt>Job Title</dt><dd>' + (p.job_title || '—') + '</dd>' +
+        '<dt>Department</dt><dd>' + (p.department || '—') + '</dd>' +
+        '<dt>Employment Type</dt><dd>' + (TYPE_LABELS[p.employment_type] || p.employment_type) + '</dd>' +
+        '<dt>Start Date</dt><dd>' + (p.start_date || '—') + '</dd>' +
+        '<dt>Vacation Allowance</dt><dd>' + p.vacation_days_per_year + ' days / year</dd>';
+      FIELDS.forEach(function (f) { document.getElementById(f).value = p[f] || ''; });
+    }
+
+    document.getElementById('profileForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var btn = document.getElementById('saveBtn');
+      btn.disabled = true; btn.textContent = 'Saving…';
+      var payload = {};
+      FIELDS.forEach(function (f) { payload[f] = document.getElementById(f).value.trim() || null; });
+      var { error } = await window.mcStaff.from('employee_profiles').update(payload).eq('user_id', window.mcStaffProfile.user_id);
+      btn.disabled = false; btn.textContent = 'Save Changes';
+      if (error) { showAlert('Could not save: ' + error.message, 'error'); return; }
+      showAlert('Profile saved.', 'success');
+    });
+
+    (async function init() {
+      var session = await window.mcRequireStaffSession('/staff/profile/');
+      if (!session) return;
+      fill(window.mcStaffProfile);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Change Password — Met Capital Staff Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+</head>
+<body>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/staff/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/staff/" class="dashboard-link">Dashboard</a>
+        <a href="/staff/profile/">My Profile</a>
+        <a href="/staff/vacation/">Time Off</a>
+        <a href="/staff/documents/">Documents</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main" style="max-width:520px;">
+    <div class="page-label">Account Security</div>
+    <h1 class="page-title">Change Password</h1>
+    <p class="page-subtitle" id="pageSubtitle">Choose a new password for your account.</p>
+
+    <div id="formAlert"></div>
+
+    <form id="pwForm" class="card" novalidate>
+      <div class="field" style="margin-bottom:1.1rem;">
+        <label for="new_password">New Password <span class="required">*</span></label>
+        <input type="password" id="new_password" required minlength="10" autocomplete="new-password">
+      </div>
+      <div class="field" style="margin-bottom:1.5rem;">
+        <label for="confirm_password">Confirm New Password <span class="required">*</span></label>
+        <input type="password" id="confirm_password" required minlength="10" autocomplete="new-password">
+      </div>
+      <button type="submit" class="btn-primary" id="submitBtn">Update Password</button>
+    </form>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/staff/assets/staff-auth.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcStaffLogout);
+
+    var mcSession = null;
+
+    function showAlert(message, type) {
+      document.getElementById('formAlert').innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
+    }
+
+    document.getElementById('pwForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var pw = document.getElementById('new_password').value;
+      var confirm = document.getElementById('confirm_password').value;
+
+      if (pw.length < 10) {
+        showAlert('Password must be at least 10 characters.', 'error');
+        return;
+      }
+      if (pw !== confirm) {
+        showAlert('Passwords do not match.', 'error');
+        return;
+      }
+
+      var btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Updating…';
+
+      var update = await window.mcStaff.auth.updateUser({ password: pw });
+      if (update.error) {
+        btn.disabled = false;
+        btn.textContent = 'Update Password';
+        showAlert('Could not update your password: ' + update.error.message, 'error');
+        return;
+      }
+
+      await window.mcStaff
+        .from('employee_profiles')
+        .update({ must_change_password: false })
+        .eq('user_id', mcSession.user.id);
+
+      window.location.href = '/staff/';
+    });
+
+    (async function init() {
+      var session = await window.mcRequireStaffSession('/staff/account/change-password/');
+      if (!session) return;
+      mcSession = session;
+      var profile = window.mcStaffProfile;
+      if (profile && profile.must_change_password) {
+        document.getElementById('pageSubtitle').textContent =
+          'For your security, you must set a new password before continuing.';
+      }
+    })();
+  </script>
+</body>
+</html>

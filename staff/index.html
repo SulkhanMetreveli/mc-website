@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Staff Portal — Met Capital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/staff/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/staff/" class="active">Dashboard</a>
+        <a href="/staff/profile/">My Profile</a>
+        <a href="/staff/vacation/">Time Off</a>
+        <a href="/staff/documents/">Documents</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="page-label">Staff Portal</div>
+    <h1 class="page-title" id="welcomeTitle">Welcome</h1>
+    <p class="page-subtitle" id="jobLine"></p>
+
+    <div class="stat-cards">
+      <div class="stat-card"><div class="stat-value" id="stRemaining">—</div><div class="stat-label">Vacation days remaining</div></div>
+      <div class="stat-card"><div class="stat-value" id="stUsed">—</div><div class="stat-label">Used this year</div></div>
+      <div class="stat-card warn"><div class="stat-value" id="stPending">—</div><div class="stat-label">Pending requests</div></div>
+    </div>
+
+    <div class="section-block">
+      <h2>Upcoming &amp; Pending Time Off</h2>
+      <div class="card"><div id="upcoming"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
+    </div>
+
+    <div class="quick-links">
+      <a class="quick-link" href="/staff/vacation/">
+        <h3>Request Time Off</h3>
+        <p>Submit vacation, sick leave, or other absence for HR approval, and see your history.</p>
+      </a>
+      <a class="quick-link" href="/staff/profile/">
+        <h3>My Profile</h3>
+        <p>Keep your contact details, address, and emergency contact up to date.</p>
+      </a>
+      <a class="quick-link" href="/staff/documents/">
+        <h3>Documents</h3>
+        <p>Contracts, payslips, and policies shared by HR — and upload your own documents.</p>
+      </a>
+      <a class="quick-link" href="/staff/account/change-password/">
+        <h3>Account Security</h3>
+        <p>Change your password.</p>
+      </a>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/staff/assets/staff-auth.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcStaffLogout);
+
+    var TYPE_LABELS = { vacation: 'Vacation', sick: 'Sick leave', unpaid: 'Unpaid leave', other: 'Other' };
+    var STATUS_META = { pending: 'pending', approved: 'approved', rejected: 'rejected', cancelled: 'neutral' };
+
+    (async function init() {
+      var session = await window.mcRequireStaffSession('/staff/');
+      if (!session) return;
+      var p = window.mcStaffProfile;
+
+      document.getElementById('welcomeTitle').textContent = 'Welcome, ' + (p.full_name || '').split(' ')[0];
+      document.getElementById('jobLine').textContent = [p.job_title, p.department].filter(Boolean).join(' · ') || 'Met Capital';
+
+      var { data: reqs } = await window.mcStaff.from('vacation_requests').select('*').eq('user_id', session.user.id).order('start_date', { ascending: false });
+      reqs = reqs || [];
+      var bal = window.mcVacationBalance(p, reqs);
+      document.getElementById('stRemaining').textContent = bal.remaining;
+      document.getElementById('stUsed').textContent = bal.used + ' / ' + bal.allowance;
+      document.getElementById('stPending').textContent = reqs.filter(function (r) { return r.status === 'pending'; }).length;
+
+      var today = new Date().toISOString().slice(0, 10);
+      var show = reqs.filter(function (r) { return r.status === 'pending' || (r.status === 'approved' && r.end_date >= today); });
+      var el = document.getElementById('upcoming');
+      if (!show.length) { el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">Nothing upcoming.</p>'; return; }
+      var rows = '';
+      show.forEach(function (r) {
+        rows += '<tr><td>' + (TYPE_LABELS[r.type] || r.type) + '</td><td>' + r.start_date + ' → ' + r.end_date + '</td><td>' + r.days + '</td>' +
+          '<td><span class="status-pill ' + STATUS_META[r.status] + '">' + r.status + '</span></td></tr>';
+      });
+      el.innerHTML = '<table class="simple-table"><thead><tr><th>Type</th><th>Dates</th><th>Days</th><th>Status</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    })();
+  </script>
+</body>
+</html>

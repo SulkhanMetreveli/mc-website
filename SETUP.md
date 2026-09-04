@@ -115,6 +115,20 @@ the signed-in admin can access. The apps:
   to that site, so bringing it under met.capital needs either a
   sales.met.capital domain alias on that site, or rebuilding its login
   onto the company panel.
+- **HR — Employees** (`/admin/hr/`, app key `hr`, added in
+  `supabase/017_hr.sql`) — employee records (employment details are
+  HR-only; contact details are shared with the employee), a pending
+  time-off queue with approve/reject, per-employee pages with full
+  record edit, time-off history (approve/reject/delete, or record
+  absence on their behalf), documents, and password reset. Employees
+  get their own **staff portal at `/staff/`**: dashboard with vacation
+  balance, My Profile (contact/address/emergency contact only — the
+  database blocks them from changing job fields), Time Off (request
+  with working-day count and balance check, cancel while pending), and
+  Documents (see HR-shared files, upload their own). Creating an
+  employee needs the `admin-create-employee` Edge Function deployed;
+  employee password resets need the updated `admin-reset-password`
+  (it now takes `kind: "employee"`). No automatic emails anywhere.
 - **Document Management** (`/admin/dms/`, app key `dms`, added in
   `supabase/015_dms.sql`) — port of the metreveli.org intranet document
   system: nested categories (rename/move/promote/cascade delete),

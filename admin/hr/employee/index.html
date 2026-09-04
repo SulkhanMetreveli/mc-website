@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Manage Employee — Met Capital HR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body>
+  <div class="admin-topbar">Met Capital — Internal</div>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/admin/hr/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/admin/">← All Apps</a>
+        <a href="/admin/hr/">HR</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="page-label"><a href="/admin/hr/">← All Employees</a></div>
+    <h1 class="page-title" id="empTitle">Loading…</h1>
+    <p class="page-subtitle" id="empSubtitle"></p>
+
+    <div id="pageAlert"></div>
+
+    <div class="stat-cards">
+      <div class="stat-card"><div class="stat-value" id="stRemaining">—</div><div class="stat-label">Vacation days remaining</div></div>
+      <div class="stat-card"><div class="stat-value" id="stUsed">—</div><div class="stat-label">Used this year</div></div>
+      <div class="stat-card warn"><div class="stat-value" id="stPending">—</div><div class="stat-label">Pending requests</div></div>
+    </div>
+
+    <!-- RECORD -->
+    <div class="section-block">
+      <h2>Employee Record</h2>
+      <form id="profileForm" class="card" novalidate>
+        <div class="form-section">
+          <h3>Employment</h3>
+          <div class="form-row">
+            <div class="field"><label>Full Name <span class="required">*</span></label><input type="text" id="p_full_name" required></div>
+            <div class="field"><label>Employee No.</label><input type="text" id="p_employee_number"></div>
+            <div class="field"><label>Work Email</label><input type="email" id="p_work_email"></div>
+            <div class="field">
+              <label>Status</label>
+              <select id="p_status">
+                <option value="active">Active</option>
+                <option value="on_leave">On Leave</option>
+                <option value="terminated">Terminated</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field"><label>Job Title</label><input type="text" id="p_job_title"></div>
+            <div class="field"><label>Department</label><input type="text" id="p_department"></div>
+            <div class="field">
+              <label>Employment Type</label>
+              <select id="p_employment_type">
+                <option value="full_time">Full-time</option>
+                <option value="part_time">Part-time</option>
+                <option value="contractor">Contractor</option>
+                <option value="intern">Intern</option>
+              </select>
+            </div>
+            <div class="field"><label>Start Date</label><input type="date" id="p_start_date"></div>
+            <div class="field"><label>End Date</label><input type="date" id="p_end_date"></div>
+            <div class="field"><label>Vacation Days / Year</label><input type="number" step="0.5" id="p_vacation_days_per_year"></div>
+          </div>
+        </div>
+        <div class="form-section">
+          <h3>Personal &amp; Contact (employee can also edit these)</h3>
+          <div class="form-row">
+            <div class="field"><label>Personal Email</label><input type="email" id="p_personal_email"></div>
+            <div class="field"><label>Phone</label><input type="text" id="p_phone"></div>
+            <div class="field"><label>Date of Birth</label><input type="date" id="p_date_of_birth"></div>
+            <div class="field"><label>Nationality</label><input type="text" id="p_nationality"></div>
+          </div>
+          <div class="form-row">
+            <div class="field"><label>Address Line 1</label><input type="text" id="p_address_line1"></div>
+            <div class="field"><label>Address Line 2</label><input type="text" id="p_address_line2"></div>
+            <div class="field"><label>City</label><input type="text" id="p_city"></div>
+            <div class="field"><label>Postal Code</label><input type="text" id="p_postal_code"></div>
+            <div class="field"><label>Country</label><input type="text" id="p_country"></div>
+          </div>
+          <div class="form-row">
+            <div class="field"><label>Emergency Contact Name</label><input type="text" id="p_emergency_contact_name"></div>
+            <div class="field"><label>Emergency Contact Phone</label><input type="text" id="p_emergency_contact_phone"></div>
+            <div class="field"><label>Relationship</label><input type="text" id="p_emergency_contact_relationship"></div>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" id="profileSaveBtn">Save Record</button>
+      </form>
+      <div class="card" style="margin-top:1rem;">
+        <h2>Password</h2>
+        <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:1rem;">Generates a new temporary password and forces them to set their own on next login. Nothing is emailed — copy it and send it yourself over a secure channel.</p>
+        <button type="button" class="btn-small" id="resetPasswordBtn">Reset Password</button>
+      </div>
+    </div>
+
+    <!-- TIME OFF -->
+    <div class="section-block">
+      <h2>Time Off</h2>
+      <div class="card">
+        <div id="vacationTable"></div>
+        <h3 style="margin-top:1.5rem; margin-bottom:0.75rem; font-size:0.8125rem; color:var(--gray);">Record Time Off on Their Behalf</h3>
+        <form id="vacationForm" novalidate>
+          <div class="inline-form-grid">
+            <div class="field">
+              <label>Type</label>
+              <select id="v_type">
+                <option value="vacation">Vacation</option>
+                <option value="sick">Sick leave</option>
+                <option value="unpaid">Unpaid leave</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="field"><label>From</label><input type="date" id="v_start"></div>
+            <div class="field"><label>To</label><input type="date" id="v_end"></div>
+            <div class="field">
+              <label>Status</label>
+              <select id="v_status">
+                <option value="approved">Approved</option>
+                <option value="pending">Pending</option>
+              </select>
+            </div>
+            <div class="field"><label>Note</label><input type="text" id="v_note"></div>
+          </div>
+          <button type="submit" class="btn-small" id="vacationSaveBtn">Add</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- DOCUMENTS -->
+    <div class="section-block">
+      <h2>Documents</h2>
+      <div class="card">
+        <div id="documentsTable"></div>
+        <h3 style="margin-top:1.5rem; margin-bottom:0.75rem; font-size:0.8125rem; color:var(--gray);">Upload a Document for This Employee</h3>
+        <form id="documentForm" novalidate>
+          <div class="inline-form-grid">
+            <div class="field"><label>Title</label><input type="text" id="d_title" required></div>
+            <div class="field">
+              <label>Category</label>
+              <select id="d_category">
+                <option value="contract">Contract</option>
+                <option value="payslip">Payslip</option>
+                <option value="policy">Policy</option>
+                <option value="id">ID</option>
+                <option value="certificate">Certificate</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="field"><label>File</label><input type="file" id="d_file" required></div>
+          </div>
+          <button type="submit" class="btn-small" id="documentUploadBtn">Upload</button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/admin/assets/admin.js"></script>
+  <script src="/staff/assets/staff-auth.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcAdminLogout);
+    var sb = window.mcAdminClient;
+    var targetUserId = new URLSearchParams(window.location.search).get('u');
+    var profile = null;
+
+    var FIELDS = ['full_name', 'employee_number', 'work_email', 'status', 'job_title', 'department', 'employment_type', 'start_date', 'end_date', 'vacation_days_per_year',
+      'personal_email', 'phone', 'date_of_birth', 'nationality', 'address_line1', 'address_line2', 'city', 'postal_code', 'country',
+      'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship'];
+    var TYPE_LABELS = { vacation: 'Vacation', sick: 'Sick leave', unpaid: 'Unpaid leave', other: 'Other' };
+    var STATUS_CLS = { pending: 'pending', approved: 'approved', rejected: 'rejected', cancelled: 'neutral' };
+
+    function showAlert(m, t) {
+      document.getElementById('pageAlert').innerHTML = '<div class="alert ' + t + '">' + m + '</div>';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function edgeError(error) {
+      if (error && error.context && typeof error.context.json === 'function') {
+        try { var b = await error.context.json(); if (b && b.error) return b.error; } catch (e) {}
+      }
+      return error ? error.message : 'Unknown error.';
+    }
+
+    if (!targetUserId) {
+      document.body.innerHTML = '<main class="portal-main"><div class="alert error">No employee specified. <a href="/admin/hr/">Back to HR</a>.</div></main>';
+      throw new Error('missing ?u=');
+    }
+
+    async function loadProfile() {
+      var { data, error } = await sb.from('employee_profiles').select('*').eq('user_id', targetUserId).maybeSingle();
+      if (error || !data) { document.getElementById('empTitle').textContent = 'Employee not found'; return null; }
+      profile = data;
+      document.getElementById('empTitle').textContent = data.full_name;
+      document.getElementById('empSubtitle').textContent = [data.job_title, data.department, data.work_email].filter(Boolean).join(' · ');
+      FIELDS.forEach(function (f) { var el = document.getElementById('p_' + f); if (el) el.value = data[f] ?? ''; });
+      return data;
+    }
+
+    document.getElementById('profileForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var btn = document.getElementById('profileSaveBtn');
+      btn.disabled = true; btn.textContent = 'Saving…';
+      var payload = {};
+      FIELDS.forEach(function (f) {
+        var v = document.getElementById('p_' + f).value.trim();
+        payload[f] = v === '' ? null : v;
+      });
+      payload.full_name = payload.full_name || profile.full_name;
+      payload.work_email = payload.work_email || profile.work_email;
+      payload.vacation_days_per_year = payload.vacation_days_per_year === null ? 25 : Number(payload.vacation_days_per_year);
+      var { error } = await sb.from('employee_profiles').update(payload).eq('user_id', targetUserId);
+      btn.disabled = false; btn.textContent = 'Save Record';
+      if (error) { showAlert('Could not save: ' + error.message, 'error'); return; }
+      showAlert('Record saved.', 'success');
+      loadProfile();
+    });
+
+    document.getElementById('resetPasswordBtn').addEventListener('click', async function () {
+      if (!confirm('Reset this employee\'s password? Their current password stops working immediately.')) return;
+      var btn = this; btn.disabled = true; btn.textContent = 'Resetting…';
+      try {
+        var { data, error } = await sb.functions.invoke('admin-reset-password', { body: { user_id: targetUserId, kind: 'employee' } });
+        if (error || (data && data.error)) throw new Error((data && data.error) || await edgeError(error));
+        showAlert('Password reset. Send this over a secure channel — they must set their own on next login:<br><br><strong>Temporary password:</strong> ' + data.password, 'success');
+      } catch (err) {
+        showAlert('Could not reset password: ' + err.message + '. Make sure the updated admin-reset-password Edge Function is deployed (see SETUP.md).', 'error');
+      } finally { btn.disabled = false; btn.textContent = 'Reset Password'; }
+    });
+
+    // ---------------- TIME OFF ----------------
+    async function loadVacation() {
+      var { data: reqs } = await sb.from('vacation_requests').select('*').eq('user_id', targetUserId).order('start_date', { ascending: false });
+      reqs = reqs || [];
+      var bal = window.mcVacationBalance(profile, reqs);
+      document.getElementById('stRemaining').textContent = bal.remaining;
+      document.getElementById('stUsed').textContent = bal.used + ' / ' + bal.allowance;
+      document.getElementById('stPending').textContent = reqs.filter(function (r) { return r.status === 'pending'; }).length;
+
+      var el = document.getElementById('vacationTable');
+      if (!reqs.length) { el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No time off recorded.</p>'; return; }
+      var rows = '';
+      reqs.forEach(function (r) {
+        rows += '<tr><td>' + (TYPE_LABELS[r.type] || r.type) + '</td><td>' + r.start_date + ' → ' + r.end_date + '</td><td>' + r.days + '</td>' +
+          '<td style="font-size:0.8125rem; color:var(--gray);">' + (r.reason || '—') + (r.reviewer_note ? '<div style="font-size:0.75rem;">HR: ' + r.reviewer_note + '</div>' : '') + '</td>' +
+          '<td><span class="status-pill ' + STATUS_CLS[r.status] + '">' + r.status + '</span><div style="font-size:0.6875rem; color:var(--gray-light);">' + (r.created_by === 'hr' ? 'by HR' : 'by employee') + '</div></td>' +
+          '<td>' +
+            (r.status !== 'approved' ? '<button type="button" class="btn-small approve" data-set="approved" data-id="' + r.id + '">Approve</button>' : '') +
+            (r.status !== 'rejected' ? '<button type="button" class="btn-small reject" data-set="rejected" data-id="' + r.id + '">Reject</button>' : '') +
+            '<button type="button" class="btn-small danger" data-del="' + r.id + '">Delete</button>' +
+          '</td></tr>';
+      });
+      el.innerHTML = '<table class="admin-table"><thead><tr><th>Type</th><th>Dates</th><th>Days</th><th>Reason</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+      el.querySelectorAll('[data-set]').forEach(function (b) {
+        b.addEventListener('click', async function () {
+          var status = b.getAttribute('data-set');
+          var note = status === 'rejected' ? (prompt('Reason (shown to the employee):') || null) : null;
+          var upd = { status: status, reviewed_at: new Date().toISOString() };
+          if (note !== null) upd.reviewer_note = note;
+          await sb.from('vacation_requests').update(upd).eq('id', b.getAttribute('data-id'));
+          loadVacation();
+        });
+      });
+      el.querySelectorAll('[data-del]').forEach(function (b) {
+        b.addEventListener('click', async function () {
+          if (!confirm('Delete this time-off record?')) return;
+          await sb.from('vacation_requests').delete().eq('id', b.getAttribute('data-del'));
+          loadVacation();
+        });
+      });
+    }
+
+    document.getElementById('vacationForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var s = document.getElementById('v_start').value, en = document.getElementById('v_end').value;
+      if (!s || !en || en < s) { showAlert('Please choose a valid date range.', 'error'); return; }
+      var days = window.mcWorkingDays(s, en);
+      var status = document.getElementById('v_status').value;
+      var { error } = await sb.from('vacation_requests').insert({
+        user_id: targetUserId, type: document.getElementById('v_type').value, start_date: s, end_date: en, days: days,
+        reason: document.getElementById('v_note').value.trim() || null, status: status,
+        reviewed_at: status === 'approved' ? new Date().toISOString() : null, created_by: 'hr'
+      });
+      if (error) { showAlert('Could not add: ' + error.message, 'error'); return; }
+      e.target.reset();
+      loadVacation();
+    });
+
+    // ---------------- DOCUMENTS ----------------
+    async function loadDocuments() {
+      var { data: docs } = await sb.from('employee_documents').select('*').eq('user_id', targetUserId).order('uploaded_at', { ascending: false });
+      var el = document.getElementById('documentsTable');
+      if (!docs || !docs.length) { el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No documents yet.</p>'; return; }
+      var rows = '';
+      docs.forEach(function (d) {
+        rows += '<tr><td>' + d.title + '</td><td style="text-transform:capitalize;">' + d.category + '</td><td>' + (d.uploaded_by === 'hr' ? 'HR' : 'Employee') + '</td>' +
+          '<td>' + new Date(d.uploaded_at).toLocaleDateString() + '</td>' +
+          '<td><a href="#" data-view="' + d.storage_path + '">View</a></td>' +
+          '<td><button type="button" class="btn-small danger" data-del-doc="' + d.id + '" data-path="' + d.storage_path + '">Delete</button></td></tr>';
+      });
+      el.innerHTML = '<table class="admin-table"><thead><tr><th>Title</th><th>Category</th><th>From</th><th>Date</th><th></th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+      el.querySelectorAll('[data-view]').forEach(function (a) {
+        a.addEventListener('click', async function (e) {
+          e.preventDefault();
+          var { data, error } = await sb.storage.from('employee-files').createSignedUrl(a.getAttribute('data-view'), 60);
+          if (error || !data) { alert('Could not generate a link.'); return; }
+          window.open(data.signedUrl, '_blank');
+        });
+      });
+      el.querySelectorAll('[data-del-doc]').forEach(function (b) {
+        b.addEventListener('click', async function () {
+          if (!confirm('Delete this document?')) return;
+          await sb.storage.from('employee-files').remove([b.getAttribute('data-path')]);
+          await sb.from('employee_documents').delete().eq('id', b.getAttribute('data-del-doc'));
+          loadDocuments();
+        });
+      });
+    }
+
+    document.getElementById('documentForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var file = document.getElementById('d_file').files[0];
+      var title = document.getElementById('d_title').value.trim();
+      if (!file || !title) { showAlert('Title and a file are required.', 'error'); return; }
+      var btn = document.getElementById('documentUploadBtn');
+      btn.disabled = true; btn.textContent = 'Uploading…';
+      try {
+        var path = targetUserId + '/' + Date.now() + '-' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        var up = await sb.storage.from('employee-files').upload(path, file);
+        if (up.error) throw up.error;
+        var ins = await sb.from('employee_documents').insert({ user_id: targetUserId, title: title, category: document.getElementById('d_category').value, storage_path: path, uploaded_by: 'hr' });
+        if (ins.error) throw ins.error;
+        e.target.reset();
+        showAlert('Document uploaded — visible to the employee in their portal.', 'success');
+        loadDocuments();
+      } catch (err) {
+        showAlert('Upload failed: ' + err.message, 'error');
+      } finally { btn.disabled = false; btn.textContent = 'Upload'; }
+    });
+
+    (async function init() {
+      var session = await window.mcRequireAdminSession('/admin/hr/employee/?u=' + targetUserId);
+      if (!session) return;
+      if (!window.mcHasApp('hr')) { window.location.href = '/admin/?denied_app=hr'; return; }
+      if (!(await loadProfile())) return;
+      loadVacation();
+      loadDocuments();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Time Off — Met Capital Staff Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/staff/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/staff/" class="dashboard-link">Dashboard</a>
+        <a href="/staff/profile/">My Profile</a>
+        <a href="/staff/vacation/" class="active">Time Off</a>
+        <a href="/staff/documents/">Documents</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="page-label">Staff Portal</div>
+    <h1 class="page-title">Time Off</h1>
+    <p class="page-subtitle">Requests go to HR for approval. Weekends are not counted. You can cancel a request while it's still pending.</p>
+
+    <div id="pageAlert"></div>
+
+    <div class="stat-cards">
+      <div class="stat-card"><div class="stat-value" id="stRemaining">—</div><div class="stat-label">Vacation days remaining</div></div>
+      <div class="stat-card"><div class="stat-value" id="stUsed">—</div><div class="stat-label">Used this year</div></div>
+      <div class="stat-card"><div class="stat-value" id="stAllowance">—</div><div class="stat-label">Annual allowance</div></div>
+    </div>
+
+    <form id="requestForm" class="card" novalidate>
+      <h2 style="font-size:1rem; margin-bottom:1rem;">New Request</h2>
+      <div class="form-row">
+        <div class="field">
+          <label for="type">Type <span class="required">*</span></label>
+          <select id="type">
+            <option value="vacation">Vacation</option>
+            <option value="sick">Sick leave</option>
+            <option value="unpaid">Unpaid leave</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="field"><label for="start_date">From <span class="required">*</span></label><input type="date" id="start_date" required></div>
+        <div class="field"><label for="end_date">To <span class="required">*</span></label><input type="date" id="end_date" required></div>
+        <div class="field"><label>Working days</label><input type="text" id="daysPreview" readonly value="—"></div>
+      </div>
+      <div class="field"><label for="reason">Reason / note</label><input type="text" id="reason" placeholder="Optional"></div>
+      <button type="submit" class="btn-primary" id="submitBtn">Submit Request</button>
+    </form>
+
+    <div class="section-block">
+      <h2>My Requests</h2>
+      <div class="card"><div id="history"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/staff/assets/staff-auth.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcStaffLogout);
+
+    var TYPE_LABELS = { vacation: 'Vacation', sick: 'Sick leave', unpaid: 'Unpaid leave', other: 'Other' };
+    var STATUS_CLS = { pending: 'pending', approved: 'approved', rejected: 'rejected', cancelled: 'neutral' };
+    var mcSession = null;
+
+    function showAlert(m, t) {
+      document.getElementById('pageAlert').innerHTML = '<div class="alert ' + t + '">' + m + '</div>';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function updatePreview() {
+      var s = document.getElementById('start_date').value, e = document.getElementById('end_date').value;
+      document.getElementById('daysPreview').value = (s && e) ? window.mcWorkingDays(s, e) : '—';
+    }
+    document.getElementById('start_date').addEventListener('change', updatePreview);
+    document.getElementById('end_date').addEventListener('change', updatePreview);
+
+    async function loadHistory() {
+      var { data: reqs } = await window.mcStaff.from('vacation_requests').select('*').eq('user_id', mcSession.user.id).order('start_date', { ascending: false });
+      reqs = reqs || [];
+      var bal = window.mcVacationBalance(window.mcStaffProfile, reqs);
+      document.getElementById('stRemaining').textContent = bal.remaining;
+      document.getElementById('stUsed').textContent = bal.used;
+      document.getElementById('stAllowance').textContent = bal.allowance;
+
+      var el = document.getElementById('history');
+      if (!reqs.length) { el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No requests yet.</p>'; return; }
+      var rows = '';
+      reqs.forEach(function (r) {
+        rows += '<tr>' +
+          '<td>' + (TYPE_LABELS[r.type] || r.type) + '</td>' +
+          '<td>' + r.start_date + ' → ' + r.end_date + '</td>' +
+          '<td>' + r.days + '</td>' +
+          '<td><span class="status-pill ' + STATUS_CLS[r.status] + '">' + r.status + '</span>' + (r.reviewer_note ? '<div style="font-size:0.75rem; color:var(--gray-light);">' + r.reviewer_note + '</div>' : '') + '</td>' +
+          '<td>' + (r.status === 'pending' ? '<button type="button" class="btn-small danger" data-cancel="' + r.id + '">Cancel</button>' : '') + '</td>' +
+        '</tr>';
+      });
+      el.innerHTML = '<table class="simple-table"><thead><tr><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+      el.querySelectorAll('[data-cancel]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          if (!confirm('Cancel this request?')) return;
+          var { error } = await window.mcStaff.from('vacation_requests').update({ status: 'cancelled' }).eq('id', btn.getAttribute('data-cancel'));
+          if (error) { showAlert('Could not cancel: ' + error.message, 'error'); return; }
+          loadHistory();
+        });
+      });
+    }
+
+    document.getElementById('requestForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var s = document.getElementById('start_date').value, en = document.getElementById('end_date').value;
+      if (!s || !en) { showAlert('Please choose both dates.', 'error'); return; }
+      if (en < s) { showAlert('The end date must be on or after the start date.', 'error'); return; }
+      var days = window.mcWorkingDays(s, en);
+      if (days === 0) { showAlert('That range contains no working days.', 'error'); return; }
+      var type = document.getElementById('type').value;
+      var bal = window.mcVacationBalance(window.mcStaffProfile, (await window.mcStaff.from('vacation_requests').select('*').eq('user_id', mcSession.user.id)).data);
+      if (type === 'vacation' && days > bal.remaining && !confirm('This exceeds your remaining vacation balance (' + bal.remaining + ' days). Submit anyway for HR to decide?')) return;
+
+      var btn = document.getElementById('submitBtn');
+      btn.disabled = true; btn.textContent = 'Submitting…';
+      var { error } = await window.mcStaff.from('vacation_requests').insert({
+        user_id: mcSession.user.id, type: type, start_date: s, end_date: en, days: days,
+        reason: document.getElementById('reason').value.trim() || null, status: 'pending', created_by: 'employee'
+      });
+      btn.disabled = false; btn.textContent = 'Submit Request';
+      if (error) { showAlert('Could not submit: ' + error.message, 'error'); return; }
+      document.getElementById('requestForm').reset();
+      updatePreview();
+      showAlert('Request submitted. HR will review it.', 'success');
+      loadHistory();
+    });
+
+    (async function init() {
+      var session = await window.mcRequireStaffSession('/staff/vacation/');
+      if (!session) return;
+      mcSession = session;
+      loadHistory();
+    })();
+  </script>
+</body>
+</html>
