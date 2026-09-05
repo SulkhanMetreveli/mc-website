@@ -15,426 +15,276 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Met Capital is an investment management group applying systematic methods informed by artificial intelligence research to global markets.">
     <meta name="robots" content="index, follow">
-
     <meta property="og:title" content="Met Capital">
-    <meta property="og:description" content="Systematic Investment Management">
+    <meta property="og:description" content="Met Capital is an investment management group applying systematic methods informed by artificial intelligence research to global markets.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://met.capital">
-
     <link rel="canonical" href="https://met.capital">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <title>Met Capital</title>
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --black: #000000;
-            --gray: #666666;
-            --blue: #003DA5;
-            --red: #C41E3A;
-            --white: #FFFFFF;
+            --paper: #ece8df;
+            --paper-line: #e9e5dc;
+            --ink: #1a1a1a;
+            --ink-soft: #2a2823;
+            --ink-body: #3d3a34;
+            --ink-legal: #5c584f;
+            --muted: #6a665f;
+            --gray: #808080;
+            --red: #DC143C;
+            /* debossed hairlines (light from top-left) */
+            --deboss-line: 1px 0 0 rgba(255,255,255,.95), -1px 0 0 rgba(0,0,0,.22);
+            --top-line: inset 0 1px 0 rgba(0,0,0,.14), inset 0 2px 0 rgba(255,255,255,.85);
+            --cell-line: inset 0 1px 0 rgba(0,0,0,.14), inset 0 2px 0 rgba(255,255,255,.85), inset 0 -1px 0 rgba(0,0,0,.14);
+            --pad-x: clamp(24px, 5vw, 72px);
+            --pad-y: clamp(64px, 10vh, 120px);
         }
 
         html { scroll-behavior: smooth; }
 
         body {
-            font-family: 'Inter', Helvetica, Arial, sans-serif;
-            font-weight: 400;
-            color: var(--black);
-            background: var(--white);
+            background: var(--paper);
+            color: var(--ink);
+            font-family: Inter, 'Helvetica Neue', Helvetica, sans-serif;
+            font-weight: 300;
             -webkit-font-smoothing: antialiased;
-        }
-
-        ::selection { background: var(--blue); color: var(--white); }
-
-        a { color: var(--black); text-decoration: none; transition: color 0.2s ease, border-color 0.2s ease; }
-        a:hover { color: var(--blue); }
-
-        /* Header */
-        header {
-            position: sticky;
-            top: 0;
-            background: var(--white);
-            border-bottom: 1px solid var(--black);
-            z-index: 1000;
-            display: grid;
-            grid-template-columns: 1fr auto;
-            align-items: center;
-            padding: 22px 64px;
-        }
-
-        .logo-mark { display: block; height: 32px; width: auto; }
-
-        nav { display: flex; gap: 40px; font-size: 14px; }
-
-        nav a { position: relative; }
-
-        nav a::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            bottom: -5px;
-            width: 100%;
-            height: 1.5px;
-            background: var(--blue);
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform 0.25s ease;
-        }
-
-        nav a:hover::after { transform: scaleX(1); }
-
-        /* Section grid scaffolding */
-        .rule-bottom { border-bottom: 1px solid var(--black); }
-
-        .section-grid {
-            display: grid;
-            grid-template-columns: 260px 1fr;
-        }
-
-        .section-labelcol {
-            padding: 72px 64px;
-            border-right: 1px solid var(--black);
-        }
-
-        .section-label {
-            font-size: 12px;
-            color: var(--gray);
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
-        .section-body { padding: 72px 64px; }
-
-        /* Hero */
-        .hero {
-            display: grid;
-            grid-template-columns: 7fr 3fr;
-        }
-
-        .hero-text {
-            padding: 120px 64px 100px;
-            border-right: 1px solid var(--black);
-        }
-
-        .hero-text h1 {
-            font-size: clamp(40px, 5vw, 64px);
-            font-weight: 600;
-            letter-spacing: -0.02em;
-            line-height: 1.05;
-            max-width: 14ch;
             text-wrap: pretty;
         }
 
-        .hero-text p {
-            margin-top: 40px;
-            font-size: 17px;
-            line-height: 1.65;
-            max-width: 62ch;
+        a { color: var(--ink); text-decoration: none; transition: color .2s ease, border-color .2s ease; }
+        a:hover { color: var(--red); }
+
+        .page {
+            position: relative;
+            background: radial-gradient(120% 50% at 18% 0%, rgba(255,255,255,.55) 0%, rgba(255,255,255,.1) 40%, rgba(0,0,0,0) 70%);
         }
 
-        .hero-comp { display: grid; grid-template-rows: 5fr 2fr 3fr; }
-        .hero-comp .block-blue { background: var(--blue); }
-        .hero-comp .block-band {
-            background: var(--white);
-            border-top: 1px solid var(--black);
-            border-bottom: 1px solid var(--black);
-        }
-        .hero-comp .block-split { display: grid; grid-template-columns: 3fr 1fr; }
-        .hero-comp .block-split .w { background: var(--white); border-right: 1px solid var(--black); }
-        .hero-comp .block-split .r { background: var(--red); }
-
-        @media (prefers-reduced-motion: no-preference) {
-            .hero-text h1,
-            .hero-text p {
-                opacity: 0;
-                transform: translateY(18px);
-                animation: mc-rise 0.7s ease forwards;
-            }
-
-            .hero-text p { animation-delay: 0.15s; }
-
-            .hero-comp .block-blue,
-            .hero-comp .block-split .r {
-                opacity: 0;
-                animation: mc-fade 0.8s ease forwards;
-            }
-
-            .hero-comp .block-blue { animation-delay: 0.25s; }
-            .hero-comp .block-split .r { animation-delay: 0.5s; }
-        }
-
-        @keyframes mc-rise {
-            to { opacity: 1; transform: none; }
-        }
-
-        @keyframes mc-fade {
-            to { opacity: 1; }
-        }
-
-        /* Facts */
-        .facts {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-        }
-
-        .fact { padding: 32px 64px; border-right: 1px solid var(--black); transition: background 0.25s ease; }
-        .fact:hover { background: #F7F7F7; }
-        .fact:last-child { border-right: none; }
-
-        .fact-label {
-            font-size: 12px;
-            color: var(--gray);
-            letter-spacing: 0.08em;
+        /* tiny tracked labels */
+        .label {
+            font-size: 9px;
+            font-weight: 500;
+            letter-spacing: .4em;
             text-transform: uppercase;
+            color: var(--muted);
         }
+        .label-xs { font-size: 8px; letter-spacing: .5em; }
 
-        .fact-value { font-size: 20px; font-weight: 600; margin-top: 8px; }
+        /* Header */
+        header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 5;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 26px var(--pad-x);
+            font-size: 9px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; color: var(--muted);
+            pointer-events: none;
+        }
+        header > * { pointer-events: auto; }
 
-        /* About */
-        .about-body { max-width: calc(70ch + 128px); }
-        .about-body p { font-size: 17px; line-height: 1.7; max-width: 70ch; }
-        .about-body p + p { margin-top: 28px; }
+        .brand {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 14px; letter-spacing: .06em; text-transform: none; line-height: 1;
+        }
+        .brand .met { font-weight: 700; color: #000; }
+        .brand .bar { width: 2px; height: 12px; background: var(--red); display: inline-block; }
+        .brand .cap { font-weight: 400; color: var(--gray); }
+        .brand:hover .cap { color: var(--red); }
 
-        .research-box { margin-top: 56px; border: 1px solid var(--black); }
-        .research-box-inner { display: grid; grid-template-columns: 8px 1fr; }
-        .research-box-bar { background: var(--blue); }
-        .research-box-content { padding: 32px 36px; }
-        .research-box-content h3 { font-size: 16px; font-weight: 600; }
-        .research-box-content p { margin-top: 14px; font-size: 15px; line-height: 1.65; }
+        nav { display: flex; gap: clamp(16px, 3vw, 36px); }
+        nav a { color: var(--muted); position: relative; }
+        nav a::after {
+            content: ''; position: absolute; left: 0; right: 0; bottom: -6px; height: 1px;
+            background: var(--red); transform: scaleX(0); transform-origin: left; transition: transform .25s ease;
+        }
+        nav a:hover::after, nav a.active::after { transform: scaleX(1); }
 
-        /* Leadership */
-        .leader-name { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; }
-        .leader-title { margin-top: 10px; font-size: 15px; color: var(--blue); font-weight: 600; }
-        .leader-creds { margin-top: 6px; font-size: 14px; color: var(--gray); }
-        .leader-bio p { margin-top: 28px; font-size: 17px; line-height: 1.7; max-width: 66ch; }
-        .leader-bio p + p { margin-top: 20px; }
-
-        /* Careers */
-        .careers-intro h2 { font-size: 40px; font-weight: 600; letter-spacing: -0.02em; }
-        .careers-intro p { margin-top: 24px; font-size: 17px; line-height: 1.7; max-width: 66ch; }
-
-        .roles {
+        /* Shared section shell */
+        .shell {
+            max-width: 1100px; margin: 0 auto;
+            padding: var(--pad-y) var(--pad-x);
+        }
+        .numbered {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            border-top: 1px solid var(--black);
+            grid-template-columns: minmax(100px, 1fr) minmax(0, 3fr);
+            gap: clamp(24px, 4vw, 64px);
+            box-shadow: var(--top-line);
         }
+        .numbered .label { display: flex; gap: 16px; align-self: start; }
 
-        .role { padding: 48px 48px 56px 64px; border-right: 1px solid var(--black); transition: background 0.25s ease; }
-        .role:hover { background: #F7F7F7; }
-        .role:last-child { border-right: none; }
-        .role-tick { width: 32px; height: 4px; background: var(--blue); transition: width 0.3s ease; }
-        .role:hover .role-tick { width: 64px; }
-        .role h3 { margin-top: 28px; font-size: 18px; font-weight: 600; }
-        .role p { margin-top: 14px; font-size: 15px; line-height: 1.65; }
-
-        .careers-cta {
-            border-top: 1px solid var(--black);
-            padding: 32px 64px;
-            display: flex;
-            align-items: baseline;
-            gap: 16px;
-            flex-wrap: wrap;
+        h1, h2, .display {
+            font-weight: 300; line-height: 1.1; letter-spacing: -.005em;
         }
+        h2, .display { font-size: clamp(28px, 3vw, 40px); }
 
-        .careers-cta span { font-size: 15px; color: var(--gray); }
+        .lede { font-size: clamp(17px, 1.5vw, 20px); line-height: 1.7; color: var(--ink-soft); font-weight: 300; max-width: 62ch; }
+        .body { font-size: 15px; line-height: 1.75; color: var(--ink-body); font-weight: 400; }
 
-        .link-accent {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--blue);
-            border-bottom: 1px solid var(--blue);
-            padding-bottom: 2px;
-        }
+        .link-u { border-bottom: 1px solid var(--ink); padding-bottom: 2px; }
+        .link-u:hover { border-color: var(--red); }
+        .link-u .arrow { display: inline-block; transition: transform .25s ease; }
+        .link-u:hover .arrow { transform: translateX(4px); }
 
-        .link-accent:hover { color: var(--black); border-color: var(--black); }
-
-        .link-accent .arrow {
-            display: inline-block;
-            transition: transform 0.25s ease;
-        }
-
-        .link-accent:hover .arrow { transform: translateX(4px); }
-
-        /* Contact */
-        .contact-cols { display: grid; grid-template-columns: repeat(3, 1fr); }
-        .contact-col { padding: 72px 48px 72px 64px; border-right: 1px solid var(--black); }
-        .contact-col:last-child { border-right: none; }
-        .contact-col h3 { font-size: 16px; font-weight: 600; }
-        .contact-col .link-accent { display: inline-block; margin-top: 16px; }
-        .contact-col p { margin-top: 16px; font-size: 15px; line-height: 1.6; }
+        .vline { width: 2px; background: var(--paper-line); box-shadow: var(--deboss-line); }
 
         /* Footer */
-        footer { padding: 56px 64px 40px; }
+        footer {
+            max-width: 1100px; margin: 0 auto;
+            padding: var(--pad-y) var(--pad-x) 56px;
+            display: flex; flex-direction: column; gap: 40px;
+            box-shadow: var(--top-line);
+        }
+        .footer-brand { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 20px; letter-spacing: .02em; }
+        .footer-brand .met { font-weight: 700; color: #000; }
+        .footer-brand .bar { width: 3px; height: 17px; background: var(--red); }
+        .footer-brand .cap { font-weight: 400; color: var(--gray); }
+        .footer-legal { display: flex; flex-direction: column; gap: 20px; max-width: 72ch; margin: 0 auto; text-align: center; font-size: 12px; line-height: 1.75; color: var(--ink-legal); }
+        .footer-legal strong { color: var(--ink); font-weight: 500; }
+        .footer-meta { display: flex; flex-direction: column; align-items: center; gap: 18px; font-size: 8px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; color: var(--muted); }
+        .footer-meta nav { gap: 28px; flex-wrap: wrap; justify-content: center; }
+        .footer-meta span { text-align: center; line-height: 2; }
 
-        footer .legal {
-            font-size: 13px;
-            line-height: 1.7;
-            color: var(--gray);
-            max-width: 90ch;
+        /* Forms (subpages) */
+        .field { display: flex; flex-direction: column; gap: 10px; }
+        .field label { font-size: 8px; font-weight: 500; letter-spacing: .5em; text-transform: uppercase; color: var(--muted); }
+        .field label .required { color: var(--red); }
+        .field input, .field select, .field textarea {
+            font-family: inherit; font-size: 15px; font-weight: 400; color: var(--ink);
+            background: rgba(255,255,255,.45); border: 0; padding: 14px 16px;
+            box-shadow: var(--cell-line);
+            transition: background .2s ease, box-shadow .2s ease;
+            width: 100%;
+        }
+        .field input:focus, .field select:focus, .field textarea:focus {
+            outline: none; background: rgba(255,255,255,.8);
+            box-shadow: var(--cell-line), 0 0 0 1px var(--red);
+        }
+        .field textarea { min-height: 150px; resize: vertical; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .form-stack { display: flex; flex-direction: column; gap: 24px; max-width: 640px; }
+        .hp-field { position: absolute; left: -9999px; top: -9999px; width: 1px; height: 1px; overflow: hidden; }
+        .btn {
+            font-family: inherit; font-size: 9px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase;
+            color: var(--paper); background: var(--ink); border: 0; padding: 18px 32px; cursor: pointer;
+            align-self: flex-start; transition: background .2s ease, transform .2s ease;
+        }
+        .btn:hover { background: var(--red); transform: translateY(-1px); }
+        .form-note { font-size: 12px; color: var(--muted); line-height: 1.7; }
+
+        /* Motion */
+        .reveal-init { opacity: 0; transform: translateY(20px); }
+        .reveal-in { opacity: 1; transform: none; transition: opacity .7s ease, transform .7s ease; }
+        @media (prefers-reduced-motion: no-preference) {
+            .rise { opacity: 0; transform: translateY(16px); animation: mc-rise .8s ease forwards; }
+            .rise-2 { animation-delay: .15s; } .rise-3 { animation-delay: .3s; } .rise-4 { animation-delay: .45s; }
+            .hero .vline { transform: scaleY(0); transform-origin: top; animation: mc-grow 1s ease .1s forwards; }
+        }
+        @keyframes mc-rise { to { opacity: 1; transform: none; } }
+        @keyframes mc-grow { to { transform: scaleY(1); } }
+
+        @media (max-width: 768px) {
+            .numbered { grid-template-columns: 1fr; gap: 20px; }
+            .form-row { grid-template-columns: 1fr; }
+            header { padding: 20px var(--pad-x); }
+        }
+        @media (max-width: 520px) {
+            nav a:not(.keep) { display: none; }
         }
 
-        .footer-links { display: flex; gap: 32px; margin-top: 28px; font-size: 13px; flex-wrap: wrap; }
-
-        .footer-notice {
-            margin-top: 28px;
-            border-top: 1px solid var(--black);
-            padding-top: 24px;
+        .hero {
+            position: relative; min-height: 100vh;
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: 120px var(--pad-x) 64px;
         }
+        .hero .vline-wrap { display: flex; justify-content: center; }
+        .hero .vline { height: clamp(180px, 34vh, 340px); }
+        .hero-copy { display: flex; flex-direction: column; align-items: center; gap: 28px; text-align: center; }
+        .hero h1 { font-size: clamp(30px, 4vw, 52px); letter-spacing: -.01em; max-width: 16ch; }
+        .hero p { font-size: 15px; line-height: 1.75; color: var(--ink-body); max-width: 58ch; font-weight: 400; }
 
-        .footer-notice strong { color: var(--black); font-weight: 600; }
+        .facts { padding-top: 0; }
+        .facts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0; }
+        .fact { padding: 28px 24px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--cell-line); transition: background .25s ease; }
+        .fact:hover { background: rgba(255,255,255,.35); }
+        .fact .value { font-size: 20px; font-weight: 300; }
 
-        .footer-bottom {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-top: 40px;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
+        .about-copy { display: flex; flex-direction: column; gap: 32px; }
+        .research { margin-top: 16px; padding-left: 32px; position: relative; display: flex; flex-direction: column; gap: 12px; }
+        .research .vline { position: absolute; left: 0; top: 0; bottom: 0; }
+        .research h3 { font-size: 9px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; color: var(--ink); }
 
-        .footer-bottom span { font-size: 13px; color: var(--gray); }
+        .leader { display: flex; flex-direction: column; gap: 36px; }
+        .leader-head { display: flex; flex-direction: column; gap: 12px; }
+        .leader-title { font-size: 14px; color: var(--ink); font-weight: 400; }
+        .leader-bio { display: flex; flex-direction: column; gap: 24px; font-size: 16px; line-height: 1.75; color: var(--ink-soft); max-width: 62ch; }
 
-        /* Scroll reveal (JS-applied; content always visible without JS) */
-        .reveal-init { opacity: 0; transform: translateY(24px); }
-        .reveal-in { opacity: 1; transform: none; transition: opacity 0.6s ease, transform 0.6s ease; }
+        .careers-body { display: flex; flex-direction: column; gap: 48px; }
+        .careers-intro { display: flex; flex-direction: column; gap: 20px; }
+        .roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 32px; }
+        .role { padding-top: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--top-line); }
+        .role h3 { font-size: 9px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; color: var(--ink); }
+        .role p { font-size: 14px; line-height: 1.75; color: var(--ink-body); font-weight: 400; }
+        .careers-cta { font-size: 15px; color: var(--ink-soft); font-weight: 400; }
 
-        /* Responsive */
-        @media (max-width: 968px) {
-            header { padding: 18px 24px; }
-            nav { gap: 20px; }
+        .contact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 40px; }
+        .contact-item { display: flex; flex-direction: column; gap: 14px; }
+        .contact-item h3 { font-size: 9px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; color: var(--ink); }
+        .contact-item a, .contact-item span { font-size: 15px; font-weight: 400; align-self: flex-start; color: var(--ink-soft); }
 
-            .hero { grid-template-columns: 1fr; }
-            .hero-text { padding: 72px 24px 64px; border-right: none; }
-            .hero-comp {
-                grid-template-rows: none;
-                grid-template-columns: 5fr 2fr 3fr;
-                height: 72px;
-                border-top: 1px solid var(--black);
-            }
-            .hero-comp .block-band { border: none; border-left: 1px solid var(--black); border-right: 1px solid var(--black); }
-            .hero-comp .block-split .w { border-right: 1px solid var(--black); }
-
-            .facts { grid-template-columns: 1fr 1fr; }
-            .fact { padding: 24px; border-right: none; border-bottom: 1px solid var(--black); }
-            .fact:nth-child(odd) { border-right: 1px solid var(--black); }
-            .fact:nth-last-child(-n+2) { border-bottom: none; }
-
-            .section-grid { grid-template-columns: 1fr; }
-            .section-labelcol {
-                padding: 24px 24px 0;
-                border-right: none;
-            }
-            .section-body { padding: 24px 24px 48px; }
-
-            .roles { grid-template-columns: 1fr; }
-            .role { padding: 32px 24px; border-right: none; border-bottom: 1px solid var(--black); }
-            .role:last-child { border-bottom: none; }
-
-            .careers-cta { padding: 24px; }
-
-            .contact-cols { grid-template-columns: 1fr; }
-            .contact-col { padding: 32px 24px; border-right: none; border-bottom: 1px solid var(--black); }
-            .contact-col:last-child { border-bottom: none; }
-
-            footer { padding: 40px 24px 32px; }
-        }
-
-        @media (max-width: 600px) {
-            nav a:not(:last-child) { display: none; }
-            .hero-text h1 { font-size: 34px; }
-            .careers-intro h2 { font-size: 30px; }
-        }
     </style>
 </head>
 <body>
+<div class="page">
+
     <header>
-        <a href="/" aria-label="Met Capital home">
-            <svg class="logo-mark" viewBox="0 0 280 60" width="150" height="32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Met Capital">
-                <text x="0" y="42" font-family="Inter, Helvetica, Arial, sans-serif" font-size="40" font-weight="600" fill="#000000">MET</text>
-                <rect x="98" y="12" width="2.5" height="36" fill="#C41E3A"></rect>
-                <text x="116" y="42" font-family="Inter, Helvetica, Arial, sans-serif" font-size="40" font-weight="400" fill="#666666">CAPITAL</text>
-            </svg>
-        </a>
-        <nav>
-            <a href="#about">About</a>
-            <a href="#leadership">Leadership</a>
-            <a href="#careers">Careers</a>
-            <a href="#contact">Contact</a>
-        </nav>
+        <a href="/" class="brand" aria-label="Met Capital home"><span class="met">MET</span><span class="bar"></span><span class="cap">CAPITAL</span></a>
+        <nav><a href="/#about">About</a><a href="/#leadership">Leadership</a><a href="/careers/">Careers</a><a href="/contact/">Contact</a></nav>
     </header>
 
-    <section class="hero rule-bottom">
-        <div class="hero-text">
-            <h1>Systematic Investment Management</h1>
-            <p>Met Capital is an investment management group that applies systematic, research-driven methods to global markets. Our approach integrates artificial intelligence, quantitative analysis, and insights from the study of complex adaptive systems.</p>
-        </div>
-        <div class="hero-comp" aria-hidden="true">
-            <div class="block-blue"></div>
-            <div class="block-band"></div>
-            <div class="block-split">
-                <div class="w"></div>
-                <div class="r"></div>
-            </div>
+    <section id="top" class="hero">
+        <div></div>
+        <div class="vline-wrap"><div class="vline"></div></div>
+        <div class="hero-copy">
+            <h1 class="rise">Systematic Investment Management</h1>
+            <p class="rise rise-2">Met Capital is an investment management group that applies systematic, research-driven methods to global markets. Our approach integrates artificial intelligence, quantitative analysis, and insights from the study of complex adaptive systems.</p>
+            <div class="label label-xs rise rise-3">London · Zurich</div>
         </div>
     </section>
 
-    <section class="facts rule-bottom">
-        <div class="fact">
-            <div class="fact-label">Headquarters</div>
-            <div class="fact-value">London</div>
-        </div>
-        <div class="fact">
-            <div class="fact-label">Research</div>
-            <div class="fact-value">Zurich</div>
-        </div>
-        <div class="fact">
-            <div class="fact-label">Approach</div>
-            <div class="fact-value">Systematic</div>
-        </div>
-        <div class="fact">
-            <div class="fact-label">Strategies</div>
-            <div class="fact-value">Multi-Asset</div>
+    <section class="shell facts">
+        <div class="facts-grid" data-reveal-group>
+            <div class="fact"><span class="label label-xs">Headquarters</span><span class="value">London</span></div>
+            <div class="fact"><span class="label label-xs">Research</span><span class="value">Zurich</span></div>
+            <div class="fact"><span class="label label-xs">Approach</span><span class="value">Systematic</span></div>
+            <div class="fact"><span class="label label-xs">Strategies</span><span class="value">Multi-Asset</span></div>
         </div>
     </section>
 
-    <section id="about" class="section-grid rule-bottom">
-        <div class="section-labelcol">
-            <div class="section-label">About</div>
-        </div>
-        <div class="section-body about-body">
+    <section id="about" class="shell numbered" data-reveal>
+        <div class="label"><span>01</span><span>About</span></div>
+        <div class="about-copy lede">
             <p>Met Capital employs quantitative and computational methods in the design and execution of its investment programmes. We combine systematic modelling, machine learning, and rigorous empirical analysis to identify opportunities across global markets.</p>
             <p>Our research foundation distinguishes our approach. Through the ACR Institute, we conduct original inquiry into artificial intelligence, computational theory, and the mathematical properties of complex systems. These investigations inform our systematic methodologies and our understanding of where algorithmic approaches have decisive advantages—and where they do not.</p>
             <p>We operate investment vehicles and maintain private equity positions in technology companies aligned with our research interests. Our holding structure allows us to deploy capital systematically while supporting fundamental research on a long-term basis.</p>
-            <div class="research-box">
-                <div class="research-box-inner">
-                    <div class="research-box-bar"></div>
-                    <div class="research-box-content">
-                        <h3>Research Foundation</h3>
-                        <p>The ACR Institute is a Swiss non-profit research association conducting inquiry into consciousness, computation, and complex systems. This research informs our systematic investment frameworks.</p>
-                    </div>
-                </div>
+            <div class="research">
+                <div class="vline"></div>
+                <h3>Research Foundation</h3>
+                <p class="body">The ACR Institute is a Swiss non-profit research association conducting inquiry into consciousness, computation, and complex systems. This research informs our systematic investment frameworks.</p>
             </div>
         </div>
     </section>
 
-    <section id="leadership" class="section-grid rule-bottom">
-        <div class="section-labelcol">
-            <div class="section-label">Leadership</div>
-        </div>
-        <div class="section-body">
-            <h3 class="leader-name">Dr. Sulkhan Metreveli</h3>
-            <div class="leader-title">Founder &amp; Chief Executive Officer</div>
-            <div class="leader-creds">PhD, University of Zurich &nbsp;·&nbsp; Director, ACR Institute</div>
+    <section id="leadership" class="shell numbered" data-reveal>
+        <div class="label"><span>02</span><span>Leadership</span></div>
+        <div class="leader">
+            <div class="leader-head">
+                <h3 class="display">Dr. Sulkhan Metreveli</h3>
+                <div class="leader-title">Founder &amp; Chief Executive Officer</div>
+                <div class="label" style="letter-spacing:.3em;">PhD, University of Zurich · Director, ACR Institute</div>
+            </div>
             <div class="leader-bio">
                 <p>Dr. Metreveli founded Met Capital to bridge rigorous research and systematic investment management. His academic work focuses on artificial intelligence, machine learning, and the computational limits of algorithmic systems—research conducted through the ACR Institute, which he established as a Swiss non-profit dedicated to fundamental inquiry.</p>
                 <p>He holds a doctorate (PhD) in communication science from the University of Zurich.</p>
@@ -442,104 +292,61 @@
         </div>
     </section>
 
-    <section id="careers" class="rule-bottom">
-        <div class="section-grid">
-            <div class="section-labelcol">
-                <div class="section-label">Careers</div>
-            </div>
-            <div class="section-body careers-intro" style="padding-bottom: 56px;">
+    <section id="careers" class="shell numbered" data-reveal>
+        <div class="label"><span>03</span><span>Careers</span></div>
+        <div class="careers-body">
+            <div class="careers-intro">
                 <h2>Join Us</h2>
-                <p>We seek exceptional individuals who combine intellectual rigour with practical capability. Our team includes researchers, engineers, and analysts from diverse academic backgrounds. Experience in finance is not required—we value analytical ability, technical depth, and intellectual curiosity.</p>
+                <p class="lede">We seek exceptional individuals who combine intellectual rigour with practical capability. Our team includes researchers, engineers, and analysts from diverse academic backgrounds. Experience in finance is not required—we value analytical ability, technical depth, and intellectual curiosity.</p>
             </div>
-        </div>
-        <div class="roles">
-            <div class="role">
-                <div class="role-tick"></div>
-                <h3>Quantitative Research</h3>
-                <p>Develop systematic investment strategies through statistical analysis, machine learning, and empirical research across global markets.</p>
+            <div class="roles">
+                <div class="role"><h3>Quantitative Research</h3><p>Develop systematic investment strategies through statistical analysis, machine learning, and empirical research across global markets.</p></div>
+                <div class="role"><h3>Technology</h3><p>Build and maintain the computational infrastructure that supports our research and trading operations. Distributed systems, data engineering, platform development.</p></div>
+                <div class="role"><h3>Operations</h3><p>Ensure operational excellence across trading, compliance, and business functions. Institutional rigour applied to every process.</p></div>
             </div>
-            <div class="role">
-                <div class="role-tick"></div>
-                <h3>Technology</h3>
-                <p>Build and maintain the computational infrastructure that supports our research and trading operations. Distributed systems, data engineering, platform development.</p>
-            </div>
-            <div class="role">
-                <div class="role-tick"></div>
-                <h3>Operations</h3>
-                <p>Ensure operational excellence across trading, compliance, and business functions. Institutional rigour applied to every process.</p>
-            </div>
-        </div>
-        <div class="careers-cta">
-            <span>Interested in joining us?</span>
-            <a href="/careers/" class="link-accent">Apply here <span class="arrow">→</span></a>
+            <p class="careers-cta">Interested in joining us? <a href="/careers/" class="link-u">Apply here <span class="arrow">→</span></a></p>
         </div>
     </section>
 
-    <section id="contact" class="section-grid rule-bottom">
-        <div class="section-labelcol">
-            <div class="section-label">Contact</div>
-        </div>
-        <div class="contact-cols">
-            <div class="contact-col">
-                <h3>General Enquiries</h3>
-                <a href="/contact/" class="link-accent">Get in touch <span class="arrow">→</span></a>
-            </div>
-            <div class="contact-col">
-                <h3>Careers</h3>
-                <a href="/careers/" class="link-accent">Apply here <span class="arrow">→</span></a>
-            </div>
-            <div class="contact-col">
-                <h3>Headquarters</h3>
-                <p>London, United Kingdom</p>
-            </div>
+    <section id="contact" class="shell numbered" data-reveal>
+        <div class="label"><span>04</span><span>Contact</span></div>
+        <div class="contact-grid">
+            <div class="contact-item"><h3>General Enquiries</h3><a href="/contact/" class="link-u">Get in touch <span class="arrow">→</span></a></div>
+            <div class="contact-item"><h3>Careers</h3><a href="/careers/" class="link-u">Apply here <span class="arrow">→</span></a></div>
+            <div class="contact-item"><h3>Headquarters</h3><span>London, United Kingdom</span></div>
         </div>
     </section>
 
     <footer>
-        <p class="legal">Met Capital Ltd is registered in England and Wales (Company No. 12735600). This website does not constitute an offer or solicitation to any person in any jurisdiction. The information provided is for general informational purposes only.</p>
-        <div class="footer-links">
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Use</a>
-            <a href="#">Disclosures</a>
+        <div class="footer-brand"><span class="met">MET</span><span class="bar"></span><span class="cap">CAPITAL</span></div>
+        <div class="footer-legal">
+            <p>Met Capital Ltd is registered in England and Wales (Company No. 12735600). This website does not constitute an offer or solicitation to any person in any jurisdiction. The information provided is for general informational purposes only.</p>
+            <p><strong>Important Notice:</strong> met.capital is the only official website of Met Capital Ltd. We do not operate any other publicly available websites, mobile applications, or social media accounts offering investment services. Please verify you are on our official website before sharing any information.</p>
         </div>
-        <div class="footer-notice">
-            <p class="legal"><strong>Important Notice:</strong> met.capital is the only official website of Met Capital Ltd. We do not operate any other publicly available websites, mobile applications, or social media accounts offering investment services. Please verify you are on our official website before sharing any information.</p>
-        </div>
-        <div class="footer-bottom">
-            <span>© 2020 – 2026 Met Capital Ltd. All rights reserved.</span>
-            <span>London · Zurich</span>
+        <div class="footer-meta">
+            <nav><a href="#">Privacy Policy</a><a href="#">Terms of Use</a><a href="#">Disclosures</a></nav>
+            <span>© 2020 – 2026 Met Capital Ltd. All rights reserved.<br>London · Zurich</span>
         </div>
     </footer>
+</div>
 
     <script>
         (function () {
             if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
             if (!('IntersectionObserver' in window)) return;
-
             var obs = new IntersectionObserver(function (entries) {
                 entries.forEach(function (e) {
-                    if (e.isIntersecting) {
-                        e.target.classList.add('reveal-in');
-                        obs.unobserve(e.target);
-                    }
+                    if (e.isIntersecting) { e.target.classList.add('reveal-in'); obs.unobserve(e.target); }
                 });
             }, { threshold: 0.1 });
-
             function prep(el, delay) {
                 if (el.getBoundingClientRect().top < window.innerHeight) return;
                 el.classList.add('reveal-init');
                 if (delay) el.style.transitionDelay = delay + 'ms';
                 obs.observe(el);
             }
-
-            // whole-section reveals
-            document.querySelectorAll('#about, #leadership').forEach(function (el) { prep(el, 0); });
-            document.querySelectorAll('#careers .section-grid, .careers-cta, #contact .section-labelcol').forEach(function (el) { prep(el, 0); });
-
-            // staggered groups
-            document.querySelectorAll('.fact').forEach(function (el, i) { prep(el, i * 90); });
-            document.querySelectorAll('.role').forEach(function (el, i) { prep(el, i * 120); });
-            document.querySelectorAll('.contact-col').forEach(function (el, i) { prep(el, i * 120); });
+            document.querySelectorAll('[data-reveal]').forEach(function (el) { prep(el, 0); });
+            document.querySelectorAll('[data-reveal-group] > *').forEach(function (el, i) { prep(el, (i % 4) * 90); });
         })();
     </script>
 </body>

@@ -13,197 +13,219 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Message received.">
     <meta name="robots" content="noindex, follow">
+    <meta property="og:title" content="Thank You — Met Capital">
+    <meta property="og:description" content="Message received.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://met.capital/thank-you/">
+    <link rel="canonical" href="https://met.capital/thank-you/">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <title>Thank You — Met Capital</title>
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --black: #000000;
-            --gray-dark: #333333;
-            --gray: #666666;
-            --gray-light: #999999;
-            --red: #C41E3A;
-            --blue: #003DA5;
-            --white: #FFFFFF;
-            --off-white: #F7F7F7;
-            --border: #E0E0E0;
+            --paper: #ece8df;
+            --paper-line: #e9e5dc;
+            --ink: #1a1a1a;
+            --ink-soft: #2a2823;
+            --ink-body: #3d3a34;
+            --ink-legal: #5c584f;
+            --muted: #6a665f;
+            --gray: #808080;
+            --red: #DC143C;
+            /* debossed hairlines (light from top-left) */
+            --deboss-line: 1px 0 0 rgba(255,255,255,.95), -1px 0 0 rgba(0,0,0,.22);
+            --top-line: inset 0 1px 0 rgba(0,0,0,.14), inset 0 2px 0 rgba(255,255,255,.85);
+            --cell-line: inset 0 1px 0 rgba(0,0,0,.14), inset 0 2px 0 rgba(255,255,255,.85), inset 0 -1px 0 rgba(0,0,0,.14);
+            --pad-x: clamp(24px, 5vw, 72px);
+            --pad-y: clamp(64px, 10vh, 120px);
         }
+
+        html { scroll-behavior: smooth; }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            font-weight: 400;
-            line-height: 1.6;
-            color: var(--gray-dark);
-            background: var(--white);
+            background: var(--paper);
+            color: var(--ink);
+            font-family: Inter, 'Helvetica Neue', Helvetica, sans-serif;
+            font-weight: 300;
             -webkit-font-smoothing: antialiased;
+            text-wrap: pretty;
         }
 
+        a { color: var(--ink); text-decoration: none; transition: color .2s ease, border-color .2s ease; }
+        a:hover { color: var(--red); }
+
+        .page {
+            position: relative;
+            background: radial-gradient(120% 50% at 18% 0%, rgba(255,255,255,.55) 0%, rgba(255,255,255,.1) 40%, rgba(0,0,0,0) 70%);
+        }
+
+        /* tiny tracked labels */
+        .label {
+            font-size: 9px;
+            font-weight: 500;
+            letter-spacing: .4em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+        .label-xs { font-size: 8px; letter-spacing: .5em; }
+
+        /* Header */
         header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: var(--white);
-            border-bottom: 1px solid var(--black);
-            z-index: 1000;
+            position: fixed; top: 0; left: 0; right: 0; z-index: 5;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 26px var(--pad-x);
+            font-size: 9px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; color: var(--muted);
+            pointer-events: none;
         }
+        header > * { pointer-events: auto; }
 
-        .header-inner {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .brand {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 14px; letter-spacing: .06em; text-transform: none; line-height: 1;
         }
+        .brand .met { font-weight: 700; color: #000; }
+        .brand .bar { width: 2px; height: 12px; background: var(--red); display: inline-block; }
+        .brand .cap { font-weight: 400; color: var(--gray); }
+        .brand:hover .cap { color: var(--red); }
 
-        .logo { height: 26px; }
-
-        nav { display: flex; align-items: center; gap: 2rem; }
-
-        nav a {
-            text-decoration: none;
-            color: var(--gray);
-            font-size: 0.8125rem;
-            font-weight: 500;
-            letter-spacing: 0.01em;
-            transition: color 0.2s;
-        }
-
-        nav a:hover { color: var(--blue); }
-
-        nav a { position: relative; }
-
+        nav { display: flex; gap: clamp(16px, 3vw, 36px); }
+        nav a { color: var(--muted); position: relative; }
         nav a::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            bottom: -5px;
+            content: ''; position: absolute; left: 0; right: 0; bottom: -6px; height: 1px;
+            background: var(--red); transform: scaleX(0); transform-origin: left; transition: transform .25s ease;
+        }
+        nav a:hover::after, nav a.active::after { transform: scaleX(1); }
+
+        /* Shared section shell */
+        .shell {
+            max-width: 1100px; margin: 0 auto;
+            padding: var(--pad-y) var(--pad-x);
+        }
+        .numbered {
+            display: grid;
+            grid-template-columns: minmax(100px, 1fr) minmax(0, 3fr);
+            gap: clamp(24px, 4vw, 64px);
+            box-shadow: var(--top-line);
+        }
+        .numbered .label { display: flex; gap: 16px; align-self: start; }
+
+        h1, h2, .display {
+            font-weight: 300; line-height: 1.1; letter-spacing: -.005em;
+        }
+        h2, .display { font-size: clamp(28px, 3vw, 40px); }
+
+        .lede { font-size: clamp(17px, 1.5vw, 20px); line-height: 1.7; color: var(--ink-soft); font-weight: 300; max-width: 62ch; }
+        .body { font-size: 15px; line-height: 1.75; color: var(--ink-body); font-weight: 400; }
+
+        .link-u { border-bottom: 1px solid var(--ink); padding-bottom: 2px; }
+        .link-u:hover { border-color: var(--red); }
+        .link-u .arrow { display: inline-block; transition: transform .25s ease; }
+        .link-u:hover .arrow { transform: translateX(4px); }
+
+        .vline { width: 2px; background: var(--paper-line); box-shadow: var(--deboss-line); }
+
+        /* Footer */
+        footer {
+            max-width: 1100px; margin: 0 auto;
+            padding: var(--pad-y) var(--pad-x) 56px;
+            display: flex; flex-direction: column; gap: 40px;
+            box-shadow: var(--top-line);
+        }
+        .footer-brand { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 20px; letter-spacing: .02em; }
+        .footer-brand .met { font-weight: 700; color: #000; }
+        .footer-brand .bar { width: 3px; height: 17px; background: var(--red); }
+        .footer-brand .cap { font-weight: 400; color: var(--gray); }
+        .footer-legal { display: flex; flex-direction: column; gap: 20px; max-width: 72ch; margin: 0 auto; text-align: center; font-size: 12px; line-height: 1.75; color: var(--ink-legal); }
+        .footer-legal strong { color: var(--ink); font-weight: 500; }
+        .footer-meta { display: flex; flex-direction: column; align-items: center; gap: 18px; font-size: 8px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; color: var(--muted); }
+        .footer-meta nav { gap: 28px; flex-wrap: wrap; justify-content: center; }
+        .footer-meta span { text-align: center; line-height: 2; }
+
+        /* Forms (subpages) */
+        .field { display: flex; flex-direction: column; gap: 10px; }
+        .field label { font-size: 8px; font-weight: 500; letter-spacing: .5em; text-transform: uppercase; color: var(--muted); }
+        .field label .required { color: var(--red); }
+        .field input, .field select, .field textarea {
+            font-family: inherit; font-size: 15px; font-weight: 400; color: var(--ink);
+            background: rgba(255,255,255,.45); border: 0; padding: 14px 16px;
+            box-shadow: var(--cell-line);
+            transition: background .2s ease, box-shadow .2s ease;
             width: 100%;
-            height: 1.5px;
-            background: var(--blue);
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform 0.25s ease;
         }
-
-        nav a:hover::after { transform: scaleX(1); }
-
-        .confirm {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 8rem 2rem 4rem;
+        .field input:focus, .field select:focus, .field textarea:focus {
+            outline: none; background: rgba(255,255,255,.8);
+            box-shadow: var(--cell-line), 0 0 0 1px var(--red);
         }
-
-        .confirm-inner {
-            max-width: 560px;
-            margin: 0 auto;
-            text-align: center;
+        .field textarea { min-height: 150px; resize: vertical; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .form-stack { display: flex; flex-direction: column; gap: 24px; max-width: 640px; }
+        .hp-field { position: absolute; left: -9999px; top: -9999px; width: 1px; height: 1px; overflow: hidden; }
+        .btn {
+            font-family: inherit; font-size: 9px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase;
+            color: var(--paper); background: var(--ink); border: 0; padding: 18px 32px; cursor: pointer;
+            align-self: flex-start; transition: background .2s ease, transform .2s ease;
         }
+        .btn:hover { background: var(--red); transform: translateY(-1px); }
+        .form-note { font-size: 12px; color: var(--muted); line-height: 1.7; }
 
-        .confirm-mark {
-            width: 44px;
-            height: 44px;
-            border: 2px solid var(--blue);
-            margin: 0 auto 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--blue);
-            font-size: 1.25rem;
-        }
-
+        /* Motion */
+        .reveal-init { opacity: 0; transform: translateY(20px); }
+        .reveal-in { opacity: 1; transform: none; transition: opacity .7s ease, transform .7s ease; }
         @media (prefers-reduced-motion: no-preference) {
-            .confirm-mark {
-                opacity: 0;
-                transform: scale(0.6);
-                animation: mc-pop 0.5s ease 0.1s forwards;
-            }
+            .rise { opacity: 0; transform: translateY(16px); animation: mc-rise .8s ease forwards; }
+            .rise-2 { animation-delay: .15s; } .rise-3 { animation-delay: .3s; } .rise-4 { animation-delay: .45s; }
+            .hero .vline { transform: scaleY(0); transform-origin: top; animation: mc-grow 1s ease .1s forwards; }
+        }
+        @keyframes mc-rise { to { opacity: 1; transform: none; } }
+        @keyframes mc-grow { to { transform: scaleY(1); } }
 
-            .confirm-inner h1,
-            .confirm-inner p,
-            .confirm-inner a {
-                opacity: 0;
-                transform: translateY(14px);
-                animation: mc-rise 0.6s ease forwards;
-            }
-
-            .confirm-inner h1 { animation-delay: 0.25s; }
-            .confirm-inner p { animation-delay: 0.35s; }
-            .confirm-inner a { animation-delay: 0.45s; }
+        @media (max-width: 768px) {
+            .numbered { grid-template-columns: 1fr; gap: 20px; }
+            .form-row { grid-template-columns: 1fr; }
+            header { padding: 20px var(--pad-x); }
+        }
+        @media (max-width: 520px) {
+            nav a:not(.keep) { display: none; }
         }
 
-        @keyframes mc-pop {
-            to { opacity: 1; transform: scale(1); }
-        }
+        .page-hero { padding: 150px var(--pad-x) 0; max-width: 1100px; margin: 0 auto; }
+        .page-hero .label { display: flex; gap: 16px; margin-bottom: 28px; }
+        .page-hero h1 { font-size: clamp(30px, 4vw, 48px); letter-spacing: -.01em; max-width: 18ch; }
+        .page-hero .lede { margin-top: 24px; font-size: 15px; line-height: 1.75; color: var(--ink-body); font-weight: 400; max-width: 62ch; }
+        .page-body { max-width: 1100px; margin: 0 auto; padding: clamp(48px, 7vh, 88px) var(--pad-x) var(--pad-y); }
+        .form-block { padding-top: 40px; box-shadow: var(--top-line); }
+        .roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 32px; margin-bottom: 64px; }
+        .role { padding-top: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--top-line); }
+        .role h3 { font-size: 9px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; color: var(--ink); }
+        .role p { font-size: 14px; line-height: 1.75; color: var(--ink-body); font-weight: 400; }
+        .confirm { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 120px var(--pad-x) 64px; gap: 28px; }
+        .confirm .vline { height: clamp(120px, 24vh, 240px); }
+        .confirm h1 { font-size: clamp(30px, 4vw, 48px); }
+        .confirm p { font-size: 15px; line-height: 1.75; color: var(--ink-body); max-width: 52ch; font-weight: 400; }
 
-        @keyframes mc-rise {
-            to { opacity: 1; transform: none; }
-        }
-
-        h1 {
-            font-size: 1.75rem;
-            font-weight: 600;
-            color: var(--black);
-            letter-spacing: -0.02em;
-            margin-bottom: 1rem;
-        }
-
-        .confirm-inner p {
-            font-size: 1rem;
-            color: var(--gray);
-            line-height: 1.75;
-            margin-bottom: 2rem;
-        }
-
-        .confirm-inner a {
-            color: var(--blue);
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 0.875rem;
-        }
-
-        .confirm-inner a:hover { text-decoration: underline; }
-
-        @media (max-width: 600px) {
-            .header-inner { padding: 0.875rem 1.25rem; }
-            .confirm { padding: 6rem 1.25rem 3rem; }
-        }
     </style>
 </head>
 <body>
+<div class="page">
+
     <header>
-        <div class="header-inner">
-            <a href="/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
-            <nav>
-                <a href="/#about">About</a>
-                <a href="/#leadership">Leadership</a>
-                <a href="/careers/">Careers</a>
-                <a href="/contact/">Contact</a>
-            </nav>
-        </div>
+        <a href="/" class="brand" aria-label="Met Capital home"><span class="met">MET</span><span class="bar"></span><span class="cap">CAPITAL</span></a>
+        <nav><a href="/#about">About</a><a href="/#leadership">Leadership</a><a href="/careers/">Careers</a><a href="/contact/">Contact</a></nav>
     </header>
 
-    <div class="confirm">
-        <div class="confirm-inner">
-            <div class="confirm-mark">✓</div>
-            <h1>Message Received</h1>
-            <p>Thank you for reaching out to Met Capital. We review submissions individually and will be in touch if appropriate. No automated reply will be sent.</p>
-            <a href="/">← Back to met.capital</a>
-        </div>
-    </div>
+    <section class="confirm">
+        <div class="vline rise"></div>
+        <h1 class="rise rise-2">Message Received</h1>
+        <p class="rise rise-3">Thank you for reaching out to Met Capital. We review submissions individually and will be in touch if appropriate. No automated reply will be sent.</p>
+        <a href="/" class="link-u rise rise-4" style="font-size:15px;font-weight:400;">← Back to met.capital</a>
+    </section>
+
+</div>
 </body>
 </html>

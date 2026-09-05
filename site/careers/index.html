@@ -15,473 +15,278 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Careers at Met Capital. We seek exceptional individuals in quantitative research, technology, and operations.">
     <meta name="robots" content="index, follow">
-
     <meta property="og:title" content="Careers — Met Capital">
-    <meta property="og:description" content="Join Met Capital.">
+    <meta property="og:description" content="Careers at Met Capital. We seek exceptional individuals in quantitative research, technology, and operations.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://met.capital/careers/">
-
     <link rel="canonical" href="https://met.capital/careers/">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <title>Careers — Met Capital</title>
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --black: #000000;
-            --gray-dark: #333333;
-            --gray: #666666;
-            --gray-light: #999999;
-            --red: #C41E3A;
-            --blue: #003DA5;
-            --white: #FFFFFF;
-            --off-white: #F7F7F7;
-            --border: #E0E0E0;
+            --paper: #ece8df;
+            --paper-line: #e9e5dc;
+            --ink: #1a1a1a;
+            --ink-soft: #2a2823;
+            --ink-body: #3d3a34;
+            --ink-legal: #5c584f;
+            --muted: #6a665f;
+            --gray: #808080;
+            --red: #DC143C;
+            /* debossed hairlines (light from top-left) */
+            --deboss-line: 1px 0 0 rgba(255,255,255,.95), -1px 0 0 rgba(0,0,0,.22);
+            --top-line: inset 0 1px 0 rgba(0,0,0,.14), inset 0 2px 0 rgba(255,255,255,.85);
+            --cell-line: inset 0 1px 0 rgba(0,0,0,.14), inset 0 2px 0 rgba(255,255,255,.85), inset 0 -1px 0 rgba(0,0,0,.14);
+            --pad-x: clamp(24px, 5vw, 72px);
+            --pad-y: clamp(64px, 10vh, 120px);
         }
 
         html { scroll-behavior: smooth; }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            font-weight: 400;
-            line-height: 1.6;
-            color: var(--gray-dark);
-            background: var(--white);
+            background: var(--paper);
+            color: var(--ink);
+            font-family: Inter, 'Helvetica Neue', Helvetica, sans-serif;
+            font-weight: 300;
             -webkit-font-smoothing: antialiased;
+            text-wrap: pretty;
         }
+
+        a { color: var(--ink); text-decoration: none; transition: color .2s ease, border-color .2s ease; }
+        a:hover { color: var(--red); }
+
+        .page {
+            position: relative;
+            background: radial-gradient(120% 50% at 18% 0%, rgba(255,255,255,.55) 0%, rgba(255,255,255,.1) 40%, rgba(0,0,0,0) 70%);
+        }
+
+        /* tiny tracked labels */
+        .label {
+            font-size: 9px;
+            font-weight: 500;
+            letter-spacing: .4em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+        .label-xs { font-size: 8px; letter-spacing: .5em; }
 
         /* Header */
         header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: var(--white);
-            border-bottom: 1px solid var(--black);
-            z-index: 1000;
+            position: fixed; top: 0; left: 0; right: 0; z-index: 5;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 26px var(--pad-x);
+            font-size: 9px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; color: var(--muted);
+            pointer-events: none;
         }
+        header > * { pointer-events: auto; }
 
-        .header-inner {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .brand {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 14px; letter-spacing: .06em; text-transform: none; line-height: 1;
         }
+        .brand .met { font-weight: 700; color: #000; }
+        .brand .bar { width: 2px; height: 12px; background: var(--red); display: inline-block; }
+        .brand .cap { font-weight: 400; color: var(--gray); }
+        .brand:hover .cap { color: var(--red); }
 
-        .logo { height: 26px; }
-
-        nav { display: flex; align-items: center; gap: 2rem; }
-
-        nav a {
-            text-decoration: none;
-            color: var(--gray);
-            font-size: 0.8125rem;
-            font-weight: 500;
-            letter-spacing: 0.01em;
-            transition: color 0.2s;
-        }
-
-        nav a:hover { color: var(--blue); }
-        nav a.active { color: var(--black); }
-
-        nav a { position: relative; }
-
+        nav { display: flex; gap: clamp(16px, 3vw, 36px); }
+        nav a { color: var(--muted); position: relative; }
         nav a::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            bottom: -5px;
-            width: 100%;
-            height: 1.5px;
-            background: var(--blue);
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform 0.25s ease;
+            content: ''; position: absolute; left: 0; right: 0; bottom: -6px; height: 1px;
+            background: var(--red); transform: scaleX(0); transform-origin: left; transition: transform .25s ease;
         }
-
         nav a:hover::after, nav a.active::after { transform: scaleX(1); }
-        nav a.active::after { background: var(--black); }
 
-        /* Page */
-        .page-hero {
-            padding: 9rem 2rem 3rem;
+        /* Shared section shell */
+        .shell {
+            max-width: 1100px; margin: 0 auto;
+            padding: var(--pad-y) var(--pad-x);
         }
-
-        .page-hero-inner {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        @media (prefers-reduced-motion: no-preference) {
-            .page-hero-inner > *,
-            .form-card,
-            .careers-grid .career-area {
-                opacity: 0;
-                transform: translateY(18px);
-                animation: mc-rise 0.65s ease forwards;
-            }
-
-            .page-hero-inner > *:nth-child(2) { animation-delay: 0.1s; }
-            .page-hero-inner > *:nth-child(3) { animation-delay: 0.2s; }
-            .careers-grid .career-area:nth-child(1) { animation-delay: 0.25s; }
-            .careers-grid .career-area:nth-child(2) { animation-delay: 0.37s; }
-            .careers-grid .career-area:nth-child(3) { animation-delay: 0.49s; }
-            .form-card { animation-delay: 0.3s; }
-        }
-
-        @keyframes mc-rise {
-            to { opacity: 1; transform: none; }
-        }
-
-        section {
-            padding: 3rem 2rem 6rem;
-        }
-
-        .section-inner {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .section-label {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--gray);
-            margin-bottom: 1.5rem;
-        }
-
-        h1 {
-            font-size: clamp(2rem, 3.5vw, 2.5rem);
-            font-weight: 600;
-            color: var(--black);
-            letter-spacing: -0.02em;
-            margin-bottom: 1rem;
-        }
-
-        .page-intro {
-            font-size: 1.0625rem;
-            color: var(--gray);
-            max-width: 620px;
-            line-height: 1.75;
-        }
-
-        /* Career areas (mirrors homepage careers-grid) */
-        .careers-grid {
+        .numbered {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-            margin-top: 3rem;
+            grid-template-columns: minmax(100px, 1fr) minmax(0, 3fr);
+            gap: clamp(24px, 4vw, 64px);
+            box-shadow: var(--top-line);
         }
+        .numbered .label { display: flex; gap: 16px; align-self: start; }
 
-        .career-area {
-            padding: 1.5rem;
-            background: var(--white);
-            border: 1px solid var(--black);
-            border-left: 4px solid var(--blue);
-            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        h1, h2, .display {
+            font-weight: 300; line-height: 1.1; letter-spacing: -.005em;
         }
+        h2, .display { font-size: clamp(28px, 3vw, 40px); }
 
-        .career-area:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
-        }
+        .lede { font-size: clamp(17px, 1.5vw, 20px); line-height: 1.7; color: var(--ink-soft); font-weight: 300; max-width: 62ch; }
+        .body { font-size: 15px; line-height: 1.75; color: var(--ink-body); font-weight: 400; }
 
-        .career-area h3 {
-            font-size: 0.9375rem;
-            font-weight: 600;
-            color: var(--black);
-            margin-bottom: 0.5rem;
-        }
+        .link-u { border-bottom: 1px solid var(--ink); padding-bottom: 2px; }
+        .link-u:hover { border-color: var(--red); }
+        .link-u .arrow { display: inline-block; transition: transform .25s ease; }
+        .link-u:hover .arrow { transform: translateX(4px); }
 
-        .career-area p {
-            font-size: 0.8125rem;
-            color: var(--gray);
-            line-height: 1.6;
-        }
-
-        /* Form */
-        .form-card {
-            max-width: 640px;
-            margin-top: 3rem;
-            padding-top: 3rem;
-            border-top: 1px solid var(--black);
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-        }
-
-        .field {
-            margin-bottom: 1.5rem;
-        }
-
-        .field label {
-            display: block;
-            font-size: 0.6875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--gray-light);
-            margin-bottom: 0.5rem;
-        }
-
-        .field label .required { color: var(--red); }
-
-        .field input,
-        .field select,
-        .field textarea {
-            width: 100%;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            font-size: 0.9375rem;
-            color: var(--black);
-            background: var(--white);
-            border: 1px solid var(--black);
-            padding: 0.75rem;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .field input:focus,
-        .field select:focus,
-        .field textarea:focus {
-            outline: none;
-            border-color: var(--blue);
-            box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.12);
-        }
-
-        .field textarea { resize: vertical; min-height: 140px; }
-
-        /* Honeypot -- hidden from real visitors, left for bots to fill in */
-        .hp-field {
-            position: absolute;
-            left: -9999px;
-            top: -9999px;
-            width: 1px;
-            height: 1px;
-            overflow: hidden;
-        }
-
-        .btn-submit {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            color: var(--white);
-            background: var(--black);
-            border: none;
-            padding: 0.875rem 2rem;
-            font-size: 0.8125rem;
-            font-weight: 500;
-            letter-spacing: 0.02em;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .btn-submit { transition: background 0.2s ease, transform 0.2s ease; }
-        .btn-submit:hover { background: var(--gray-dark); transform: translateY(-1px); }
-        .btn-submit:disabled { background: var(--gray-light); cursor: default; }
-
-        .form-note {
-            margin-top: 1.25rem;
-            font-size: 0.8125rem;
-            color: var(--gray-light);
-        }
+        .vline { width: 2px; background: var(--paper-line); box-shadow: var(--deboss-line); }
 
         /* Footer */
         footer {
-            background: var(--white);
-            border-top: 1px solid var(--black);
-            padding: 3rem 2rem 2rem;
+            max-width: 1100px; margin: 0 auto;
+            padding: var(--pad-y) var(--pad-x) 56px;
+            display: flex; flex-direction: column; gap: 40px;
+            box-shadow: var(--top-line);
+        }
+        .footer-brand { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 20px; letter-spacing: .02em; }
+        .footer-brand .met { font-weight: 700; color: #000; }
+        .footer-brand .bar { width: 3px; height: 17px; background: var(--red); }
+        .footer-brand .cap { font-weight: 400; color: var(--gray); }
+        .footer-legal { display: flex; flex-direction: column; gap: 20px; max-width: 72ch; margin: 0 auto; text-align: center; font-size: 12px; line-height: 1.75; color: var(--ink-legal); }
+        .footer-legal strong { color: var(--ink); font-weight: 500; }
+        .footer-meta { display: flex; flex-direction: column; align-items: center; gap: 18px; font-size: 8px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; color: var(--muted); }
+        .footer-meta nav { gap: 28px; flex-wrap: wrap; justify-content: center; }
+        .footer-meta span { text-align: center; line-height: 2; }
+
+        /* Forms (subpages) */
+        .field { display: flex; flex-direction: column; gap: 10px; }
+        .field label { font-size: 8px; font-weight: 500; letter-spacing: .5em; text-transform: uppercase; color: var(--muted); }
+        .field label .required { color: var(--red); }
+        .field input, .field select, .field textarea {
+            font-family: inherit; font-size: 15px; font-weight: 400; color: var(--ink);
+            background: rgba(255,255,255,.45); border: 0; padding: 14px 16px;
+            box-shadow: var(--cell-line);
+            transition: background .2s ease, box-shadow .2s ease;
+            width: 100%;
+        }
+        .field input:focus, .field select:focus, .field textarea:focus {
+            outline: none; background: rgba(255,255,255,.8);
+            box-shadow: var(--cell-line), 0 0 0 1px var(--red);
+        }
+        .field textarea { min-height: 150px; resize: vertical; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .form-stack { display: flex; flex-direction: column; gap: 24px; max-width: 640px; }
+        .hp-field { position: absolute; left: -9999px; top: -9999px; width: 1px; height: 1px; overflow: hidden; }
+        .btn {
+            font-family: inherit; font-size: 9px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase;
+            color: var(--paper); background: var(--ink); border: 0; padding: 18px 32px; cursor: pointer;
+            align-self: flex-start; transition: background .2s ease, transform .2s ease;
+        }
+        .btn:hover { background: var(--red); transform: translateY(-1px); }
+        .form-note { font-size: 12px; color: var(--muted); line-height: 1.7; }
+
+        /* Motion */
+        .reveal-init { opacity: 0; transform: translateY(20px); }
+        .reveal-in { opacity: 1; transform: none; transition: opacity .7s ease, transform .7s ease; }
+        @media (prefers-reduced-motion: no-preference) {
+            .rise { opacity: 0; transform: translateY(16px); animation: mc-rise .8s ease forwards; }
+            .rise-2 { animation-delay: .15s; } .rise-3 { animation-delay: .3s; } .rise-4 { animation-delay: .45s; }
+            .hero .vline { transform: scaleY(0); transform-origin: top; animation: mc-grow 1s ease .1s forwards; }
+        }
+        @keyframes mc-rise { to { opacity: 1; transform: none; } }
+        @keyframes mc-grow { to { transform: scaleY(1); } }
+
+        @media (max-width: 768px) {
+            .numbered { grid-template-columns: 1fr; gap: 20px; }
+            .form-row { grid-template-columns: 1fr; }
+            header { padding: 20px var(--pad-x); }
+        }
+        @media (max-width: 520px) {
+            nav a:not(.keep) { display: none; }
         }
 
-        .footer-inner {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+        .page-hero { padding: 150px var(--pad-x) 0; max-width: 1100px; margin: 0 auto; }
+        .page-hero .label { display: flex; gap: 16px; margin-bottom: 28px; }
+        .page-hero h1 { font-size: clamp(30px, 4vw, 48px); letter-spacing: -.01em; max-width: 18ch; }
+        .page-hero .lede { margin-top: 24px; font-size: 15px; line-height: 1.75; color: var(--ink-body); font-weight: 400; max-width: 62ch; }
+        .page-body { max-width: 1100px; margin: 0 auto; padding: clamp(48px, 7vh, 88px) var(--pad-x) var(--pad-y); }
+        .form-block { padding-top: 40px; box-shadow: var(--top-line); }
+        .roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 32px; margin-bottom: 64px; }
+        .role { padding-top: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--top-line); }
+        .role h3 { font-size: 9px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; color: var(--ink); }
+        .role p { font-size: 14px; line-height: 1.75; color: var(--ink-body); font-weight: 400; }
+        .confirm { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 120px var(--pad-x) 64px; gap: 28px; }
+        .confirm .vline { height: clamp(120px, 24vh, 240px); }
+        .confirm h1 { font-size: clamp(30px, 4vw, 48px); }
+        .confirm p { font-size: 15px; line-height: 1.75; color: var(--ink-body); max-width: 52ch; font-weight: 400; }
 
-        .footer-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 2rem;
-        }
-
-        .footer-reg p {
-            font-size: 0.8125rem;
-            color: var(--gray);
-            line-height: 1.7;
-            max-width: 560px;
-        }
-
-        .footer-links {
-            display: flex;
-            gap: 2rem;
-        }
-
-        .footer-links a {
-            font-size: 0.8125rem;
-            color: var(--black);
-            text-decoration: none;
-        }
-
-        .footer-links a:hover { color: var(--blue); }
-
-        .footer-bottom {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .footer-bottom p {
-            font-size: 0.8125rem;
-            color: var(--gray);
-        }
-
-        .footer-warning {
-            border-top: 1px solid var(--black);
-            padding-top: 1.5rem;
-            margin-top: 1.5rem;
-        }
-
-        .footer-warning p {
-            font-size: 0.8125rem;
-            color: var(--gray);
-            line-height: 1.7;
-        }
-
-        .footer-warning strong { color: var(--black); }
-
-        /* Responsive */
-        @media (max-width: 968px) {
-            .careers-grid { grid-template-columns: 1fr; }
-            .form-row { grid-template-columns: 1fr; gap: 0; }
-            .footer-top { flex-direction: column; gap: 1.5rem; }
-        }
-
-        @media (max-width: 600px) {
-            .header-inner { padding: 0.875rem 1.25rem; }
-            nav { gap: 1rem; }
-            .page-hero { padding: 7rem 1.25rem 2rem; }
-            section { padding: 2rem 1.25rem 4rem; }
-            h1 { font-size: 1.625rem; }
-            .footer-inner { padding: 0; }
-            .footer-links { flex-wrap: wrap; gap: 1rem; }
-        }
     </style>
 </head>
 <body>
+<div class="page">
+
     <header>
-        <div class="header-inner">
-            <a href="/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
-            <nav>
-                <a href="/#about">About</a>
-                <a href="/#leadership">Leadership</a>
-                <a href="/careers/" class="active">Careers</a>
-                <a href="/contact/">Contact</a>
-            </nav>
-        </div>
+        <a href="/" class="brand" aria-label="Met Capital home"><span class="met">MET</span><span class="bar"></span><span class="cap">CAPITAL</span></a>
+        <nav><a href="/#about">About</a><a href="/#leadership">Leadership</a><a href="/careers/" class="active">Careers</a><a href="/contact/">Contact</a></nav>
     </header>
 
     <div class="page-hero">
-        <div class="page-hero-inner">
-            <div class="section-label">Careers</div>
-            <h1>Join Us</h1>
-            <p class="page-intro">We seek exceptional individuals who combine intellectual rigour with practical capability. Experience in finance is not required — we value analytical ability, technical depth, and intellectual curiosity.</p>
+        <div class="label rise"><span>—</span><span>Careers</span></div>
+        <h1 class="rise rise-2">Join Us</h1>
+        <p class="lede rise rise-3">We seek exceptional individuals who combine intellectual rigour with practical capability. Experience in finance is not required — we value analytical ability, technical depth, and intellectual curiosity.</p>
+    </div>
+    <div class="page-body">
+        <div class="roles" data-reveal-group>
+            <div class="role"><h3>Quantitative Research</h3><p>Develop systematic investment strategies through statistical analysis, machine learning, and empirical research across global markets.</p></div>
+            <div class="role"><h3>Technology</h3><p>Build and maintain the computational infrastructure that supports our research and trading operations. Distributed systems, data engineering, platform development.</p></div>
+            <div class="role"><h3>Operations</h3><p>Ensure operational excellence across trading, compliance, and business functions. Institutional rigour applied to every process.</p></div>
         </div>
+        <form name="careers" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/thank-you/" class="form-block form-stack" data-reveal>
+            <input type="hidden" name="form-name" value="careers">
+            <p class="hp-field" aria-hidden="true"><label>Leave this field blank<input tabindex="-1" autocomplete="off" name="bot-field"></label></p>
+            <div class="form-row">
+                <div class="field"><label for="k_name">Full Name <span class="required">*</span></label><input type="text" id="k_name" name="name" required></div>
+                <div class="field"><label for="k_email">Email <span class="required">*</span></label><input type="email" id="k_email" name="email" required></div>
+            </div>
+            <div class="form-row">
+                <div class="field">
+                    <label for="k_area">Area of Interest <span class="required">*</span></label>
+                    <select id="k_area" name="area_of_interest" required>
+                        <option value="">Select an area…</option>
+                        <option value="Quantitative Research">Quantitative Research</option>
+                        <option value="Technology">Technology</option>
+                        <option value="Operations">Operations</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="field"><label for="k_link">LinkedIn / Portfolio URL</label><input type="url" id="k_link" name="profile_url" placeholder="https://…"></div>
+            </div>
+            <div class="field"><label for="k_message">Message / Cover Letter <span class="required">*</span></label><textarea id="k_message" name="message" required placeholder="Tell us about your background and why you're interested in Met Capital."></textarea></div>
+            <button type="submit" class="btn">Submit Application</button>
+            <p class="form-note">We review every submission individually and manually — no automated replies are sent.</p>
+        </form>
     </div>
 
-    <section>
-        <div class="section-inner">
-            <div class="careers-grid">
-                <div class="career-area">
-                    <h3>Quantitative Research</h3>
-                    <p>Develop systematic investment strategies through statistical analysis, machine learning, and empirical research across global markets.</p>
-                </div>
-                <div class="career-area">
-                    <h3>Technology</h3>
-                    <p>Build and maintain the computational infrastructure that supports our research and trading operations. Distributed systems, data engineering, platform development.</p>
-                </div>
-                <div class="career-area">
-                    <h3>Operations</h3>
-                    <p>Ensure operational excellence across trading, compliance, and business functions. Institutional rigour applied to every process.</p>
-                </div>
-            </div>
-
-            <form name="careers" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/thank-you/" class="form-card">
-                <input type="hidden" name="form-name" value="careers">
-                <p class="hp-field" aria-hidden="true">
-                    <label>Leave this field blank<input tabindex="-1" autocomplete="off" name="bot-field"></label>
-                </p>
-
-                <div class="form-row">
-                    <div class="field">
-                        <label for="k_name">Full Name <span class="required">*</span></label>
-                        <input type="text" id="k_name" name="name" required>
-                    </div>
-                    <div class="field">
-                        <label for="k_email">Email <span class="required">*</span></label>
-                        <input type="email" id="k_email" name="email" required>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="field">
-                        <label for="k_area">Area of Interest <span class="required">*</span></label>
-                        <select id="k_area" name="area_of_interest" required>
-                            <option value="">Select an area…</option>
-                            <option value="Quantitative Research">Quantitative Research</option>
-                            <option value="Technology">Technology</option>
-                            <option value="Operations">Operations</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div class="field">
-                        <label for="k_link">LinkedIn / Portfolio URL</label>
-                        <input type="url" id="k_link" name="profile_url" placeholder="https://…">
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label for="k_message">Message / Cover Letter <span class="required">*</span></label>
-                    <textarea id="k_message" name="message" required placeholder="Tell us about your background and why you're interested in Met Capital."></textarea>
-                </div>
-
-                <button type="submit" class="btn-submit">Submit Application</button>
-                <p class="form-note">We review every submission individually and manually — no automated replies are sent.</p>
-            </form>
-        </div>
-    </section>
-
     <footer>
-        <div class="footer-inner">
-            <div class="footer-top">
-                <div class="footer-reg">
-                    <p>Met Capital Ltd is registered in England and Wales (Company No. 12735600). This website does not constitute an offer or solicitation to any person in any jurisdiction. The information provided is for general informational purposes only.</p>
-                </div>
-                <div class="footer-links">
-                    <a href="#">Privacy Policy</a>
-                    <a href="#">Terms of Use</a>
-                    <a href="#">Disclosures</a>
-                </div>
-            </div>
-
-            <div class="footer-warning">
-                <p><strong>Important Notice:</strong> met.capital is the only official website of Met Capital Ltd. We do not operate any other publicly available websites, mobile applications, or social media accounts offering investment services. Please verify you are on our official website before sharing any information.</p>
-            </div>
-
-            <div class="footer-bottom">
-                <p>© 2020 - 2026 Met Capital Ltd. All rights reserved.</p>
-                <p>London · Zurich</p>
-            </div>
+        <div class="footer-brand"><span class="met">MET</span><span class="bar"></span><span class="cap">CAPITAL</span></div>
+        <div class="footer-legal">
+            <p>Met Capital Ltd is registered in England and Wales (Company No. 12735600). This website does not constitute an offer or solicitation to any person in any jurisdiction. The information provided is for general informational purposes only.</p>
+            <p><strong>Important Notice:</strong> met.capital is the only official website of Met Capital Ltd. We do not operate any other publicly available websites, mobile applications, or social media accounts offering investment services. Please verify you are on our official website before sharing any information.</p>
+        </div>
+        <div class="footer-meta">
+            <nav><a href="#">Privacy Policy</a><a href="#">Terms of Use</a><a href="#">Disclosures</a></nav>
+            <span>© 2020 – 2026 Met Capital Ltd. All rights reserved.<br>London · Zurich</span>
         </div>
     </footer>
+</div>
+
+    <script>
+        (function () {
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            if (!('IntersectionObserver' in window)) return;
+            var obs = new IntersectionObserver(function (entries) {
+                entries.forEach(function (e) {
+                    if (e.isIntersecting) { e.target.classList.add('reveal-in'); obs.unobserve(e.target); }
+                });
+            }, { threshold: 0.1 });
+            function prep(el, delay) {
+                if (el.getBoundingClientRect().top < window.innerHeight) return;
+                el.classList.add('reveal-init');
+                if (delay) el.style.transitionDelay = delay + 'ms';
+                obs.observe(el);
+            }
+            document.querySelectorAll('[data-reveal]').forEach(function (el) { prep(el, 0); });
+            document.querySelectorAll('[data-reveal-group] > *').forEach(function (el, i) { prep(el, (i % 4) * 90); });
+        })();
+    </script>
 </body>
 </html>
