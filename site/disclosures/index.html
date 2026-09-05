@@ -13,15 +13,15 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Met Capital is an investment management group applying systematic methods informed by artificial intelligence research to global markets.">
+    <meta name="description" content="Important disclosures regarding the Met Capital website.">
     <meta name="robots" content="index, follow">
-    <meta property="og:title" content="Met Capital">
-    <meta property="og:description" content="Met Capital is an investment management group applying systematic methods informed by artificial intelligence research to global markets.">
+    <meta property="og:title" content="Disclosures — Met Capital">
+    <meta property="og:description" content="Important disclosures regarding the Met Capital website.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://met.capital">
-    <link rel="canonical" href="https://met.capital">
+    <meta property="og:url" content="https://met.capital/disclosures/">
+    <link rel="canonical" href="https://met.capital/disclosures/">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <title>Met Capital</title>
+    <title>Disclosures — Met Capital</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -195,45 +195,21 @@
             nav a:not(.keep) { display: none; }
         }
 
-        .hero {
-            position: relative; min-height: 100vh;
-            display: flex; flex-direction: column; justify-content: space-between;
-            padding: 120px var(--pad-x) 64px;
-        }
-        .hero .vline-wrap { display: flex; justify-content: center; }
-        .hero .vline { height: clamp(180px, 34vh, 340px); }
-        .hero-copy { display: flex; flex-direction: column; align-items: center; gap: 28px; text-align: center; }
-        .hero h1 { font-size: clamp(30px, 4vw, 52px); letter-spacing: -.01em; max-width: 16ch; }
-        .hero p { font-size: 15px; line-height: 1.75; color: var(--ink-body); max-width: 58ch; font-weight: 400; }
-
-        .facts { padding-top: 0; }
-        .facts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0; }
-        .fact { padding: 28px 24px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--cell-line); transition: background .25s ease; }
-        .fact:hover { background: rgba(255,255,255,.35); }
-        .fact .value { font-size: 20px; font-weight: 300; }
-
-        .about-copy { display: flex; flex-direction: column; gap: 32px; }
-        .research { margin-top: 16px; padding-left: 32px; position: relative; display: flex; flex-direction: column; gap: 12px; }
-        .research .vline { position: absolute; left: 0; top: 0; bottom: 0; }
-        .research h3 { font-size: 9px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; color: var(--ink); }
-
-        .leader { display: flex; flex-direction: column; gap: 36px; }
-        .leader-head { display: flex; flex-direction: column; gap: 12px; }
-        .leader-title { font-size: 14px; color: var(--ink); font-weight: 400; }
-        .leader-bio { display: flex; flex-direction: column; gap: 24px; font-size: 16px; line-height: 1.75; color: var(--ink-soft); max-width: 62ch; }
-
-        .careers-body { display: flex; flex-direction: column; gap: 48px; }
-        .careers-intro { display: flex; flex-direction: column; gap: 20px; }
-        .roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 32px; }
-        .role { padding-top: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--top-line); }
-        .role h3 { font-size: 9px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; color: var(--ink); }
-        .role p { font-size: 14px; line-height: 1.75; color: var(--ink-body); font-weight: 400; }
-        .careers-cta { font-size: 15px; color: var(--ink-soft); font-weight: 400; }
-
-        .contact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 40px; }
-        .contact-item { display: flex; flex-direction: column; gap: 14px; }
-        .contact-item h3 { font-size: 9px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; color: var(--ink); }
-        .contact-item a, .contact-item span { font-size: 15px; font-weight: 400; align-self: flex-start; color: var(--ink-soft); }
+        .page-hero { padding: 150px var(--pad-x) 0; max-width: 1100px; margin: 0 auto; }
+        .page-hero .label { display: flex; gap: 16px; margin-bottom: 28px; }
+        .page-hero h1 { font-size: clamp(30px, 4vw, 48px); letter-spacing: -.01em; max-width: 18ch; }
+        .page-hero .meta { margin-top: 20px; font-size: 12px; color: var(--muted); }
+        .page-body { max-width: 1100px; margin: 0 auto; padding: clamp(48px, 7vh, 88px) var(--pad-x) var(--pad-y); }
+        .legal { max-width: 72ch; display: flex; flex-direction: column; gap: 44px; padding-top: 40px; box-shadow: var(--top-line); }
+        .legal section { display: flex; flex-direction: column; gap: 14px; }
+        .legal h2 { font-size: 10px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; color: var(--ink); line-height: 1.6; }
+        .legal p, .legal li { font-size: 15px; line-height: 1.8; color: var(--ink-body); font-weight: 400; }
+        .legal ul { padding-left: 1.25em; display: flex; flex-direction: column; gap: 8px; }
+        .legal strong { color: var(--ink); font-weight: 500; }
+        .legal a { border-bottom: 1px solid var(--ink); }
+        .legal a:hover { border-color: var(--red); }
+        .legal-nav { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 56px; font-size: 8px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; }
+        .legal-nav a { color: var(--muted); }
 
     </style>
 </head>
@@ -245,78 +221,56 @@
         <nav><a href="/#about">About</a><a href="/#leadership">Leadership</a><a href="/careers/">Careers</a><a href="/contact/">Contact</a></nav>
     </header>
 
-    <section id="top" class="hero">
-        <div></div>
-        <div class="vline-wrap"><div class="vline"></div></div>
-        <div class="hero-copy">
-            <h1 class="rise">Systematic Investment Management</h1>
-            <p class="rise rise-2">Met Capital is an investment management group that applies systematic, research-driven methods to global markets. Our approach integrates artificial intelligence, quantitative analysis, and insights from the study of complex adaptive systems.</p>
-            <div class="label label-xs rise rise-3">London · Zurich</div>
-        </div>
-    </section>
-
-    <section class="shell facts">
-        <div class="facts-grid" data-reveal-group>
-            <div class="fact"><span class="label label-xs">Headquarters</span><span class="value">London</span></div>
-            <div class="fact"><span class="label label-xs">Research</span><span class="value">Zurich</span></div>
-            <div class="fact"><span class="label label-xs">Approach</span><span class="value">Systematic</span></div>
-            <div class="fact"><span class="label label-xs">Strategies</span><span class="value">Multi-Asset</span></div>
-        </div>
-    </section>
-
-    <section id="about" class="shell numbered" data-reveal>
-        <div class="label"><span>01</span><span>About</span></div>
-        <div class="about-copy lede">
-            <p>Met Capital employs quantitative and computational methods in the design and execution of its investment programmes. We combine systematic modelling, machine learning, and rigorous empirical analysis to identify opportunities across global markets.</p>
-            <p>Our research foundation distinguishes our approach. Through the ACR Institute, we conduct original inquiry into artificial intelligence, computational theory, and the mathematical properties of complex systems. These investigations inform our systematic methodologies and our understanding of where algorithmic approaches have decisive advantages—and where they do not.</p>
-            <p>We operate investment vehicles and maintain private equity positions in technology companies aligned with our research interests. Our holding structure allows us to deploy capital systematically while supporting fundamental research on a long-term basis.</p>
-            <div class="research">
-                <div class="vline"></div>
-                <h3>Research Foundation</h3>
-                <p class="body">The ACR Institute is a Swiss non-profit research association conducting inquiry into consciousness, computation, and complex systems. This research informs our systematic investment frameworks.</p>
-            </div>
-        </div>
-    </section>
-
-    <section id="leadership" class="shell numbered" data-reveal>
-        <div class="label"><span>02</span><span>Leadership</span></div>
-        <div class="leader">
-            <div class="leader-head">
-                <h3 class="display">Dr. Sulkhan Metreveli</h3>
-                <div class="leader-title">Founder &amp; Chief Executive Officer</div>
-                <div class="label" style="letter-spacing:.3em;">PhD, University of Zurich · Director, ACR Institute</div>
-            </div>
-            <div class="leader-bio">
-                <p>Dr. Metreveli founded Met Capital to bridge rigorous research and systematic investment management. His academic work focuses on artificial intelligence, machine learning, and the computational limits of algorithmic systems—research conducted through the ACR Institute, which he established as a Swiss non-profit dedicated to fundamental inquiry.</p>
-                <p>He holds a doctorate (PhD) in communication science from the University of Zurich.</p>
-            </div>
-        </div>
-    </section>
-
-    <section id="careers" class="shell numbered" data-reveal>
-        <div class="label"><span>03</span><span>Careers</span></div>
-        <div class="careers-body">
-            <div class="careers-intro">
-                <h2>Join Us</h2>
-                <p class="lede">We seek exceptional individuals who combine intellectual rigour with practical capability. Our team includes researchers, engineers, and analysts from diverse academic backgrounds. Experience in finance is not required—we value analytical ability, technical depth, and intellectual curiosity.</p>
-            </div>
-            <div class="roles">
-                <div class="role"><h3>Quantitative Research</h3><p>Develop systematic investment strategies through statistical analysis, machine learning, and empirical research across global markets.</p></div>
-                <div class="role"><h3>Technology</h3><p>Build and maintain the computational infrastructure that supports our research and trading operations. Distributed systems, data engineering, platform development.</p></div>
-                <div class="role"><h3>Operations</h3><p>Ensure operational excellence across trading, compliance, and business functions. Institutional rigour applied to every process.</p></div>
-            </div>
-            <p class="careers-cta">Interested in joining us? <a href="/careers/" class="link-u">Apply here <span class="arrow">→</span></a></p>
-        </div>
-    </section>
-
-    <section id="contact" class="shell numbered" data-reveal>
-        <div class="label"><span>04</span><span>Contact</span></div>
-        <div class="contact-grid">
-            <div class="contact-item"><h3>General Enquiries</h3><a href="/contact/" class="link-u">Get in touch <span class="arrow">→</span></a></div>
-            <div class="contact-item"><h3>Careers</h3><a href="/careers/" class="link-u">Apply here <span class="arrow">→</span></a></div>
-            <div class="contact-item"><h3>Headquarters</h3><span>London, United Kingdom</span></div>
-        </div>
-    </section>
+    <div class="page-hero">
+        <div class="label rise"><span>—</span><span>Legal</span></div>
+        <h1 class="rise rise-2">Disclosures</h1>
+        <p class="meta rise rise-3">Last updated: 5 September 2026</p>
+    </div>
+    <div class="page-body">
+        <article class="legal" data-reveal>
+            <section>
+                <h2>1. No offer or solicitation</h2>
+                <p>Nothing on this website constitutes an offer to sell, or a solicitation of an offer to buy, any security, interest in any fund or investment vehicle, or other financial instrument, in any jurisdiction. Any such offer or solicitation will be made only through definitive documentation, to eligible persons, and in compliance with applicable law. This website is not intended for distribution to, or use by, any person in any jurisdiction where such distribution or use would be contrary to law or regulation.</p>
+            </section>
+            <section>
+                <h2>2. No investment advice</h2>
+                <p>The content of this website is general information about Met Capital Ltd and its approach. It has been prepared without regard to the investment objectives, financial situation, or particular needs of any person, and does not constitute investment, legal, tax, or accounting advice. You should seek independent professional advice before making any investment decision.</p>
+            </section>
+            <section>
+                <h2>3. Regulatory status</h2>
+                <p>Met Capital Ltd is a company registered in England and Wales (Company No. 12735600). Nothing on this website should be read as a representation that Met Capital Ltd, or any affiliated entity, is authorised or regulated to provide investment services in any particular jurisdiction. The regulatory status of any Met Capital entity that provides services to you, and the protections that apply, are set out in the documentation provided to you directly. If you have not received such documentation, no services are being offered to you through this website.</p>
+            </section>
+            <section>
+                <h2>4. Risk warning</h2>
+                <p>Investing involves risk, including the possible loss of the entire amount invested. The value of investments and the income from them can go down as well as up, and investors may not get back the amount originally invested. Systematic and quantitative strategies are subject to model risk, data risk, and the risk that historical relationships do not persist. Past performance is not a reliable indicator of future results. Investments in private companies are illiquid and speculative.</p>
+            </section>
+            <section>
+                <h2>5. Forward-looking statements</h2>
+                <p>This website may contain statements about Met Capital’s approach, research, and expectations that are forward-looking in nature. Such statements reflect current views and are subject to uncertainty; actual outcomes may differ materially. Met Capital undertakes no obligation to update them.</p>
+            </section>
+            <section>
+                <h2>6. Research foundation</h2>
+                <p>References to the ACR Institute describe a separate Swiss non-profit research association whose work informs Met Capital’s methodologies. The ACR Institute does not provide investment services, and nothing on this website should be taken as an offer or recommendation by it.</p>
+            </section>
+            <section>
+                <h2>7. Official website and fraud warning</h2>
+                <p><strong>met.capital is the only official website of Met Capital Ltd.</strong> We do not operate any other publicly available websites, mobile applications, or social media accounts offering investment services, and we do not solicit investment through unsolicited messages. Anyone claiming to represent Met Capital through another channel, or requesting payments or personal information by email or messaging, should be treated as fraudulent. Met Capital will never ask you to confirm bank or address changes by email; such changes are verified by telephone with the client directly. If you have been approached in this way, please tell us through the <a href="/contact/">contact form</a> and consider reporting it to your local authorities.</p>
+            </section>
+            <section>
+                <h2>8. Client portal information</h2>
+                <p>Balances, performance figures, and other information displayed in the client portal are provided for convenience and reference. They may be delayed, estimated, or subject to revision, and the official record of your holdings is the documentation and statements issued to you directly by Met Capital or its administrators.</p>
+            </section>
+            <section>
+                <h2>9. Accuracy and changes</h2>
+                <p>While we take care to ensure the information on this website is accurate, we make no representation or warranty as to its completeness or accuracy and accept no liability for errors or omissions. Content may be changed without notice. Please also read our <a href="/terms/">Terms of Use</a> and <a href="/privacy/">Privacy Policy</a>.</p>
+            </section>
+            <section>
+                <h2>10. Complaints</h2>
+                <p>If you are a client and wish to raise a concern about our services, please do so through the <a href="/contact/">contact form</a> or the channels set out in your client documentation. We take complaints seriously and will respond in accordance with our complaints procedure and any applicable regulatory requirements.</p>
+            </section>
+        </article>
+        <nav class="legal-nav"><a href="/privacy/">Privacy Policy</a><a href="/terms/">Terms of Use</a><a href="/disclosures/">Disclosures</a></nav>
+    </div>
 
     <footer>
         <div class="footer-brand"><span class="met">MET</span><span class="bar"></span><span class="cap">CAPITAL</span></div>

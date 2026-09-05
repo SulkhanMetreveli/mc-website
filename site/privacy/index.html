@@ -13,15 +13,15 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Get in touch with Met Capital.">
+    <meta name="description" content="How Met Capital Ltd collects, uses, and protects personal data.">
     <meta name="robots" content="index, follow">
-    <meta property="og:title" content="Contact — Met Capital">
-    <meta property="og:description" content="Get in touch with Met Capital.">
+    <meta property="og:title" content="Privacy Policy — Met Capital">
+    <meta property="og:description" content="How Met Capital Ltd collects, uses, and protects personal data.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://met.capital/contact/">
-    <link rel="canonical" href="https://met.capital/contact/">
+    <meta property="og:url" content="https://met.capital/privacy/">
+    <link rel="canonical" href="https://met.capital/privacy/">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <title>Contact — Met Capital</title>
+    <title>Privacy Policy — Met Capital</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -198,17 +198,18 @@
         .page-hero { padding: 150px var(--pad-x) 0; max-width: 1100px; margin: 0 auto; }
         .page-hero .label { display: flex; gap: 16px; margin-bottom: 28px; }
         .page-hero h1 { font-size: clamp(30px, 4vw, 48px); letter-spacing: -.01em; max-width: 18ch; }
-        .page-hero .lede { margin-top: 24px; font-size: 15px; line-height: 1.75; color: var(--ink-body); font-weight: 400; max-width: 62ch; }
+        .page-hero .meta { margin-top: 20px; font-size: 12px; color: var(--muted); }
         .page-body { max-width: 1100px; margin: 0 auto; padding: clamp(48px, 7vh, 88px) var(--pad-x) var(--pad-y); }
-        .form-block { padding-top: 40px; box-shadow: var(--top-line); }
-        .roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 32px; margin-bottom: 64px; }
-        .role { padding-top: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--top-line); }
-        .role h3 { font-size: 9px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; color: var(--ink); }
-        .role p { font-size: 14px; line-height: 1.75; color: var(--ink-body); font-weight: 400; }
-        .confirm { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 120px var(--pad-x) 64px; gap: 28px; }
-        .confirm .vline { height: clamp(120px, 24vh, 240px); }
-        .confirm h1 { font-size: clamp(30px, 4vw, 48px); }
-        .confirm p { font-size: 15px; line-height: 1.75; color: var(--ink-body); max-width: 52ch; font-weight: 400; }
+        .legal { max-width: 72ch; display: flex; flex-direction: column; gap: 44px; padding-top: 40px; box-shadow: var(--top-line); }
+        .legal section { display: flex; flex-direction: column; gap: 14px; }
+        .legal h2 { font-size: 10px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; color: var(--ink); line-height: 1.6; }
+        .legal p, .legal li { font-size: 15px; line-height: 1.8; color: var(--ink-body); font-weight: 400; }
+        .legal ul { padding-left: 1.25em; display: flex; flex-direction: column; gap: 8px; }
+        .legal strong { color: var(--ink); font-weight: 500; }
+        .legal a { border-bottom: 1px solid var(--ink); }
+        .legal a:hover { border-color: var(--red); }
+        .legal-nav { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 56px; font-size: 8px; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; }
+        .legal-nav a { color: var(--muted); }
 
     </style>
 </head>
@@ -217,27 +218,108 @@
 
     <header>
         <a href="/" class="brand" aria-label="Met Capital home"><span class="met">MET</span><span class="bar"></span><span class="cap">CAPITAL</span></a>
-        <nav><a href="/#about">About</a><a href="/#leadership">Leadership</a><a href="/careers/">Careers</a><a href="/contact/" class="active">Contact</a></nav>
+        <nav><a href="/#about">About</a><a href="/#leadership">Leadership</a><a href="/careers/">Careers</a><a href="/contact/">Contact</a></nav>
     </header>
 
     <div class="page-hero">
-        <div class="label rise"><span>—</span><span>Contact</span></div>
-        <h1 class="rise rise-2">Get in Touch</h1>
-        <p class="lede rise rise-3">Send us a message and a member of our team will get back to you. For account-related questions, existing clients should use the client portal.</p>
+        <div class="label rise"><span>—</span><span>Legal</span></div>
+        <h1 class="rise rise-2">Privacy Policy</h1>
+        <p class="meta rise rise-3">Last updated: 5 September 2026</p>
     </div>
     <div class="page-body">
-        <form name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/thank-you/" class="form-block form-stack rise rise-4">
-            <input type="hidden" name="form-name" value="contact">
-            <p class="hp-field" aria-hidden="true"><label>Leave this field blank<input tabindex="-1" autocomplete="off" name="bot-field"></label></p>
-            <div class="form-row">
-                <div class="field"><label for="c_name">Full Name <span class="required">*</span></label><input type="text" id="c_name" name="name" required></div>
-                <div class="field"><label for="c_email">Email <span class="required">*</span></label><input type="email" id="c_email" name="email" required></div>
-            </div>
-            <div class="field"><label for="c_subject">Subject</label><input type="text" id="c_subject" name="subject"></div>
-            <div class="field"><label for="c_message">Message <span class="required">*</span></label><textarea id="c_message" name="message" required></textarea></div>
-            <button type="submit" class="btn">Send Message</button>
-            <p class="form-note">We respond to enquiries individually and manually — no automated replies are sent.</p>
-        </form>
+        <article class="legal" data-reveal>
+            <section>
+                <h2>1. Who we are</h2>
+                <p>Met Capital Ltd (“Met Capital”, “we”, “us”) is a company registered in England and Wales (Company No. 12735600), with operations in London and research activities in Zurich. We are the controller of the personal data described in this policy.</p>
+                <p>This policy explains what personal data we collect through this website (met.capital), the client portal, the staff portal, and our contact and careers forms; why we collect it; who we share it with; and the rights you have. Where we act for clients under separate agreements, those agreements and any accompanying privacy notices take precedence over this policy.</p>
+            </section>
+            <section>
+                <h2>2. Data we collect</h2>
+                <p>The data we collect depends on how you interact with us:</p>
+                <ul>
+                    <li><strong>Website visitors.</strong> Technical data such as IP address, browser type, device, pages viewed, and approximate location, collected through analytics cookies (see section 8).</li>
+                    <li><strong>Contact and careers forms.</strong> Your name, email address, and the content of your message. For career enquiries, also your area of interest and any profile or portfolio link you choose to provide.</li>
+                    <li><strong>Client portal users.</strong> Identity and contact details (name, address, phone, email, date of birth, nationality), tax residency and identification numbers, source-of-funds and occupation information, identity documents (such as passport copies) and proof of address, bank and payout account details, records of your investment vehicles and balances, documents we share with you, and the requests you submit (address, bank, document, and withdrawal requests) including their review status.</li>
+                    <li><strong>Staff portal users (employees).</strong> Employment records including job details, personal and emergency contact details, home address, time-off requests and balances, and documents exchanged with HR.</li>
+                    <li><strong>Security logs.</strong> Authentication events and, for the staff portal, records of failed login attempts used to prevent abuse.</li>
+                </ul>
+            </section>
+            <section>
+                <h2>3. How we use your data</h2>
+                <p>We use personal data to:</p>
+                <ul>
+                    <li>operate and secure this website and its portals, including authenticating you and maintaining your session;</li>
+                    <li>respond to enquiries and evaluate career applications;</li>
+                    <li>provide client services, including maintaining account records, processing withdrawal and change requests, and sharing documents;</li>
+                    <li>meet legal and regulatory obligations, in particular customer due diligence, anti-money-laundering and counter-terrorist-financing requirements, and record-keeping duties;</li>
+                    <li>administer employment, including time off, HR records, and workplace obligations;</li>
+                    <li>detect, investigate, and prevent fraud and unauthorised access;</li>
+                    <li>understand how the website is used so we can improve it.</li>
+                </ul>
+            </section>
+            <section>
+                <h2>4. Legal bases</h2>
+                <p>Under UK data protection law (UK GDPR and the Data Protection Act 2018) we rely on the following bases:</p>
+                <ul>
+                    <li><strong>Contract</strong> — to provide the services you have engaged us for, or to take steps at your request before entering into a contract, including responding to enquiries and applications.</li>
+                    <li><strong>Legal obligation</strong> — to satisfy customer due diligence, anti-money-laundering, tax reporting, employment, and record-keeping requirements.</li>
+                    <li><strong>Legitimate interests</strong> — to secure our systems, prevent fraud, administer our business, and improve our website, where these interests are not overridden by your rights.</li>
+                    <li><strong>Consent</strong> — for analytics cookies, which you can decline through your browser settings or by disabling cookies for this site.</li>
+                </ul>
+            </section>
+            <section>
+                <h2>5. Who we share data with</h2>
+                <p>We do not sell personal data. We share it only with service providers who process it on our behalf under contractual confidentiality and security obligations, and with authorities where the law requires it. Our current infrastructure providers are:</p>
+                <ul>
+                    <li><strong>Netlify, Inc.</strong> — website hosting, form submissions, serverless functions, and storage for the staff portal.</li>
+                    <li><strong>Supabase, Inc.</strong> — database, authentication, and document storage for the client portal.</li>
+                    <li><strong>Google LLC</strong> — website analytics (Google Analytics).</li>
+                </ul>
+                <p>We may also disclose data to regulators, law enforcement, courts, or professional advisers where necessary to comply with legal obligations, protect our rights, or in connection with a reorganisation of our business.</p>
+            </section>
+            <section>
+                <h2>6. International transfers</h2>
+                <p>Our service providers may process data outside the United Kingdom and Switzerland, including in the United States and the European Economic Area. Where data leaves the UK we rely on safeguards recognised under UK law, such as the UK’s adequacy regulations, the International Data Transfer Agreement, or the UK Addendum to the EU Standard Contractual Clauses.</p>
+            </section>
+            <section>
+                <h2>7. How long we keep data</h2>
+                <p>We keep personal data only as long as necessary for the purposes above. Client identification and transaction records are kept for at least five years after the end of the relationship, as required by anti-money-laundering rules, and longer where other legal duties apply. Employment records are kept for the duration of employment and for the periods required by employment and tax law. Contact and careers form submissions are kept for up to twelve months unless a relationship follows. Analytics data is retained according to the settings of our analytics provider.</p>
+            </section>
+            <section>
+                <h2>8. Cookies and analytics</h2>
+                <p>This website uses Google Analytics, which sets cookies to distinguish visitors and measure how the site is used. This data is aggregated and does not identify you to us by name. The client and staff portals use strictly necessary cookies and browser storage to keep you signed in; these cannot be disabled without losing access to the portals. You can control or delete cookies through your browser settings.</p>
+            </section>
+            <section>
+                <h2>9. Security</h2>
+                <p>We protect personal data with encryption in transit, access controls that restrict data to the people who need it, row-level security in our databases, hashed storage of passwords, and audit logging. Sensitive changes — such as changes to a client’s address or payout bank account, or a withdrawal request — are never applied automatically and are verified with the client directly before taking effect. No system is entirely secure; if you believe your credentials have been compromised, please contact us immediately.</p>
+            </section>
+            <section>
+                <h2>10. Your rights</h2>
+                <p>Subject to applicable law, you have the right to:</p>
+                <ul>
+                    <li>access the personal data we hold about you;</li>
+                    <li>have inaccurate data corrected and, in certain circumstances, erased;</li>
+                    <li>restrict or object to processing based on legitimate interests;</li>
+                    <li>receive data you provided to us in a portable format;</li>
+                    <li>withdraw consent where processing is based on consent;</li>
+                    <li>lodge a complaint with the UK Information Commissioner’s Office (ico.org.uk) or, where Swiss law applies, the Federal Data Protection and Information Commissioner.</li>
+                </ul>
+                <p>Some rights are limited where we are legally required to retain data, for example under anti-money-laundering rules. To exercise your rights, contact us through the <a href="/contact/">contact form</a> on this website. We will respond within one month.</p>
+            </section>
+            <section>
+                <h2>11. Children</h2>
+                <p>Our services are not directed at anyone under 18, and we do not knowingly collect personal data from children.</p>
+            </section>
+            <section>
+                <h2>12. Changes to this policy</h2>
+                <p>We may update this policy from time to time. The date at the top shows when it was last revised. Material changes affecting client or staff portal users will be communicated through the relevant portal.</p>
+            </section>
+            <section>
+                <h2>13. Contact</h2>
+                <p>Questions about this policy or about how we handle personal data can be raised through the <a href="/contact/">contact form</a>. Please note that met.capital is the only official website of Met Capital Ltd; do not share personal data with any other site or account claiming to represent us.</p>
+            </section>
+        </article>
+        <nav class="legal-nav"><a href="/privacy/">Privacy Policy</a><a href="/terms/">Terms of Use</a><a href="/disclosures/">Disclosures</a></nav>
     </div>
 
     <footer>
