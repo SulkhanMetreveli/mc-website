@@ -93,6 +93,12 @@ cp .env.example .env
 node create-client.js --email jane@example.com --name "Jane Client" --reference MC-00123
 ```
 
+## Repo layout
+
+The deployed site is the `site/` folder (Netlify `publish = "site"` in
+`netlify.toml`). Serverless functions live in `netlify/functions/`.
+`supabase/`, `local-admin-tools/`, and this file are NOT deployed.
+
 ## 6. Day-to-day admin — now via `/admin`
 
 Log in at `/admin/login/` with any account listed in `admin_users`.
@@ -115,20 +121,23 @@ the signed-in admin can access. The apps:
   to that site, so bringing it under met.capital needs either a
   sales.met.capital domain alias on that site, or rebuilding its login
   onto the company panel.
-- **HR — Employees** (`/admin/hr/`, app key `hr`, added in
-  `supabase/017_hr.sql`) — employee records (employment details are
-  HR-only; contact details are shared with the employee), a pending
-  time-off queue with approve/reject, per-employee pages with full
-  record edit, time-off history (approve/reject/delete, or record
-  absence on their behalf), documents, and password reset. Employees
-  get their own **staff portal at `/staff/`**: dashboard with vacation
-  balance, My Profile (contact/address/emergency contact only — the
-  database blocks them from changing job fields), Time Off (request
-  with working-day count and balance check, cancel while pending), and
-  Documents (see HR-shared files, upload their own). Creating an
-  employee needs the `admin-create-employee` Edge Function deployed;
-  employee password resets need the updated `admin-reset-password`
-  (it now takes `kind: "employee"`). No automatic emails anywhere.
+- **HR — Employees** (`/admin/hr/`, app key `hr`) — runs entirely on
+  **Netlify Functions + Netlify Blobs**, not Supabase: nothing to run in
+  a SQL editor and no Edge Functions to deploy — it ships with every git
+  push. Employee records (employment details are HR-only; contact
+  details are shared with the employee), a pending time-off queue with
+  approve/reject, per-employee pages with full record edit, time-off
+  history (approve/reject/delete, or record absence on their behalf),
+  documents (up to 4MB each), and password reset. Employees get their
+  own **staff portal at `/staff/`** with their own accounts (bcrypt
+  password hashes, HttpOnly session cookies, login throttling):
+  dashboard with vacation balance, My Profile (contact/address/emergency
+  contact only), Time Off (working-day count, balance check, cancel
+  while pending), and Documents (see HR-shared files, upload their own).
+  The only Supabase call in this app is checking that an HR admin holds
+  the `hr` app in the company panel. Code: `netlify/functions/hr-*.mts`
+  and `netlify/functions/_lib/hr.mts`; data lives in the `hr` and
+  `hr-files` blob stores. No automatic emails anywhere.
 - **Document Management** (`/admin/dms/`, app key `dms`, added in
   `supabase/015_dms.sql`) — port of the metreveli.org intranet document
   system: nested categories (rename/move/promote/cascade delete),

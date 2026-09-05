@@ -61,8 +61,6 @@
     </div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="/clients/assets/supabase-config.js"></script>
   <script src="/staff/assets/staff-auth.js"></script>
   <script>
     document.getElementById('logoutBtn').addEventListener('click', window.mcStaffLogout);
@@ -71,16 +69,16 @@
     var STATUS_META = { pending: 'pending', approved: 'approved', rejected: 'rejected', cancelled: 'neutral' };
 
     (async function init() {
-      var session = await window.mcRequireStaffSession('/staff/');
-      if (!session) return;
-      var p = window.mcStaffProfile;
+      var me = await window.mcRequireStaffSession('/staff/');
+      if (!me) return;
+      var p = me.employee;
 
       document.getElementById('welcomeTitle').textContent = 'Welcome, ' + (p.full_name || '').split(' ')[0];
       document.getElementById('jobLine').textContent = [p.job_title, p.department].filter(Boolean).join(' · ') || 'Met Capital';
 
-      var { data: reqs } = await window.mcStaff.from('vacation_requests').select('*').eq('user_id', session.user.id).order('start_date', { ascending: false });
-      reqs = reqs || [];
-      var bal = window.mcVacationBalance(p, reqs);
+      var data = await window.mcStaffApi('/vacation');
+      var reqs = data.requests || [];
+      var bal = data.balance;
       document.getElementById('stRemaining').textContent = bal.remaining;
       document.getElementById('stUsed').textContent = bal.used + ' / ' + bal.allowance;
       document.getElementById('stPending').textContent = reqs.filter(function (r) { return r.status === 'pending'; }).length;

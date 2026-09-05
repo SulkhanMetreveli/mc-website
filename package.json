@@ -1,0 +1,11 @@
+{
+  "name": "met-capital-site",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@netlify/functions": "^2",
+    "@netlify/blobs": "^8",
+    "bcryptjs": "^2.4.3"
+  }
+}

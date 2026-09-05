@@ -44,13 +44,10 @@
     </form>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="/clients/assets/supabase-config.js"></script>
   <script src="/staff/assets/staff-auth.js"></script>
   <script>
     document.getElementById('logoutBtn').addEventListener('click', window.mcStaffLogout);
 
-    var mcSession = null;
 
     function showAlert(message, type) {
       document.getElementById('formAlert').innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
@@ -74,26 +71,19 @@
       btn.disabled = true;
       btn.textContent = 'Updating…';
 
-      var update = await window.mcStaff.auth.updateUser({ password: pw });
-      if (update.error) {
+      try {
+        await window.mcStaffApi('/change-password', { method: 'POST', body: { new_password: pw } });
+        window.location.href = '/staff/';
+      } catch (err) {
         btn.disabled = false;
         btn.textContent = 'Update Password';
-        showAlert('Could not update your password: ' + update.error.message, 'error');
-        return;
+        showAlert('Could not update your password: ' + err.message, 'error');
       }
-
-      await window.mcStaff
-        .from('employee_profiles')
-        .update({ must_change_password: false })
-        .eq('user_id', mcSession.user.id);
-
-      window.location.href = '/staff/';
     });
 
     (async function init() {
-      var session = await window.mcRequireStaffSession('/staff/account/change-password/');
-      if (!session) return;
-      mcSession = session;
+      var me = await window.mcRequireStaffSession('/staff/account/change-password/');
+      if (!me) return;
       var profile = window.mcStaffProfile;
       if (profile && profile.must_change_password) {
         document.getElementById('pageSubtitle').textContent =

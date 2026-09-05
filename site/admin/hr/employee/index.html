@@ -167,11 +167,28 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="/clients/assets/supabase-config.js"></script>
   <script src="/admin/assets/admin.js"></script>
-  <script src="/staff/assets/staff-auth.js"></script>
   <script>
     document.getElementById('logoutBtn').addEventListener('click', window.mcAdminLogout);
-    var sb = window.mcAdminClient;
-    var targetUserId = new URLSearchParams(window.location.search).get('u');
+    async function hrApi(path, opts) {
+      opts = opts || {};
+      var sess = await window.mcAdminClient.auth.getSession();
+      var token = sess.data && sess.data.session ? sess.data.session.access_token : '';
+      var init = { method: opts.method || 'GET', headers: { authorization: 'Bearer ' + token } };
+      if (opts.body !== undefined) { init.headers['content-type'] = 'application/json'; init.body = JSON.stringify(opts.body); }
+      var res = await fetch('/api/hr/admin' + path, init);
+      var data = null; try { data = await res.json(); } catch (e) {}
+      if (!res.ok) throw new Error((data && data.error) || ('Request failed (' + res.status + ')'));
+      return data;
+    }
+    function fileToBase64(file) {
+      return new Promise(function (resolve, reject) {
+        var r = new FileReader();
+        r.onload = function () { resolve(String(r.result).split(',')[1]); };
+        r.onerror = reject; r.readAsDataURL(file);
+      });
+    }
+
+    var targetId = new URLSearchParams(window.location.search).get('u');
     var profile = null;
 
     var FIELDS = ['full_name', 'employee_number', 'work_email', 'status', 'job_title', 'department', 'employment_type', 'start_date', 'end_date', 'vacation_days_per_year',
@@ -185,68 +202,15 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    async function edgeError(error) {
-      if (error && error.context && typeof error.context.json === 'function') {
-        try { var b = await error.context.json(); if (b && b.error) return b.error; } catch (e) {}
-      }
-      return error ? error.message : 'Unknown error.';
-    }
-
-    if (!targetUserId) {
+    if (!targetId) {
       document.body.innerHTML = '<main class="portal-main"><div class="alert error">No employee specified. <a href="/admin/hr/">Back to HR</a>.</div></main>';
       throw new Error('missing ?u=');
     }
 
-    async function loadProfile() {
-      var { data, error } = await sb.from('employee_profiles').select('*').eq('user_id', targetUserId).maybeSingle();
-      if (error || !data) { document.getElementById('empTitle').textContent = 'Employee not found'; return null; }
-      profile = data;
-      document.getElementById('empTitle').textContent = data.full_name;
-      document.getElementById('empSubtitle').textContent = [data.job_title, data.department, data.work_email].filter(Boolean).join(' · ');
-      FIELDS.forEach(function (f) { var el = document.getElementById('p_' + f); if (el) el.value = data[f] ?? ''; });
-      return data;
-    }
-
-    document.getElementById('profileForm').addEventListener('submit', async function (e) {
-      e.preventDefault();
-      var btn = document.getElementById('profileSaveBtn');
-      btn.disabled = true; btn.textContent = 'Saving…';
-      var payload = {};
-      FIELDS.forEach(function (f) {
-        var v = document.getElementById('p_' + f).value.trim();
-        payload[f] = v === '' ? null : v;
-      });
-      payload.full_name = payload.full_name || profile.full_name;
-      payload.work_email = payload.work_email || profile.work_email;
-      payload.vacation_days_per_year = payload.vacation_days_per_year === null ? 25 : Number(payload.vacation_days_per_year);
-      var { error } = await sb.from('employee_profiles').update(payload).eq('user_id', targetUserId);
-      btn.disabled = false; btn.textContent = 'Save Record';
-      if (error) { showAlert('Could not save: ' + error.message, 'error'); return; }
-      showAlert('Record saved.', 'success');
-      loadProfile();
-    });
-
-    document.getElementById('resetPasswordBtn').addEventListener('click', async function () {
-      if (!confirm('Reset this employee\'s password? Their current password stops working immediately.')) return;
-      var btn = this; btn.disabled = true; btn.textContent = 'Resetting…';
-      try {
-        var { data, error } = await sb.functions.invoke('admin-reset-password', { body: { user_id: targetUserId, kind: 'employee' } });
-        if (error || (data && data.error)) throw new Error((data && data.error) || await edgeError(error));
-        showAlert('Password reset. Send this over a secure channel — they must set their own on next login:<br><br><strong>Temporary password:</strong> ' + data.password, 'success');
-      } catch (err) {
-        showAlert('Could not reset password: ' + err.message + '. Make sure the updated admin-reset-password Edge Function is deployed (see SETUP.md).', 'error');
-      } finally { btn.disabled = false; btn.textContent = 'Reset Password'; }
-    });
-
-    // ---------------- TIME OFF ----------------
-    async function loadVacation() {
-      var { data: reqs } = await sb.from('vacation_requests').select('*').eq('user_id', targetUserId).order('start_date', { ascending: false });
-      reqs = reqs || [];
-      var bal = window.mcVacationBalance(profile, reqs);
+    function renderVacation(reqs, bal) {
       document.getElementById('stRemaining').textContent = bal.remaining;
       document.getElementById('stUsed').textContent = bal.used + ' / ' + bal.allowance;
       document.getElementById('stPending').textContent = reqs.filter(function (r) { return r.status === 'pending'; }).length;
-
       var el = document.getElementById('vacationTable');
       if (!reqs.length) { el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No time off recorded.</p>'; return; }
       var rows = '';
@@ -264,97 +228,128 @@
       el.querySelectorAll('[data-set]').forEach(function (b) {
         b.addEventListener('click', async function () {
           var status = b.getAttribute('data-set');
-          var note = status === 'rejected' ? (prompt('Reason (shown to the employee):') || null) : null;
-          var upd = { status: status, reviewed_at: new Date().toISOString() };
-          if (note !== null) upd.reviewer_note = note;
-          await sb.from('vacation_requests').update(upd).eq('id', b.getAttribute('data-id'));
-          loadVacation();
+          var body = { status: status };
+          if (status === 'rejected') body.reviewer_note = prompt('Reason (shown to the employee):') || '';
+          try { await hrApi('/employees/' + targetId + '/vacation/' + b.getAttribute('data-id'), { method: 'PATCH', body: body }); loadAll(); }
+          catch (err) { showAlert(err.message, 'error'); }
         });
       });
       el.querySelectorAll('[data-del]').forEach(function (b) {
         b.addEventListener('click', async function () {
           if (!confirm('Delete this time-off record?')) return;
-          await sb.from('vacation_requests').delete().eq('id', b.getAttribute('data-del'));
-          loadVacation();
+          try { await hrApi('/employees/' + targetId + '/vacation/' + b.getAttribute('data-del'), { method: 'DELETE' }); loadAll(); }
+          catch (err) { showAlert(err.message, 'error'); }
         });
       });
     }
 
-    document.getElementById('vacationForm').addEventListener('submit', async function (e) {
-      e.preventDefault();
-      var s = document.getElementById('v_start').value, en = document.getElementById('v_end').value;
-      if (!s || !en || en < s) { showAlert('Please choose a valid date range.', 'error'); return; }
-      var days = window.mcWorkingDays(s, en);
-      var status = document.getElementById('v_status').value;
-      var { error } = await sb.from('vacation_requests').insert({
-        user_id: targetUserId, type: document.getElementById('v_type').value, start_date: s, end_date: en, days: days,
-        reason: document.getElementById('v_note').value.trim() || null, status: status,
-        reviewed_at: status === 'approved' ? new Date().toISOString() : null, created_by: 'hr'
-      });
-      if (error) { showAlert('Could not add: ' + error.message, 'error'); return; }
-      e.target.reset();
-      loadVacation();
-    });
-
-    // ---------------- DOCUMENTS ----------------
-    async function loadDocuments() {
-      var { data: docs } = await sb.from('employee_documents').select('*').eq('user_id', targetUserId).order('uploaded_at', { ascending: false });
+    function renderDocuments(docs) {
       var el = document.getElementById('documentsTable');
-      if (!docs || !docs.length) { el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No documents yet.</p>'; return; }
+      if (!docs.length) { el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No documents yet.</p>'; return; }
       var rows = '';
       docs.forEach(function (d) {
         rows += '<tr><td>' + d.title + '</td><td style="text-transform:capitalize;">' + d.category + '</td><td>' + (d.uploaded_by === 'hr' ? 'HR' : 'Employee') + '</td>' +
           '<td>' + new Date(d.uploaded_at).toLocaleDateString() + '</td>' +
-          '<td><a href="#" data-view="' + d.storage_path + '">View</a></td>' +
-          '<td><button type="button" class="btn-small danger" data-del-doc="' + d.id + '" data-path="' + d.storage_path + '">Delete</button></td></tr>';
+          '<td><a href="#" data-view="' + d.id + '" data-name="' + d.file_name.replace(/"/g, '') + '">Download</a></td>' +
+          '<td><button type="button" class="btn-small danger" data-del-doc="' + d.id + '">Delete</button></td></tr>';
       });
       el.innerHTML = '<table class="admin-table"><thead><tr><th>Title</th><th>Category</th><th>From</th><th>Date</th><th></th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
       el.querySelectorAll('[data-view]').forEach(function (a) {
         a.addEventListener('click', async function (e) {
           e.preventDefault();
-          var { data, error } = await sb.storage.from('employee-files').createSignedUrl(a.getAttribute('data-view'), 60);
-          if (error || !data) { alert('Could not generate a link.'); return; }
-          window.open(data.signedUrl, '_blank');
+          var sess = await window.mcAdminClient.auth.getSession();
+          var res = await fetch('/api/hr/admin/employees/' + targetId + '/documents/' + a.getAttribute('data-view') + '/file', { headers: { authorization: 'Bearer ' + sess.data.session.access_token } });
+          if (!res.ok) { alert('Could not download this file.'); return; }
+          var blob = await res.blob();
+          var url = URL.createObjectURL(blob);
+          var link = document.createElement('a'); link.href = url; link.download = a.getAttribute('data-name') || 'document';
+          document.body.appendChild(link); link.click(); link.remove();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
         });
       });
       el.querySelectorAll('[data-del-doc]').forEach(function (b) {
         b.addEventListener('click', async function () {
           if (!confirm('Delete this document?')) return;
-          await sb.storage.from('employee-files').remove([b.getAttribute('data-path')]);
-          await sb.from('employee_documents').delete().eq('id', b.getAttribute('data-del-doc'));
-          loadDocuments();
+          try { await hrApi('/employees/' + targetId + '/documents/' + b.getAttribute('data-del-doc'), { method: 'DELETE' }); loadAll(); }
+          catch (err) { showAlert(err.message, 'error'); }
         });
       });
     }
+
+    async function loadAll() {
+      var data;
+      try { data = await hrApi('/employees/' + targetId); }
+      catch (err) { document.getElementById('empTitle').textContent = 'Employee not found'; showAlert(err.message, 'error'); return; }
+      profile = data.employee;
+      document.getElementById('empTitle').textContent = profile.full_name;
+      document.getElementById('empSubtitle').textContent = [profile.job_title, profile.department, profile.work_email].filter(Boolean).join(' · ');
+      FIELDS.forEach(function (f) { var el = document.getElementById('p_' + f); if (el) el.value = profile[f] ?? ''; });
+      renderVacation(data.vacation || [], data.balance);
+      renderDocuments(data.documents || []);
+    }
+
+    document.getElementById('profileForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var btn = document.getElementById('profileSaveBtn');
+      btn.disabled = true; btn.textContent = 'Saving…';
+      var payload = {};
+      FIELDS.forEach(function (f) { payload[f] = document.getElementById('p_' + f).value.trim(); });
+      try {
+        await hrApi('/employees/' + targetId, { method: 'PATCH', body: payload });
+        showAlert('Record saved.', 'success');
+        loadAll();
+      } catch (err) { showAlert('Could not save: ' + err.message, 'error'); }
+      finally { btn.disabled = false; btn.textContent = 'Save Record'; }
+    });
+
+    document.getElementById('resetPasswordBtn').addEventListener('click', async function () {
+      if (!confirm('Reset this employee\'s password? Their current password stops working immediately.')) return;
+      var btn = this; btn.disabled = true; btn.textContent = 'Resetting…';
+      try {
+        var data = await hrApi('/employees/' + targetId + '/reset-password', { method: 'POST' });
+        showAlert('Password reset. Send this over a secure channel — they must set their own on next login:<br><br><strong>Temporary password:</strong> ' + data.password, 'success');
+      } catch (err) { showAlert('Could not reset password: ' + err.message, 'error'); }
+      finally { btn.disabled = false; btn.textContent = 'Reset Password'; }
+    });
+
+    document.getElementById('vacationForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var s = document.getElementById('v_start').value, en = document.getElementById('v_end').value;
+      if (!s || !en || en < s) { showAlert('Please choose a valid date range.', 'error'); return; }
+      try {
+        await hrApi('/employees/' + targetId + '/vacation', { method: 'POST', body: {
+          type: document.getElementById('v_type').value, start_date: s, end_date: en,
+          status: document.getElementById('v_status').value, reason: document.getElementById('v_note').value.trim()
+        } });
+        e.target.reset(); loadAll();
+      } catch (err) { showAlert('Could not add: ' + err.message, 'error'); }
+    });
 
     document.getElementById('documentForm').addEventListener('submit', async function (e) {
       e.preventDefault();
       var file = document.getElementById('d_file').files[0];
       var title = document.getElementById('d_title').value.trim();
       if (!file || !title) { showAlert('Title and a file are required.', 'error'); return; }
+      if (file.size > 4 * 1024 * 1024) { showAlert('File is too large (max 4MB).', 'error'); return; }
       var btn = document.getElementById('documentUploadBtn');
       btn.disabled = true; btn.textContent = 'Uploading…';
       try {
-        var path = targetUserId + '/' + Date.now() + '-' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        var up = await sb.storage.from('employee-files').upload(path, file);
-        if (up.error) throw up.error;
-        var ins = await sb.from('employee_documents').insert({ user_id: targetUserId, title: title, category: document.getElementById('d_category').value, storage_path: path, uploaded_by: 'hr' });
-        if (ins.error) throw ins.error;
+        await hrApi('/employees/' + targetId + '/documents', { method: 'POST', body: {
+          title: title, category: document.getElementById('d_category').value,
+          file_name: file.name, mime_type: file.type || 'application/octet-stream', data_base64: await fileToBase64(file)
+        } });
         e.target.reset();
         showAlert('Document uploaded — visible to the employee in their portal.', 'success');
-        loadDocuments();
-      } catch (err) {
-        showAlert('Upload failed: ' + err.message, 'error');
-      } finally { btn.disabled = false; btn.textContent = 'Upload'; }
+        loadAll();
+      } catch (err) { showAlert('Upload failed: ' + err.message, 'error'); }
+      finally { btn.disabled = false; btn.textContent = 'Upload'; }
     });
 
     (async function init() {
-      var session = await window.mcRequireAdminSession('/admin/hr/employee/?u=' + targetUserId);
+      var session = await window.mcRequireAdminSession('/admin/hr/employee/?u=' + targetId);
       if (!session) return;
       if (!window.mcHasApp('hr')) { window.location.href = '/admin/?denied_app=hr'; return; }
-      if (!(await loadProfile())) return;
-      loadVacation();
-      loadDocuments();
+      loadAll();
     })();
   </script>
 </body>

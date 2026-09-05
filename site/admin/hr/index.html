@@ -75,63 +75,69 @@
   <script src="/admin/assets/admin.js"></script>
   <script>
     document.getElementById('logoutBtn').addEventListener('click', window.mcAdminLogout);
-    var sb = window.mcAdminClient;
+    async function hrApi(path, opts) {
+      opts = opts || {};
+      var sess = await window.mcAdminClient.auth.getSession();
+      var token = sess.data && sess.data.session ? sess.data.session.access_token : '';
+      var init = { method: opts.method || 'GET', headers: { authorization: 'Bearer ' + token } };
+      if (opts.body !== undefined) { init.headers['content-type'] = 'application/json'; init.body = JSON.stringify(opts.body); }
+      var res = await fetch('/api/hr/admin' + path, init);
+      var data = null; try { data = await res.json(); } catch (e) {}
+      if (!res.ok) throw new Error((data && data.error) || ('Request failed (' + res.status + ')'));
+      return data;
+    }
+    function fileToBase64(file) {
+      return new Promise(function (resolve, reject) {
+        var r = new FileReader();
+        r.onload = function () { resolve(String(r.result).split(',')[1]); };
+        r.onerror = reject; r.readAsDataURL(file);
+      });
+    }
+
     var TYPE_LABELS = { vacation: 'Vacation', sick: 'Sick leave', unpaid: 'Unpaid leave', other: 'Other' };
     var STATUS_CLS = { active: 'approved', on_leave: 'pending', terminated: 'neutral' };
-    var nameMap = {};
 
     function showAlert(id, m, t) { document.getElementById(id).innerHTML = '<div class="alert ' + t + '">' + m + '</div>'; }
 
-    async function edgeError(error) {
-      if (error && error.context && typeof error.context.json === 'function') {
-        try { var b = await error.context.json(); if (b && b.error) return b.error; } catch (e) {}
-      }
-      return error ? error.message : 'Unknown error.';
-    }
-
     async function loadAll() {
-      var today = new Date().toISOString().slice(0, 10);
-      var [{ data: emps }, { data: pend }, { data: away }] = await Promise.all([
-        sb.from('employee_profiles').select('*').order('full_name'),
-        sb.from('vacation_requests').select('*').eq('status', 'pending').order('created_at'),
-        sb.from('vacation_requests').select('user_id').eq('status', 'approved').lte('start_date', today).gte('end_date', today)
-      ]);
-      emps = emps || []; pend = pend || []; away = away || [];
-      emps.forEach(function (e) { nameMap[e.user_id] = e.full_name; });
+      var data;
+      try { data = await hrApi('/overview'); }
+      catch (err) { showAlert('pageAlert', 'Could not load HR data: ' + err.message, 'error'); return; }
+      var emps = data.employees || [], pend = data.pending || [];
 
-      document.getElementById('stEmployees').textContent = emps.filter(function (e) { return e.status === 'active'; }).length;
-      document.getElementById('stOnLeave').textContent = new Set(away.map(function (a) { return a.user_id; })).size;
-      document.getElementById('stPending').textContent = pend.length;
+      document.getElementById('stEmployees').textContent = data.stats.active;
+      document.getElementById('stOnLeave').textContent = data.stats.away_today;
+      document.getElementById('stPending').textContent = data.stats.pending;
 
-      // pending requests
       var el = document.getElementById('pendingContent');
       if (!pend.length) el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No pending requests.</p>';
       else {
         var rows = '';
         pend.forEach(function (r) {
-          rows += '<tr><td><a href="/admin/hr/employee/?u=' + r.user_id + '">' + (nameMap[r.user_id] || r.user_id) + '</a></td>' +
+          rows += '<tr><td><a href="/admin/hr/employee/?u=' + r.employee_id + '">' + r.employee_name + '</a></td>' +
             '<td>' + (TYPE_LABELS[r.type] || r.type) + '</td><td>' + r.start_date + ' → ' + r.end_date + '</td><td>' + r.days + '</td>' +
             '<td style="font-size:0.8125rem; color:var(--gray);">' + (r.reason || '—') + '</td>' +
-            '<td><button type="button" class="btn-small approve" data-approve="' + r.id + '">Approve</button>' +
-            '<button type="button" class="btn-small reject" data-reject="' + r.id + '">Reject</button></td></tr>';
+            '<td><button type="button" class="btn-small approve" data-approve="' + r.employee_id + '/' + r.id + '">Approve</button>' +
+            '<button type="button" class="btn-small reject" data-reject="' + r.employee_id + '/' + r.id + '">Reject</button></td></tr>';
         });
         el.innerHTML = '<table class="admin-table"><thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th>Days</th><th>Reason</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
         el.querySelectorAll('[data-approve]').forEach(function (b) {
           b.addEventListener('click', async function () {
-            await sb.from('vacation_requests').update({ status: 'approved', reviewed_at: new Date().toISOString() }).eq('id', b.getAttribute('data-approve'));
-            loadAll();
+            var k = b.getAttribute('data-approve').split('/');
+            try { await hrApi('/employees/' + k[0] + '/vacation/' + k[1], { method: 'PATCH', body: { status: 'approved' } }); loadAll(); }
+            catch (err) { showAlert('pageAlert', err.message, 'error'); }
           });
         });
         el.querySelectorAll('[data-reject]').forEach(function (b) {
           b.addEventListener('click', async function () {
-            var note = prompt('Reason for rejection (shown to the employee):') || null;
-            await sb.from('vacation_requests').update({ status: 'rejected', reviewed_at: new Date().toISOString(), reviewer_note: note }).eq('id', b.getAttribute('data-reject'));
-            loadAll();
+            var k = b.getAttribute('data-reject').split('/');
+            var note = prompt('Reason for rejection (shown to the employee):') || '';
+            try { await hrApi('/employees/' + k[0] + '/vacation/' + k[1], { method: 'PATCH', body: { status: 'rejected', reviewer_note: note } }); loadAll(); }
+            catch (err) { showAlert('pageAlert', err.message, 'error'); }
           });
         });
       }
 
-      // directory
       var d = document.getElementById('employeesContent');
       if (!emps.length) { d.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No employees yet.</p>'; return; }
       var r2 = '';
@@ -140,7 +146,7 @@
           '<td>' + (e.job_title || '—') + '</td><td>' + (e.department || '—') + '</td><td>' + e.work_email + '</td>' +
           '<td>' + (e.start_date || '—') + '</td>' +
           '<td><span class="status-pill ' + (STATUS_CLS[e.status] || 'neutral') + '">' + e.status.replace('_', ' ') + '</span></td>' +
-          '<td><a href="/admin/hr/employee/?u=' + e.user_id + '">Manage →</a></td></tr>';
+          '<td><a href="/admin/hr/employee/?u=' + e.id + '">Manage →</a></td></tr>';
       });
       d.innerHTML = '<table class="admin-table"><thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Work Email</th><th>Started</th><th>Status</th><th></th></tr></thead><tbody>' + r2 + '</tbody></table>';
     }
@@ -152,23 +158,20 @@
       var btn = document.getElementById('newEmpBtn');
       btn.disabled = true; btn.textContent = 'Creating…';
       try {
-        var { data, error } = await sb.functions.invoke('admin-create-employee', {
-          body: {
-            full_name: document.getElementById('ne_full_name').value.trim(),
-            email: document.getElementById('ne_email').value.trim(),
-            employee_number: document.getElementById('ne_number').value.trim(),
-            job_title: document.getElementById('ne_title').value.trim(),
-            department: document.getElementById('ne_department').value.trim(),
-            start_date: document.getElementById('ne_start').value,
-            password: pw || undefined
-          }
-        });
-        if (error || (data && data.error)) throw new Error((data && data.error) || await edgeError(error));
+        var data = await hrApi('/employees', { method: 'POST', body: {
+          full_name: document.getElementById('ne_full_name').value.trim(),
+          email: document.getElementById('ne_email').value.trim(),
+          employee_number: document.getElementById('ne_number').value.trim(),
+          job_title: document.getElementById('ne_title').value.trim(),
+          department: document.getElementById('ne_department').value.trim(),
+          start_date: document.getElementById('ne_start').value,
+          password: pw || undefined
+        } });
         e.target.reset();
         showAlert('newEmpAlert', 'Employee created. Send these to them over a secure channel — they must change the password on first login at met.capital/staff/:<br><br><strong>Username:</strong> ' + data.email + '<br><strong>Temporary password:</strong> ' + data.password, 'success');
         loadAll();
       } catch (err) {
-        showAlert('newEmpAlert', 'Could not create employee: ' + err.message + '. Make sure the admin-create-employee Edge Function has been deployed (see SETUP.md).', 'error');
+        showAlert('newEmpAlert', 'Could not create employee: ' + err.message, 'error');
       } finally {
         btn.disabled = false; btn.textContent = 'Create Employee';
       }

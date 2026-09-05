@@ -71,8 +71,6 @@
     </form>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="/clients/assets/supabase-config.js"></script>
   <script src="/staff/assets/staff-auth.js"></script>
   <script>
     document.getElementById('logoutBtn').addEventListener('click', window.mcStaffLogout);
@@ -104,10 +102,15 @@
       btn.disabled = true; btn.textContent = 'Saving…';
       var payload = {};
       FIELDS.forEach(function (f) { payload[f] = document.getElementById(f).value.trim() || null; });
-      var { error } = await window.mcStaff.from('employee_profiles').update(payload).eq('user_id', window.mcStaffProfile.user_id);
-      btn.disabled = false; btn.textContent = 'Save Changes';
-      if (error) { showAlert('Could not save: ' + error.message, 'error'); return; }
-      showAlert('Profile saved.', 'success');
+      try {
+        var res = await window.mcStaffApi('/me', { method: 'PATCH', body: payload });
+        window.mcStaffProfile = res.employee;
+        showAlert('Profile saved.', 'success');
+      } catch (err) {
+        showAlert('Could not save: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Save Changes';
+      }
     });
 
     (async function init() {

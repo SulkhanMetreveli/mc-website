@@ -1,3 +1,5 @@
 local-admin-tools/node_modules/
 local-admin-tools/.env
 .DS_Store
+node_modules/
+.netlify/

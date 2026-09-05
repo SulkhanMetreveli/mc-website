@@ -1,0 +1,26 @@
+[build]
+  publish = "site"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Cache-Control = "no-store"
+
+[[headers]]
+  for = "/staff/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Cache-Control = "no-cache"

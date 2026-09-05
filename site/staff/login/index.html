@@ -44,8 +44,6 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="/clients/assets/supabase-config.js"></script>
   <script src="/staff/assets/staff-auth.js"></script>
   <script>
     function showAlert(message, type) {
@@ -67,28 +65,16 @@
       btn.disabled = true;
       btn.textContent = 'Signing in…';
 
-      var result = await window.mcStaff.auth.signInWithPassword({ email: email, password: password });
-
-      if (result.error) {
+      try {
+        var result = await window.mcStaffApi('/login', { method: 'POST', body: { email: email, password: password } });
+        var params = new URLSearchParams(window.location.search);
+        var next = params.get('next');
+        window.location.href = result.must_change_password ? '/staff/account/change-password/' : (next ? decodeURIComponent(next) : '/staff/');
+      } catch (err) {
         btn.disabled = false;
         btn.textContent = 'Sign In';
-        showAlert('Access denied. The username or password you entered is incorrect.', 'error');
-        return;
+        showAlert(err.message, 'error');
       }
-
-      var who = await window.mcStaff.auth.getUser();
-      var check = await window.mcStaff.from('employee_profiles').select('user_id').eq('user_id', who.data.user.id).maybeSingle();
-      if (!check.data) {
-        await window.mcStaff.auth.signOut();
-        btn.disabled = false;
-        btn.textContent = 'Sign In';
-        showAlert('Access denied. This login is not an employee account.', 'error');
-        return;
-      }
-
-      var params = new URLSearchParams(window.location.search);
-      var next = params.get('next');
-      window.location.href = next ? decodeURIComponent(next) : '/staff/';
     });
 
     if (new URLSearchParams(window.location.search).get('denied')) {
@@ -97,11 +83,7 @@
 
     // If already logged in, skip straight to the dashboard.
     (async function () {
-      var session = await window.mcStaff.auth.getSession();
-      if (session.data && session.data.session) {
-        var chk = await window.mcStaff.from('employee_profiles').select('user_id').eq('user_id', session.data.session.user.id).maybeSingle();
-        if (chk.data) window.location.href = '/staff/';
-      }
+      try { await window.mcStaffApi('/me'); window.location.href = '/staff/'; } catch (e) {}
     })();
   </script>
 </body>

@@ -48,17 +48,13 @@ Deno.serve(async (req: Request) => {
       global: { headers: { Authorization: authHeader } },
     });
 
+    const { data: hasAccess, error: adminCheckError } = await callerClient.rpc("has_app_access", { app: "client_dashboard" });
+    if (adminCheckError || !hasAccess) {
+      return jsonResponse({ error: "Not authorized. This action requires the Client Dashboard app (or Super Admin)." }, 403);
+    }
+
     const body = await req.json().catch(() => ({}));
     const userId = String(body.user_id || "").trim();
-    // "client" (default) or "employee" -- decides which app must be held
-    // and which profile table gets the must_change_password flag.
-    const kind = body.kind === "employee" ? "employee" : "client";
-    const requiredApp = kind === "employee" ? "hr" : "client_dashboard";
-
-    const { data: hasAccess, error: adminCheckError } = await callerClient.rpc("has_app_access", { app: requiredApp });
-    if (adminCheckError || !hasAccess) {
-      return jsonResponse({ error: "Not authorized. This action requires the " + (kind === "employee" ? "HR" : "Client Dashboard") + " app (or Super Admin)." }, 403);
-    }
 
     if (!userId) {
       return jsonResponse({ error: "user_id is required." }, 400);
@@ -77,7 +73,7 @@ Deno.serve(async (req: Request) => {
 
     // Force them to set their own password again on next login.
     const { error: profileError } = await adminClient
-      .from(kind === "employee" ? "employee_profiles" : "client_profiles")
+      .from("client_profiles")
       .update({ must_change_password: true })
       .eq("user_id", userId);
 
