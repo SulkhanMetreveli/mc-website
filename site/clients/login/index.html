@@ -37,6 +37,22 @@
         <button type="submit" class="btn-primary" id="loginBtn" style="width:100%;">Sign In</button>
       </form>
 
+      <form id="mfaForm" novalidate style="display:none;">
+        <p class="subtitle" id="mfaIntro">Enter the 6-digit code from your authenticator app.</p>
+        <div class="field" style="margin-bottom:1.1rem;">
+          <label for="mfa_code">Authenticator code <span class="required">*</span></label>
+          <input type="text" id="mfa_code" inputmode="numeric" autocomplete="one-time-code" placeholder="123 456" required>
+        </div>
+        <div class="field" id="recoveryField" style="display:none; margin-bottom:1.1rem;">
+          <label for="recovery_code">Recovery code</label>
+          <input type="text" id="recovery_code" placeholder="XXXXX-XXXXX">
+        </div>
+        <button type="submit" class="btn-primary" id="mfaBtn" style="width:100%;">Verify</button>
+        <p style="margin-top:1rem; font-size:0.8125rem; color:var(--gray);">
+          <a href="#" id="toggleRecovery">Lost your device? Use a recovery code</a>
+        </p>
+      </form>
+
       <div class="security-note">
         This is a private area for Met Capital clients only. If you did not receive
         login credentials directly from Met Capital, please do not enter information here
@@ -47,6 +63,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/clients/assets/mfa.js"></script>
   <script src="/clients/assets/auth.js"></script>
   <script>
     function showAlert(message, type) {
@@ -77,16 +94,65 @@
         return;
       }
 
-      var params = new URLSearchParams(window.location.search);
-      var next = params.get('next');
-      window.location.href = next ? decodeURIComponent(next) : '/clients/';
+      await afterPassword();
     });
 
-    // If already logged in, skip straight to the dashboard.
+    function nextUrl() {
+      var next = new URLSearchParams(window.location.search).get('next');
+      return next ? decodeURIComponent(next) : '/clients/';
+    }
+
+    function showMfaStep() {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('mfaForm').style.display = '';
+      document.querySelector('.login-card h1').textContent = 'Two-Factor Verification';
+      document.getElementById('mfa_code').focus();
+    }
+
+    async function afterPassword() {
+      var st = await window.mcMfa.state(window.mcClient);
+      if (st && st.needsCode) { showMfaStep(); return; }
+      if (st && st.needsEnroll) { window.location.href = '/clients/account/two-factor/?required=1'; return; }
+      window.location.href = nextUrl();
+    }
+
+    var usingRecovery = false;
+    document.getElementById('toggleRecovery').addEventListener('click', function (e) {
+      e.preventDefault();
+      usingRecovery = !usingRecovery;
+      document.getElementById('recoveryField').style.display = usingRecovery ? '' : 'none';
+      document.getElementById('mfa_code').parentElement.style.display = usingRecovery ? 'none' : '';
+      document.getElementById('mfaIntro').textContent = usingRecovery ? 'Enter one of your recovery codes. Using one removes your current authenticator so you can set up a new one.' : 'Enter the 6-digit code from your authenticator app.';
+      this.textContent = usingRecovery ? 'Back to authenticator code' : 'Lost your device? Use a recovery code';
+      document.getElementById('mfaBtn').textContent = usingRecovery ? 'Use Recovery Code' : 'Verify';
+    });
+
+    document.getElementById('mfaForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var btn = document.getElementById('mfaBtn');
+      btn.disabled = true; btn.textContent = 'Checking…';
+      try {
+        if (usingRecovery) {
+          await window.mcMfa.recovery(window.mcClient, 'use_code', { code: document.getElementById('recovery_code').value });
+          window.location.href = '/clients/account/two-factor/?required=1&recovered=1';
+          return;
+        }
+        await window.mcMfa.verifyCode(window.mcClient, document.getElementById('mfa_code').value);
+        window.location.href = nextUrl();
+      } catch (err) {
+        showAlert(err.message, 'error');
+        btn.disabled = false; btn.textContent = usingRecovery ? 'Use Recovery Code' : 'Verify';
+      }
+    });
+
+    // Already signed in? Finish the second factor if needed, else go through.
     (async function () {
       var session = await window.mcClient.auth.getSession();
       if (session.data && session.data.session) {
-        window.location.href = '/clients/';
+        var st = await window.mcMfa.state(window.mcClient);
+        if (st && st.needsCode) { showMfaStep(); return; }
+        if (st && st.needsEnroll) { window.location.href = '/clients/account/two-factor/?required=1'; return; }
+        window.location.href = nextUrl();
       }
     })();
   </script>

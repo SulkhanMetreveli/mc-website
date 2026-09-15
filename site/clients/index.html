@@ -108,14 +108,19 @@
         <p>Complete or review your initial client onboarding information.</p>
       </a>
       <a class="quick-link" href="/clients/account/change-password/">
-        <h3>Account Security</h3>
-        <p>Change your password.</p>
+        <h3>Change Password</h3>
+        <p>Update your portal password.</p>
+      </a>
+      <a class="quick-link" href="/clients/account/two-factor/">
+        <h3>Two-Factor Authentication</h3>
+        <p>Authenticator app set-up and recovery codes. Required on every login.</p>
       </a>
     </div>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/clients/assets/mfa.js"></script>
   <script src="/clients/assets/auth.js"></script>
   <script>
     document.getElementById('logoutBtn').addEventListener('click', window.mcLogout);

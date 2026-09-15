@@ -15,6 +15,7 @@
 // ============================================================================
 import { getStore, getDeployStore } from "@netlify/blobs";
 import bcrypt from "bcryptjs";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 const SUPABASE_URL = "https://qnysvjbqltnwkjkvjwov.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_GSi7RBnzm4npqyJgOR_vtg_ZZJ4lmnb";
@@ -141,6 +142,13 @@ export type Employee = {
   // 'bank_pending' is a change submitted by the employee awaiting HR.
   bank?: BankDetails | null;
   bank_pending?: PendingBank | null;
+  // two-factor
+  totp_enabled?: boolean;
+  totp_secret?: string | null;          // base32, once enabled
+  totp_pending_secret?: string | null;  // during enrolment
+  totp_last_counter?: number | null;    // replay guard
+  recovery_code_hashes?: string[];
+  mfa_grace_until?: string | null;
   must_change_password: boolean;
   password_hash: string;
   created_at: string;
@@ -173,8 +181,9 @@ const EMPLOYMENT_TYPES = ["full_time", "part_time", "contractor", "intern"];
 const STATUSES = ["active", "on_leave", "terminated"];
 
 export function sanitizeEmployee(e: Employee) {
-  const { password_hash, ...rest } = e;
-  return rest;
+  const { password_hash, totp_secret, totp_pending_secret, recovery_code_hashes, totp_last_counter, ...rest } = e as any;
+  delete rest.__session;
+  return { ...rest, totp_enabled: !!e.totp_enabled, recovery_codes_left: (e.recovery_code_hashes || []).length };
 }
 
 export async function getEmployee(id: string): Promise<Employee | null> {
@@ -330,24 +339,39 @@ export function validateBank(body: any, setBy: "employee" | "hr"): { ok: boolean
 }
 
 /* -------------------------------------------------------------- sessions -- */
-export async function createSession(employeeId: string) {
+export async function createSession(employeeId: string, mfa = false) {
   const token = randomToken(32);
   const hash = await sha256Hex(token);
   await hrStore().setJSON(`session:${hash}`, {
     employee_id: employeeId,
+    mfa,
     expires_at: new Date(Date.now() + SESSION_TTL_SECONDS * 1000).toISOString(),
   });
   return token;
 }
 
-export async function getSessionEmployee(req: Request): Promise<Employee | null> {
+export async function getSessionRecord(req: Request): Promise<{ key: string; sess: any } | null> {
   const token = parseCookies(req)[SESSION_COOKIE];
   if (!token) return null;
-  const hash = await sha256Hex(token);
-  const sess = (await hrStore().get(`session:${hash}`, { type: "json" })) as any;
+  const key = `session:${await sha256Hex(token)}`;
+  const sess = (await hrStore().get(key, { type: "json" })) as any;
   if (!sess || new Date(sess.expires_at) < new Date()) return null;
-  const emp = await getEmployee(sess.employee_id);
+  return { key, sess };
+}
+
+export async function markSessionMfa(req: Request) {
+  const rec = await getSessionRecord(req);
+  if (!rec) return;
+  rec.sess.mfa = true;
+  await hrStore().setJSON(rec.key, rec.sess);
+}
+
+export async function getSessionEmployee(req: Request): Promise<Employee | null> {
+  const rec = await getSessionRecord(req);
+  if (!rec) return null;
+  const emp = await getEmployee(rec.sess.employee_id);
   if (!emp || emp.status === "terminated") return null;
+  (emp as any).__session = rec.sess;
   return emp;
 }
 
@@ -384,6 +408,110 @@ export async function recordLoginFailure(email: string) {
 }
 export async function clearLoginFailures(email: string) {
   await hrStore().delete(`loginfail:${email}`);
+}
+
+
+/* ------------------------------------------------------- two-factor (TOTP) -- */
+// RFC 6238 time-based one-time passwords, 6 digits, 30-second steps, ±1 step
+// tolerance, with replay protection (a code can't be reused within its
+// window). Secrets are base32 for authenticator apps.
+
+export const MFA_GRACE_DAYS = 7;
+export const DEVICE_TTL_SECONDS = 7 * 24 * 60 * 60;
+export const DEVICE_COOKIE = "mc_staff_device";
+const B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+export function base32Encode(bytes: Uint8Array) {
+  let bits = 0, value = 0, out = "";
+  for (const b of bytes) {
+    value = (value << 8) | b; bits += 8;
+    while (bits >= 5) { out += B32[(value >>> (bits - 5)) & 31]; bits -= 5; }
+  }
+  if (bits > 0) out += B32[(value << (5 - bits)) & 31];
+  return out;
+}
+export function base32Decode(s: string) {
+  const clean = s.toUpperCase().replace(/[^A-Z2-7]/g, "");
+  let bits = 0, value = 0; const out: number[] = [];
+  for (const c of clean) {
+    value = (value << 5) | B32.indexOf(c); bits += 5;
+    if (bits >= 8) { out.push((value >>> (bits - 8)) & 255); bits -= 8; }
+  }
+  return Uint8Array.from(out);
+}
+export function newTotpSecret() {
+  const b = new Uint8Array(20); crypto.getRandomValues(b);
+  return base32Encode(b);
+}
+function hotp(secret: Uint8Array, counter: number) {
+  const buf = Buffer.alloc(8);
+  buf.writeUInt32BE(Math.floor(counter / 0x100000000), 0);
+  buf.writeUInt32BE(counter >>> 0, 4);
+  const h = createHmac("sha1", Buffer.from(secret)).update(buf).digest();
+  const off = h[h.length - 1] & 0xf;
+  const code = ((h[off] & 0x7f) << 24) | (h[off + 1] << 16) | (h[off + 2] << 8) | h[off + 3];
+  return String(code % 1_000_000).padStart(6, "0");
+}
+// Returns the matching time-step counter, or null.
+export function totpMatch(secretB32: string, code: string, lastCounter: number | null): number | null {
+  const c = String(code || "").replace(/\s+/g, "");
+  if (!/^\d{6}$/.test(c)) return null;
+  const secret = base32Decode(secretB32);
+  const now = Math.floor(Date.now() / 1000 / 30);
+  for (const d of [0, -1, 1]) {
+    const counter = now + d;
+    if (lastCounter !== null && counter <= lastCounter) continue; // replay guard
+    const expected = Buffer.from(hotp(secret, counter));
+    if (expected.length === c.length && timingSafeEqual(expected, Buffer.from(c))) return counter;
+  }
+  return null;
+}
+export function otpauthUri(secretB32: string, account: string) {
+  return `otpauth://totp/${encodeURIComponent("Met Capital Staff")}:${encodeURIComponent(account)}?secret=${secretB32}&issuer=${encodeURIComponent("Met Capital Staff")}&algorithm=SHA1&digits=6&period=30`;
+}
+export function newRecoveryCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const a = new Uint8Array(10); crypto.getRandomValues(a);
+  const s = Array.from(a, (b) => alphabet[b % alphabet.length]).join("");
+  return s.slice(0, 5) + "-" + s.slice(5);
+}
+export function normalizeRecovery(code: string) {
+  return String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+// Grace: starts at the first sign-in after the feature shipped.
+export function mfaGraceActive(e: Employee) {
+  if (!e.mfa_grace_until) return true; // not started yet -> will be started at login
+  return new Date(e.mfa_grace_until) > new Date();
+}
+export function mfaSatisfied(e: Employee, session: any) {
+  if (session && session.mfa) return true;
+  return !e.totp_enabled && mfaGraceActive(e);
+}
+
+export function deviceCookie(token: string) {
+  return `${DEVICE_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${DEVICE_TTL_SECONDS}`;
+}
+export async function trustDevice(employeeId: string) {
+  const token = randomToken(32);
+  await hrStore().setJSON(`device:${await sha256Hex(token)}`, {
+    employee_id: employeeId, expires_at: new Date(Date.now() + DEVICE_TTL_SECONDS * 1000).toISOString(),
+  });
+  return token;
+}
+export async function deviceTrusted(req: Request, employeeId: string) {
+  const token = parseCookies(req)[DEVICE_COOKIE];
+  if (!token) return false;
+  const d = (await hrStore().get(`device:${await sha256Hex(token)}`, { type: "json" })) as any;
+  return !!d && d.employee_id === employeeId && new Date(d.expires_at) > new Date();
+}
+export async function forgetDevices(employeeId: string) {
+  const store = hrStore();
+  const listed = await store.list({ prefix: "device:" });
+  for (const b of listed.blobs || []) {
+    const d = (await store.get(b.key, { type: "json" })) as any;
+    if (d && d.employee_id === employeeId) await store.delete(b.key);
+  }
 }
 
 /* ----------------------------------------------------------- HR admin auth -- */

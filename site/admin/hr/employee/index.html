@@ -111,6 +111,11 @@
         <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:1rem;">Generates a new temporary password and forces them to set their own on next login. Nothing is emailed — copy it and send it yourself over a secure channel.</p>
         <button type="button" class="btn-small" id="resetPasswordBtn">Reset Password</button>
       </div>
+      <div class="card" style="margin-top:1rem;">
+        <h2>Two-Factor Authentication</h2>
+        <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:1rem;">Status: <strong id="mfaStatusText">—</strong>. If they have lost their authenticator and recovery codes, verify them by phone first, then reset. Their authenticator and recovery codes are removed, all their sessions and remembered devices are signed out, and they get 7 days to set up a new one.</p>
+        <button type="button" class="btn-small" id="resetMfaBtn">Reset Two-Factor</button>
+      </div>
     </div>
 
     <!-- BANK DETAILS -->
@@ -202,6 +207,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="/clients/assets/supabase-config.js"></script>
+  <script src="/clients/assets/mfa.js"></script>
   <script src="/admin/assets/admin.js"></script>
   <script src="/staff/assets/bank-form.js"></script>
   <script>
@@ -381,6 +387,7 @@
       FIELDS.forEach(function (f) { var el = document.getElementById('p_' + f); if (el) el.value = profile[f] ?? ''; });
       applyContractorMode(!!data.is_contractor, data);
       renderBank(profile);
+      document.getElementById('mfaStatusText').textContent = profile.totp_enabled ? 'Active (' + (profile.recovery_codes_left || 0) + ' recovery codes left)' : (profile.mfa_grace_until ? 'Not set up — grace period until ' + new Date(profile.mfa_grace_until).toLocaleDateString() : 'Not set up — grace period starts at first sign-in');
       renderVacation(data.vacation || [], data.balance);
       renderDocuments(data.documents || []);
     }
@@ -397,6 +404,17 @@
         loadAll();
       } catch (err) { showAlert('Could not save: ' + err.message, 'error'); }
       finally { btn.disabled = false; btn.textContent = 'Save Record'; }
+    });
+
+    document.getElementById('resetMfaBtn').addEventListener('click', async function () {
+      if (!confirm('Reset two-factor authentication for this person? Only do this after verifying them by phone.')) return;
+      var btn = this; btn.disabled = true; btn.textContent = 'Resetting…';
+      try {
+        await hrApi('/employees/' + targetId + '/reset-mfa', { method: 'POST' });
+        document.getElementById('mfaStatusText').textContent = 'Not set up (7-day grace period restarted)';
+        showAlert('Two-factor authentication reset. They have been signed out everywhere and must set up a new authenticator within 7 days.', 'success');
+      } catch (err) { showAlert('Could not reset two-factor: ' + err.message, 'error'); }
+      finally { btn.disabled = false; btn.textContent = 'Reset Two-Factor'; }
     });
 
     document.getElementById('resetPasswordBtn').addEventListener('click', async function () {

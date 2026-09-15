@@ -15,6 +15,7 @@
     if (!res.ok) {
       var err = new Error((data && data.error) || ("Request failed (" + res.status + ")"));
       err.status = res.status;
+      if (data && data.mfa_required) { err.mfa_required = true; err.enroll_required = !!data.enroll_required; }
       throw err;
     }
     return data;
@@ -22,12 +23,21 @@
 
   window.mcRequireStaffSession = async function (currentPath) {
     var me;
+    var here = currentPath || window.location.pathname;
+    var onTwoFactor = window.location.pathname.indexOf("/staff/account/two-factor") === 0;
     try {
       me = await window.mcStaffApi("/me");
     } catch (e) {
-      window.location.href = "/staff/login/?next=" + encodeURIComponent(currentPath || window.location.pathname);
+      if (e.status === 403 && e.mfa_required) {
+        // Signed in with password but the second factor is outstanding.
+        if (e.enroll_required) { if (!onTwoFactor) window.location.href = "/staff/account/two-factor/?required=1"; else return { mfa_gate: true }; }
+        else window.location.href = "/staff/login/?mfa=1&next=" + encodeURIComponent(here);
+        return null;
+      }
+      window.location.href = "/staff/login/?next=" + encodeURIComponent(here);
       return null;
     }
+    if (me.mfa && !me.mfa.enabled && me.mfa.grace_until && !onTwoFactor) window.mcStaffMfaBanner(me.mfa.grace_until);
     window.mcStaffProfile = me.employee;
     window.mcStaffBalance = me.balance;
     window.mcStaffIsContractor = !!me.is_contractor;
@@ -37,6 +47,18 @@
       return null;
     }
     return me;
+  };
+
+  window.mcStaffMfaBanner = function (graceUntil) {
+    var main = document.querySelector(".portal-main");
+    if (!main || document.getElementById("mfaBanner")) return;
+    var days = Math.max(0, Math.ceil((new Date(graceUntil) - new Date()) / 86400000));
+    var el = document.createElement("div");
+    el.id = "mfaBanner";
+    el.className = "alert info";
+    el.style.marginBottom = "1.5rem";
+    el.innerHTML = "<strong>Two-factor authentication is now required.</strong> Please set up your authenticator app within " + days + " day" + (days === 1 ? "" : "s") + " (by " + new Date(graceUntil).toLocaleDateString() + ") — after that you will not be able to sign in without it. <a href=\"/staff/account/two-factor/\">Set it up now →</a>";
+    main.insertBefore(el, main.firstChild);
   };
 
   window.mcStaffLogout = async function () {

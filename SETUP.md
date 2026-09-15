@@ -283,6 +283,48 @@ tables — it still relies on you doing the out-of-band verification call.
 The Supabase Table Editor is still there as a fallback if you ever need
 to fix something the UI doesn't cover.
 
+### Two-factor authentication (migration 018 + `mfa-recovery` function)
+
+Every login — clients, company panel, staff portal — requires a second
+factor from an authenticator app (Google/Microsoft Authenticator, Authy,
+1Password…). Rules are the same everywhere:
+
+- **7-day grace period.** Existing users see a banner and can keep
+  working for 7 days from their first sign-in after this ships; after
+  that the portal refuses everything until they set up 2FA. New users
+  get the same 7 days from their first login.
+- **Remembered devices (7 days).** After a successful code, the browser
+  is trusted for 7 days and not asked again (staff portal: opt-out
+  checkbox; client/company panel: the Supabase session itself carries
+  the verified level until logout).
+- **Recovery codes.** 8 single-use codes, shown once at set-up and
+  regenerable from the Two-Factor page. Using one at login removes the
+  authenticator and reopens a 7-day window to set up a new one.
+- **Admin reset** (after verifying the person by phone): Super Admins
+  can reset any company-panel user from `/admin` ("Reset 2FA"); Client
+  Dashboard admins can reset a client from the client's page ("Reset
+  Two-Factor"); HR can reset staff from the employee record. Nothing is
+  emailed.
+
+**To turn it on:**
+
+1. Supabase → SQL Editor → run `supabase/018_mfa.sql`. This adds the
+   `mfa_grace` and `mfa_recovery_codes` tables and a *restrictive*
+   "mfa required" policy on every portal table and on Storage, so the
+   requirement is enforced by the database, not just the UI.
+2. Supabase → Authentication → Providers → **Multi-Factor** → make sure
+   **TOTP** is enabled (it is by default on new projects).
+3. Supabase → Edge Functions → deploy `supabase/functions/mfa-recovery/index.ts`
+   as `mfa-recovery` (same steps as `admin-create-client`, no extra
+   secrets needed). Without it, 2FA still works but recovery codes and
+   admin resets don't.
+4. The staff portal needs nothing — its TOTP runs inside the Netlify
+   Functions on Blobs, alongside the rest of the HR app.
+
+The first time you (super admin) sign in after step 1 you'll be asked to
+set yours up — do it straight away so you can use the reset buttons
+(they require a fully verified session).
+
 ## Security notes
 
 - The GitHub token and Supabase secret key used earlier in this project
@@ -296,6 +338,9 @@ to fix something the UI doesn't cover.
   there's no self-serve way for a client account to add itself there
   (no INSERT policy exists for normal users). Only add rows to it from
   the Supabase dashboard yourself.
+- Two-factor is enforced in the database (`mfa_ok()` + restrictive
+  policies): an attacker with a stolen password and the anon key still
+  gets nothing from the API without the second factor.
 - All data access is enforced by Postgres Row Level Security: clients
   only ever see their own rows; admins see everything, but only because
   they're listed in `admin_users`. Don't remove these policies.

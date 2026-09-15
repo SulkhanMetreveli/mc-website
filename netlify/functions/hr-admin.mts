@@ -9,6 +9,7 @@ import {
   requireHrAdmin, hrStore,
   getEmployee, getEmployeeByEmail, listEmployees, saveEmployee, sanitizeEmployee,
   applyEmployeeFields, EMPLOYEE_HR_FIELDS, purgeEmployee, destroyAllSessionsFor, isContractor, contractDaysLeft, validateBank,
+  MFA_GRACE_DAYS, forgetDevices,
   listVacation, listAllVacation, getVacation, saveVacation, deleteVacation, vacationBalance, VACATION_TYPES,
   listDocuments, getDocument, storeDocument, deleteDocument, fileResponse,
 } from "./_lib/hr.mts";
@@ -148,6 +149,17 @@ export default async (req: Request) => {
       e.updated_at = nowIso();
       await saveEmployee(e);
       return json({ bank: null, bank_pending: e.bank_pending || null });
+    }
+
+    if (sub === "reset-mfa" && method === "POST") {
+      e.totp_enabled = false; e.totp_secret = null; e.totp_pending_secret = null; e.totp_last_counter = null;
+      e.recovery_code_hashes = [];
+      e.mfa_grace_until = new Date(Date.now() + MFA_GRACE_DAYS * 86400000).toISOString();
+      e.updated_at = nowIso();
+      await saveEmployee(e);
+      await destroyAllSessionsFor(e.id);
+      await forgetDevices(e.id);
+      return json({ ok: true, grace_until: e.mfa_grace_until });
     }
 
     if (sub === "reset-password" && method === "POST") {

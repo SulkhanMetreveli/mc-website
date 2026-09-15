@@ -24,6 +24,25 @@
       window.location.href = "/clients/login/?next=" + next;
       return null;
     }
+
+    // Two-factor gate: enrolled users must have completed the code step;
+    // unenrolled users get a 7-day grace window, then must enrol.
+    if (window.mcMfa) {
+      const onEnrollPage = window.location.pathname.indexOf("/clients/account/two-factor") === 0;
+      const st = await window.mcMfa.state(window.mcClient);
+      if (st && st.needsCode) {
+        window.location.href = "/clients/login/?mfa=1&next=" + encodeURIComponent(currentPath || window.location.pathname);
+        return null;
+      }
+      if (st && st.needsEnroll && !onEnrollPage) {
+        window.location.href = "/clients/account/two-factor/?required=1";
+        return null;
+      }
+      if (st && !st.enrolled && st.graceUntil && !onEnrollPage) {
+        window.mcMfaGraceUntil = st.graceUntil;
+        window.mcMfa.banner(st.graceUntil, "/clients/account/two-factor/");
+      }
+    }
     return data.session;
   };
 

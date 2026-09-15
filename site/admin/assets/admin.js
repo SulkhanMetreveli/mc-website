@@ -26,6 +26,25 @@
       return null;
     }
 
+    // Two-factor gate runs BEFORE any data read: once the grace window has
+    // passed, the database refuses everything until the person enrols.
+    if (window.mcMfa) {
+      const onEnrollPage = window.location.pathname.indexOf("/admin/account/two-factor") === 0;
+      const st = await window.mcMfa.state(window.mcAdminClient);
+      if (st && st.needsCode) {
+        window.location.href = "/admin/login/?mfa=1&next=" + encodeURIComponent(currentPath || window.location.pathname);
+        return null;
+      }
+      if (st && st.needsEnroll && !onEnrollPage) {
+        window.location.href = "/admin/account/two-factor/?required=1";
+        return null;
+      }
+      if (st && !st.enrolled && st.graceUntil && !onEnrollPage) {
+        window.mcMfaGraceUntil = st.graceUntil;
+        window.mcMfa.banner(st.graceUntil, "/admin/account/two-factor/");
+      }
+    }
+
     const { data: adminRow, error: adminError } = await window.mcAdminClient
       .from("admin_users")
       .select("*")

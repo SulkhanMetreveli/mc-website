@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Two-Factor Authentication — Met Capital Staff Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+<style>
+  .qr-box { display:flex; gap:2rem; align-items:flex-start; flex-wrap:wrap; }
+  .qr-box img { width:200px; height:200px; background:#fff; border:1px solid var(--border); padding:8px; }
+  .secret { font-family: ui-monospace, Menlo, monospace; font-size:0.9375rem; letter-spacing:0.08em; word-break:break-all; background:var(--off-white); padding:0.75rem 1rem; border:1px solid var(--border); }
+  .codes { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px,1fr)); gap:0.5rem; font-family: ui-monospace, Menlo, monospace; font-size:1rem; letter-spacing:0.06em; }
+  .codes span { background:var(--off-white); border:1px solid var(--border); padding:0.6rem 0.75rem; text-align:center; }
+  .steps { counter-reset: s; display:flex; flex-direction:column; gap:1.5rem; }
+  .step { display:flex; gap:1rem; }
+  .step::before { counter-increment: s; content: counter(s); flex:0 0 28px; height:28px; border:1px solid var(--black); display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:600; }
+</style>
+</head>
+<body>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/staff/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/staff/" class="dashboard-link">Dashboard</a>
+        <a href="/staff/profile/">My Profile</a>
+        <a href="/staff/vacation/">Time Off</a>
+        <a href="/staff/documents/">Documents</a>
+        <a href="/staff/bank/">Bank Details</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="page-label">Account Security</div>
+    <h1 class="page-title">Two-Factor Authentication</h1>
+    <p class="page-subtitle" id="pageSub">Two-factor authentication is required on every Met Capital login. You'll need an authenticator app such as Google Authenticator, Microsoft Authenticator, Authy, or 1Password.</p>
+
+    <div id="pageAlert"></div>
+
+    <!-- ENROLLED -->
+    <div id="enabledView" class="card" style="display:none;">
+      <h2 style="font-size:1rem; margin-bottom:0.5rem;">Two-factor authentication is on <span class="status-pill approved">Active</span></h2>
+      <p style="font-size:0.875rem; color:var(--gray); margin-bottom:1.25rem;">Your account asks for a code from your authenticator app when you sign in. On a remembered device you won't be asked again for 7 days.</p>
+      <h3 style="font-size:0.8125rem; color:var(--gray); margin-bottom:0.5rem;">Recovery codes</h3>
+      <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:0.75rem;">If you lose your device, a recovery code lets you sign in and set up a new authenticator. Each code works once. Generating new codes replaces any older ones.</p>
+      <div id="recoveryOut" style="display:none; margin-bottom:1rem;">
+        <div class="codes" id="recoveryCodes"></div>
+        <p style="font-size:0.8125rem; color:var(--red); margin-top:0.75rem;"><strong>Store these somewhere safe now.</strong> They will not be shown again.</p>
+      </div>
+      <button type="button" class="btn-small" id="genCodesBtn">Generate recovery codes</button>
+      <p style="font-size:0.8125rem; color:var(--gray-light); margin-top:1.25rem;">Lost your device and your recovery codes? Contact HR directly — after verifying you by phone, we can reset two-factor authentication on your account.</p>
+    </div>
+
+    <!-- ENROL -->
+    <div id="enrollView" class="card" style="display:none;">
+      <div class="steps">
+        <div class="step"><div>
+          <h3 style="font-size:0.9375rem; margin-bottom:0.25rem;">Install an authenticator app</h3>
+          <p style="font-size:0.875rem; color:var(--gray);">On your phone: Google Authenticator, Microsoft Authenticator, Authy, or a password manager with one-time codes.</p>
+        </div></div>
+        <div class="step"><div style="flex:1;">
+          <h3 style="font-size:0.9375rem; margin-bottom:0.75rem;">Scan this code</h3>
+          <div class="qr-box">
+            <img id="qrImg" alt="QR code for your authenticator app">
+            <div style="flex:1; min-width:220px;">
+              <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:0.5rem;">Can't scan? Enter this key manually (time-based, 6 digits):</p>
+              <div class="secret" id="secretText">…</div>
+            </div>
+          </div>
+        </div></div>
+        <div class="step"><div style="flex:1; max-width:360px;">
+          <h3 style="font-size:0.9375rem; margin-bottom:0.75rem;">Enter the code the app shows</h3>
+          <form id="confirmForm" novalidate>
+            <div class="field" style="margin-bottom:1rem;">
+              <label for="code">6-digit code <span class="required">*</span></label>
+              <input type="text" id="code" inputmode="numeric" autocomplete="one-time-code" placeholder="123 456" required>
+            </div>
+            <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.8125rem; margin-bottom:1.25rem; cursor:pointer;">
+              <input type="checkbox" id="remember_device" checked style="width:auto; margin:0;"> Remember this device for 7 days
+            </label>
+            <button type="submit" class="btn-primary" id="confirmBtn">Turn On Two-Factor</button>
+          </form>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- JUST ENROLLED: show recovery codes then continue -->
+    <div id="doneView" class="card" style="display:none;">
+      <h2 style="font-size:1rem; margin-bottom:0.5rem;">Two-factor authentication is on <span class="status-pill approved">Active</span></h2>
+      <p style="font-size:0.875rem; color:var(--gray); margin-bottom:1rem;">These are your recovery codes. Each works once if you ever lose your device. <strong style="color:var(--red);">Save them now — they will not be shown again.</strong></p>
+      <div class="codes" id="doneCodes" style="margin-bottom:1.25rem;"></div>
+      <a href="/staff/" class="btn-primary" style="display:inline-block; text-decoration:none;">Continue</a>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  <script src="/staff/assets/staff-auth.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcStaffLogout);
+
+    function showAlert(m, t) {
+      document.getElementById('pageAlert').innerHTML = '<div class="alert ' + t + '">' + m + '</div>';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    function renderCodes(el, codes) { el.innerHTML = codes.map(function (c) { return '<span>' + c + '</span>'; }).join(''); }
+
+    async function startEnroll() {
+      try {
+        var e = await window.mcStaffApi('/mfa/enroll', { method: 'POST' });
+        var qr = qrcode(0, 'M'); qr.addData(e.uri); qr.make();
+        document.getElementById('qrImg').src = qr.createDataURL(5, 0);
+        document.getElementById('secretText').textContent = e.secret.replace(/(.{4})/g, '$1 ').trim();
+        document.getElementById('enrollView').style.display = '';
+      } catch (err) {
+        showAlert('Could not start setup: ' + err.message, 'error');
+      }
+    }
+
+    document.getElementById('confirmForm').addEventListener('submit', async function (ev) {
+      ev.preventDefault();
+      var btn = document.getElementById('confirmBtn');
+      btn.disabled = true; btn.textContent = 'Verifying…';
+      try {
+        var r = await window.mcStaffApi('/mfa/enroll/confirm', { method: 'POST', body: {
+          code: document.getElementById('code').value,
+          remember_device: document.getElementById('remember_device').checked
+        } });
+        document.getElementById('enrollView').style.display = 'none';
+        renderCodes(document.getElementById('doneCodes'), r.recovery_codes || []);
+        document.getElementById('doneView').style.display = '';
+      } catch (err) {
+        showAlert(err.message, 'error');
+        btn.disabled = false; btn.textContent = 'Turn On Two-Factor';
+      }
+    });
+
+    document.getElementById('genCodesBtn').addEventListener('click', async function () {
+      if (!confirm('Generate new recovery codes? Any existing codes stop working.')) return;
+      var btn = this; btn.disabled = true;
+      try {
+        var r = await window.mcStaffApi('/mfa/recovery-codes', { method: 'POST' });
+        renderCodes(document.getElementById('recoveryCodes'), r.recovery_codes || []);
+        document.getElementById('recoveryOut').style.display = '';
+      } catch (err) { showAlert(err.message, 'error'); }
+      finally { btn.disabled = false; }
+    });
+
+    (async function init() {
+      var me = await window.mcRequireStaffSession('/staff/account/two-factor/');
+      if (!me) return;
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('recovered')) showAlert('Your previous authenticator has been removed. Set up a new one below.', 'info');
+      else if (params.get('required')) showAlert('Your set-up period has ended — two-factor authentication must be turned on before you can continue.', 'error');
+      var st;
+      try { st = await window.mcStaffApi('/mfa/status'); }
+      catch (err) { showAlert(err.message, 'error'); return; }
+      if (st.enabled) {
+        if (!st.session_mfa) { window.location.href = '/staff/login/?mfa=1&next=' + encodeURIComponent(window.location.pathname); return; }
+        document.getElementById('enabledView').style.display = '';
+      } else {
+        if (st.grace_until && st.grace_active && !params.get('required')) {
+          document.getElementById('pageSub').textContent += ' You have until ' + new Date(st.grace_until).toLocaleDateString() + ' to set it up.';
+        }
+        startEnroll();
+      }
+    })();
+  </script>
+</body>
+</html>

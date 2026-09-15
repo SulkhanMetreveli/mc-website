@@ -37,6 +37,25 @@
         <button type="submit" class="btn-primary" id="loginBtn" style="width:100%;">Sign In</button>
       </form>
 
+      <form id="mfaForm" novalidate style="display:none;">
+        <p class="subtitle" id="mfaIntro">Enter the 6-digit code from your authenticator app.</p>
+        <div class="field" id="codeField" style="margin-bottom:1.1rem;">
+          <label for="mfa_code">Authenticator code <span class="required">*</span></label>
+          <input type="text" id="mfa_code" inputmode="numeric" autocomplete="one-time-code" placeholder="123 456">
+        </div>
+        <div class="field" id="recoveryField" style="display:none; margin-bottom:1.1rem;">
+          <label for="recovery_code">Recovery code</label>
+          <input type="text" id="recovery_code" placeholder="XXXXX-XXXXX">
+        </div>
+        <label id="rememberRow" style="display:flex; align-items:center; gap:0.5rem; font-size:0.8125rem; margin-bottom:1.25rem; cursor:pointer;">
+          <input type="checkbox" id="remember_device" checked style="width:auto; margin:0;"> Remember this device for 7 days
+        </label>
+        <button type="submit" class="btn-primary" id="mfaBtn" style="width:100%;">Verify</button>
+        <p style="margin-top:1rem; font-size:0.8125rem; color:var(--gray);">
+          <a href="#" id="toggleRecovery">Lost your device? Use a recovery code</a>
+        </p>
+      </form>
+
       <div class="security-note">
         This is a private area for Met Capital employees and contractors. If you did not
         receive login credentials directly from Met Capital, please do not enter information here.
@@ -67,9 +86,7 @@
 
       try {
         var result = await window.mcStaffApi('/login', { method: 'POST', body: { email: email, password: password } });
-        var params = new URLSearchParams(window.location.search);
-        var next = params.get('next');
-        window.location.href = result.must_change_password ? '/staff/account/change-password/' : (next ? decodeURIComponent(next) : '/staff/');
+        afterPassword(result);
       } catch (err) {
         btn.disabled = false;
         btn.textContent = 'Sign In';
@@ -77,13 +94,71 @@
       }
     });
 
+    function nextUrl() {
+      var next = new URLSearchParams(window.location.search).get('next');
+      return next ? decodeURIComponent(next) : '/staff/';
+    }
+
+    function showMfaStep() {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('mfaForm').style.display = '';
+      document.querySelector('.login-card h1').textContent = 'Two-Factor Verification';
+      document.querySelector('.login-card > .subtitle').style.display = 'none';
+      document.getElementById('mfa_code').focus();
+    }
+
+    function afterPassword(result) {
+      if (result.mfa_status === 'code_required') { showMfaStep(); return; }
+      if (result.must_change_password) { window.location.href = '/staff/account/change-password/'; return; }
+      if (result.mfa_status === 'enroll_required') { window.location.href = '/staff/account/two-factor/?required=1'; return; }
+      window.location.href = nextUrl();
+    }
+
+    var usingRecovery = false;
+    document.getElementById('toggleRecovery').addEventListener('click', function (e) {
+      e.preventDefault();
+      usingRecovery = !usingRecovery;
+      document.getElementById('recoveryField').style.display = usingRecovery ? '' : 'none';
+      document.getElementById('codeField').style.display = usingRecovery ? 'none' : '';
+      document.getElementById('rememberRow').style.display = usingRecovery ? 'none' : 'flex';
+      document.getElementById('mfaIntro').textContent = usingRecovery ? 'Enter one of your recovery codes. Using one removes your current authenticator so you can set up a new one.' : 'Enter the 6-digit code from your authenticator app.';
+      this.textContent = usingRecovery ? 'Back to authenticator code' : 'Lost your device? Use a recovery code';
+      document.getElementById('mfaBtn').textContent = usingRecovery ? 'Use Recovery Code' : 'Verify';
+    });
+
+    document.getElementById('mfaForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var btn = document.getElementById('mfaBtn');
+      btn.disabled = true; btn.textContent = 'Checking…';
+      try {
+        if (usingRecovery) {
+          await window.mcStaffApi('/mfa/recover', { method: 'POST', body: { code: document.getElementById('recovery_code').value } });
+          window.location.href = '/staff/account/two-factor/?required=1&recovered=1';
+          return;
+        }
+        await window.mcStaffApi('/mfa/challenge', { method: 'POST', body: {
+          code: document.getElementById('mfa_code').value,
+          remember_device: document.getElementById('remember_device').checked
+        } });
+        window.location.href = nextUrl();
+      } catch (err) {
+        showAlert(err.message, 'error');
+        btn.disabled = false; btn.textContent = usingRecovery ? 'Use Recovery Code' : 'Verify';
+      }
+    });
+
     if (new URLSearchParams(window.location.search).get('denied')) {
       showAlert('Access denied. This login is not a staff account.', 'error');
     }
 
-    // If already logged in, skip straight to the dashboard.
+    // Already signed in? Finish the second factor if needed, else go through.
     (async function () {
-      try { await window.mcStaffApi('/me'); window.location.href = '/staff/'; } catch (e) {}
+      try {
+        var st = await window.mcStaffApi('/mfa/status');
+        if (st.enabled && !st.session_mfa) { showMfaStep(); return; }
+        if (!st.enabled && !st.grace_active) { window.location.href = '/staff/account/two-factor/?required=1'; return; }
+        window.location.href = nextUrl();
+      } catch (e) {}
     })();
   </script>
 </body>
