@@ -38,8 +38,8 @@
       </form>
 
       <div class="security-note">
-        This is a private area for Met Capital employees only. If you are a client,
-        please use the <a href="/clients/login/">client portal</a> instead.
+        This is a private area for Met Capital employees and contractors. If you did not
+        receive login credentials directly from Met Capital, please do not enter information here.
       </div>
     </div>
   </div>
@@ -78,7 +78,7 @@
     });
 
     if (new URLSearchParams(window.location.search).get('denied')) {
-      showAlert('Access denied. This login is not an employee account.', 'error');
+      showAlert('Access denied. This login is not a staff account.', 'error');
     }
 
     // If already logged in, skip straight to the dashboard.
