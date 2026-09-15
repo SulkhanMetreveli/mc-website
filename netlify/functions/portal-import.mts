@@ -11,7 +11,7 @@
 // key already grants full access to the very data being imported.
 // ============================================================================
 import type { Config } from "@netlify/functions";
-import { json, readJson, nowIso, freshGrace, contentTypeFor } from "./_lib/common.mts";
+import { json, readJson, nowIso, freshGrace, contentTypeFor, randomToken } from "./_lib/common.mts";
 import {
   portalStore, portalFiles, getAuth, mfaOk, isSuperAdmin, listUsers, createUser, saveUser, getUser,
   saveClient, saveRecord, CLIENT_PROFILE_FIELDS,
@@ -30,6 +30,7 @@ type State = {
   started_at: string;
   finished_at?: string;
   error?: string | null;
+  run_token?: string | null;   // set when a run began in bootstrap mode
 };
 
 // [supabase table, blob record kind, fields holding storage paths -> bucket]
@@ -53,11 +54,15 @@ export default async (req: Request) => {
   const users = await listUsers();
   const bootstrap = users.length === 0;
   const auth = await getAuth(req);
-  const allowed = bootstrap || (auth && isSuperAdmin(auth.user) && mfaOk(auth));
+  const existing = (await st.get(STATE_KEY, { type: "json" })) as State | null;
+  const body = req.method === "POST" ? await readJson(req) : {};
+  // A run that began while the store was empty may continue to the end with
+  // the run token it was given, even though users now exist.
+  const continuing = !!(existing && existing.phase !== "done" && existing.run_token && body.run_token === existing.run_token);
+  const allowed = bootstrap || continuing || (auth && isSuperAdmin(auth.user) && mfaOk(auth));
 
   if (seg === "status" && req.method === "GET") {
-    const state = (await st.get(STATE_KEY, { type: "json" })) as State | null;
-    return json({ bootstrap, allowed: !!allowed, user_count: users.length, state });
+    return json({ bootstrap, allowed: !!allowed, user_count: users.length, state: existing ? { ...existing, run_token: undefined } : null });
   }
   if (!allowed) return json({ error: "Only a Super Admin can run the import." }, { status: 403 });
 
@@ -67,15 +72,14 @@ export default async (req: Request) => {
   }
   if (seg !== "step" || req.method !== "POST") return json({ error: "Not found." }, { status: 404 });
 
-  const body = await readJson(req);
   const base = String(body.supabase_url || "").trim().replace(/\/+$/, "");
   const key = String(body.service_key || "").trim();
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(base)) return json({ error: "Supabase URL must look like https://xxxx.supabase.co" }, { status: 400 });
   if (!key) return json({ error: "The service role key is required." }, { status: 400 });
   const H = { apikey: key, authorization: `Bearer ${key}` };
-  let state = (await st.get(STATE_KEY, { type: "json" })) as State | null;
-  if (!state || state.phase === "done" || body.restart) {
-    state = { phase: "users", table_index: 0, file_index: 0, counts: {}, log: [], started_at: nowIso(), error: null };
+  let state = existing;
+  if (!state || state.phase === "done" || (body.restart && !continuing)) {
+    state = { phase: "users", table_index: 0, file_index: 0, counts: {}, log: [], started_at: nowIso(), error: null, run_token: bootstrap ? randomToken(24) : null };
     await st.delete(FILES_KEY).catch(() => {});
   }
   const log = (m: string) => { state!.log.push(`${new Date().toISOString().slice(11, 19)}  ${m}`); if (state!.log.length > 400) state!.log.shift(); };
@@ -199,7 +203,7 @@ export default async (req: Request) => {
     log(`ERROR: ${state.error}`);
   }
   await st.setJSON(STATE_KEY, state);
-  return json({ done: state.phase === "done", error: state.error || null, state });
+  return json({ done: state.phase === "done", error: state.error || null, run_token: state.run_token || null, state: { ...state, run_token: undefined } });
 };
 
 export const config: Config = { path: "/api/portal/import/*" };

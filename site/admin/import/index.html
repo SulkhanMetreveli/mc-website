@@ -85,10 +85,12 @@
       document.getElementById('startBtn').disabled = true;
       document.getElementById('progressCard').style.display = '';
       var first = restart;
+      var runToken = null;
       try {
         while (true) {
-          var r = await window.mcApi('/import/step', { method: 'POST', body: { supabase_url: url, service_key: key, restart: first } });
+          var r = await window.mcApi('/import/step', { method: 'POST', body: { supabase_url: url, service_key: key, restart: first, run_token: runToken } });
           first = false;
+          if (r.run_token) runToken = r.run_token;
           render(r.state);
           if (r.error) { showAlert('Import stopped: ' + window.mcEscape(r.error) + ' — fix the cause and press Start again to resume.', 'error'); break; }
           if (r.done) {
