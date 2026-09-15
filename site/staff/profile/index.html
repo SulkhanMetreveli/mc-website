@@ -33,7 +33,7 @@
     <div id="pageAlert"></div>
 
     <div class="section-block">
-      <h2>Employment (HR-maintained)</h2>
+      <h2 id="empHeading">Employment (HR-maintained)</h2>
       <div class="card request-detail-box" id="jobBox"><dl id="jobList"></dl></div>
     </div>
 
@@ -91,8 +91,12 @@
         '<dt>Job Title</dt><dd>' + (p.job_title || '—') + '</dd>' +
         '<dt>Department</dt><dd>' + (p.department || '—') + '</dd>' +
         '<dt>Employment Type</dt><dd>' + (TYPE_LABELS[p.employment_type] || p.employment_type) + '</dd>' +
-        '<dt>Start Date</dt><dd>' + (p.start_date || '—') + '</dd>' +
-        '<dt>Vacation Allowance</dt><dd>' + p.vacation_days_per_year + ' days / year</dd>';
+        (window.mcStaffIsContractor
+          ? '<dt>Contract</dt><dd>' + (p.contract_start || '—') + ' → ' + (p.contract_end || '—') + '</dd>' +
+            '<dt>Contracting Entity</dt><dd>' + (p.contracting_entity || '—') + '</dd>' +
+            '<dt>Engagement Basis</dt><dd>' + (p.engagement_basis || '—') + '</dd>'
+          : '<dt>Start Date</dt><dd>' + (p.start_date || '—') + '</dd>' +
+            '<dt>Vacation Allowance</dt><dd>' + p.vacation_days_per_year + ' days / year</dd>');
       FIELDS.forEach(function (f) { document.getElementById(f).value = p[f] || ''; });
     }
 
@@ -116,6 +120,7 @@
     (async function init() {
       var session = await window.mcRequireStaffSession('/staff/profile/');
       if (!session) return;
+      if (window.mcStaffIsContractor) document.getElementById('empHeading').textContent = 'Engagement (HR-maintained)';
       fill(window.mcStaffProfile);
     })();
   </script>

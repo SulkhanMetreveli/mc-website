@@ -134,6 +134,13 @@ the signed-in admin can access. The apps:
   dashboard with vacation balance, My Profile (contact/address/emergency
   contact only), Time Off (working-day count, balance check, cancel
   while pending), and Documents (see HR-shared files, upload their own).
+  **Employees vs contractors:** the type is chosen at creation. Contractors
+  have no vacation allowance or balance; instead of leave requests they
+  post absence notices that are recorded immediately (withdrawable until
+  they start). Their records carry contract start/end, contracting
+  entity, and engagement basis instead of employment dates; the HR
+  directory lists them separately and the overview flags contracts
+  ending within 60 days.
   The only Supabase call in this app is checking that an HR admin holds
   the `hr` app in the company panel. Code: `netlify/functions/hr-*.mts`
   and `netlify/functions/_lib/hr.mts`; data lives in the `hr` and

@@ -33,8 +33,10 @@
 
     <div class="stat-cards">
       <div class="stat-card"><div class="stat-value" id="stEmployees">—</div><div class="stat-label">Active Employees</div></div>
+      <div class="stat-card"><div class="stat-value" id="stContractors">—</div><div class="stat-label">Active Contractors</div></div>
       <div class="stat-card"><div class="stat-value" id="stOnLeave">—</div><div class="stat-label">Away Today</div></div>
       <div class="stat-card warn"><div class="stat-value" id="stPending">—</div><div class="stat-label">Pending Time-Off Requests</div></div>
+      <div class="stat-card warn"><div class="stat-value" id="stExpiring">—</div><div class="stat-label">Contracts Ending ≤ 60 Days</div></div>
     </div>
 
     <div class="section-block">
@@ -43,7 +45,12 @@
     </div>
 
     <div class="section-block">
-      <h2>Add an Employee</h2>
+      <h2>Contracts Ending Soon</h2>
+      <div class="card"><div id="expiringContent"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
+    </div>
+
+    <div class="section-block">
+      <h2>Add an Employee or Contractor</h2>
       <div id="newEmpAlert"></div>
       <form id="newEmpForm" class="card" novalidate>
         <div class="form-row">
@@ -54,11 +61,26 @@
         <div class="form-row">
           <div class="field"><label>Job Title</label><input type="text" id="ne_title"></div>
           <div class="field"><label>Department</label><input type="text" id="ne_department"></div>
-          <div class="field"><label>Start Date</label><input type="date" id="ne_start"></div>
+          <div class="field">
+            <label>Type <span class="required">*</span></label>
+            <select id="ne_type">
+              <option value="full_time">Employee — full-time</option>
+              <option value="part_time">Employee — part-time</option>
+              <option value="intern">Employee — intern</option>
+              <option value="contractor">Contractor</option>
+            </select>
+          </div>
+          <div class="field" id="ne_start_field"><label>Start Date</label><input type="date" id="ne_start"></div>
           <div class="field">
             <label>Initial Password</label>
             <input type="text" id="ne_password" minlength="10" placeholder="Leave blank to auto-generate">
           </div>
+        </div>
+        <div class="form-row" id="ne_contract_fields" style="display:none;">
+          <div class="field"><label>Contract Start</label><input type="date" id="ne_contract_start"></div>
+          <div class="field"><label>Contract End</label><input type="date" id="ne_contract_end"></div>
+          <div class="field"><label>Contracting Entity</label><input type="text" id="ne_entity" placeholder="Their company, if any"></div>
+          <div class="field"><label>Engagement Basis</label><input type="text" id="ne_basis" placeholder="e.g. Day rate CHF 1,200 · 3 days/week"></div>
         </div>
         <button type="submit" class="btn-primary" id="newEmpBtn">Create Employee</button>
       </form>
@@ -67,6 +89,11 @@
     <div class="section-block">
       <h2>Employees</h2>
       <div class="card"><div id="employeesContent"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
+    </div>
+
+    <div class="section-block">
+      <h2>Contractors</h2>
+      <div class="card"><div id="contractorsContent"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
     </div>
   </main>
 
@@ -106,8 +133,23 @@
       var emps = data.employees || [], pend = data.pending || [];
 
       document.getElementById('stEmployees').textContent = data.stats.active;
+      document.getElementById('stContractors').textContent = data.stats.contractors;
       document.getElementById('stOnLeave').textContent = data.stats.away_today;
       document.getElementById('stPending').textContent = data.stats.pending;
+      document.getElementById('stExpiring').textContent = data.stats.expiring;
+
+      var ex = document.getElementById('expiringContent');
+      var expiring = data.expiring || [];
+      if (!expiring.length) ex.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No contracts ending in the next 60 days.</p>';
+      else {
+        var xr = '';
+        expiring.forEach(function (c) {
+          var left = c.contract_days_left;
+          var pill = left < 0 ? '<span class="status-pill rejected">Expired ' + Math.abs(left) + 'd ago</span>' : '<span class="status-pill pending">' + left + ' days left</span>';
+          xr += '<tr><td><a href="/admin/hr/employee/?u=' + c.id + '">' + c.full_name + '</a></td><td>' + (c.job_title || '—') + '</td><td>' + (c.contracting_entity || '—') + '</td><td>' + (c.contract_end || '—') + '</td><td>' + pill + '</td></tr>';
+        });
+        ex.innerHTML = '<table class="admin-table"><thead><tr><th>Contractor</th><th>Role</th><th>Entity</th><th>Contract End</th><th></th></tr></thead><tbody>' + xr + '</tbody></table>';
+      }
 
       var el = document.getElementById('pendingContent');
       if (!pend.length) el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No pending requests.</p>';
@@ -139,17 +181,41 @@
       }
 
       var d = document.getElementById('employeesContent');
-      if (!emps.length) { d.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No employees yet.</p>'; return; }
-      var r2 = '';
-      emps.forEach(function (e) {
-        r2 += '<tr><td>' + e.full_name + (e.employee_number ? '<div style="font-size:0.75rem; color:var(--gray-light);">' + e.employee_number + '</div>' : '') + '</td>' +
-          '<td>' + (e.job_title || '—') + '</td><td>' + (e.department || '—') + '</td><td>' + e.work_email + '</td>' +
-          '<td>' + (e.start_date || '—') + '</td>' +
-          '<td><span class="status-pill ' + (STATUS_CLS[e.status] || 'neutral') + '">' + e.status.replace('_', ' ') + '</span></td>' +
+      if (!emps.length) d.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No employees yet.</p>';
+      else {
+        var r2 = '';
+        emps.forEach(function (e) {
+          r2 += '<tr><td>' + e.full_name + (e.employee_number ? '<div style="font-size:0.75rem; color:var(--gray-light);">' + e.employee_number + '</div>' : '') + '</td>' +
+            '<td>' + (e.job_title || '—') + '</td><td>' + (e.department || '—') + '</td><td>' + e.work_email + '</td>' +
+            '<td>' + (e.start_date || '—') + '</td>' +
+            '<td><span class="status-pill ' + (STATUS_CLS[e.status] || 'neutral') + '">' + e.status.replace('_', ' ') + '</span></td>' +
+            '<td><a href="/admin/hr/employee/?u=' + e.id + '">Manage →</a></td></tr>';
+        });
+        d.innerHTML = '<table class="admin-table"><thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Work Email</th><th>Started</th><th>Status</th><th></th></tr></thead><tbody>' + r2 + '</tbody></table>';
+      }
+
+      var cons = data.contractors || [];
+      var c = document.getElementById('contractorsContent');
+      if (!cons.length) { c.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No contractors yet.</p>'; return; }
+      var r3 = '';
+      cons.forEach(function (e) {
+        var left = e.contract_days_left;
+        var endCell = e.contract_end ? (e.contract_end + (left !== null && left <= 60 ? ' <span class="status-pill ' + (left < 0 ? 'rejected' : 'pending') + '">' + (left < 0 ? 'expired' : left + 'd') + '</span>' : '')) : '—';
+        var statusLabel = e.status === 'terminated' ? 'ended' : e.status.replace('_', ' ');
+        r3 += '<tr><td>' + e.full_name + (e.contracting_entity ? '<div style="font-size:0.75rem; color:var(--gray-light);">' + e.contracting_entity + '</div>' : '') + '</td>' +
+          '<td>' + (e.job_title || '—') + '</td><td>' + (e.engagement_basis || '—') + '</td><td>' + e.work_email + '</td>' +
+          '<td>' + (e.contract_start || '—') + '</td><td>' + endCell + '</td>' +
+          '<td><span class="status-pill ' + (STATUS_CLS[e.status] || 'neutral') + '">' + statusLabel + '</span></td>' +
           '<td><a href="/admin/hr/employee/?u=' + e.id + '">Manage →</a></td></tr>';
       });
-      d.innerHTML = '<table class="admin-table"><thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Work Email</th><th>Started</th><th>Status</th><th></th></tr></thead><tbody>' + r2 + '</tbody></table>';
+      c.innerHTML = '<table class="admin-table"><thead><tr><th>Name</th><th>Role</th><th>Basis</th><th>Email</th><th>Contract Start</th><th>Contract End</th><th>Status</th><th></th></tr></thead><tbody>' + r3 + '</tbody></table>';
     }
+
+    document.getElementById('ne_type').addEventListener('change', function () {
+      var isC = this.value === 'contractor';
+      document.getElementById('ne_contract_fields').style.display = isC ? '' : 'none';
+      document.getElementById('ne_start_field').style.display = isC ? 'none' : '';
+    });
 
     document.getElementById('newEmpForm').addEventListener('submit', async function (e) {
       e.preventDefault();
@@ -165,10 +231,15 @@
           job_title: document.getElementById('ne_title').value.trim(),
           department: document.getElementById('ne_department').value.trim(),
           start_date: document.getElementById('ne_start').value,
+          employment_type: document.getElementById('ne_type').value,
+          contract_start: document.getElementById('ne_contract_start').value,
+          contract_end: document.getElementById('ne_contract_end').value,
+          contracting_entity: document.getElementById('ne_entity').value.trim(),
+          engagement_basis: document.getElementById('ne_basis').value.trim(),
           password: pw || undefined
         } });
         e.target.reset();
-        showAlert('newEmpAlert', 'Employee created. Send these to them over a secure channel — they must change the password on first login at met.capital/staff/:<br><br><strong>Username:</strong> ' + data.email + '<br><strong>Temporary password:</strong> ' + data.password, 'success');
+        showAlert('newEmpAlert', (data.employee.employment_type === 'contractor' ? 'Contractor' : 'Employee') + ' created. Send these to them over a secure channel — they must change the password on first login at met.capital/staff/:<br><br><strong>Username:</strong> ' + data.email + '<br><strong>Temporary password:</strong> ' + data.password, 'success');
         loadAll();
       } catch (err) {
         showAlert('newEmpAlert', 'Could not create employee: ' + err.message, 'error');

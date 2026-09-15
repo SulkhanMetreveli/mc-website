@@ -8,7 +8,7 @@ import {
   json, readJson, nowIso, newId, workingDays, randomPassword, hashPassword,
   requireHrAdmin, hrStore,
   getEmployee, getEmployeeByEmail, listEmployees, saveEmployee, sanitizeEmployee,
-  applyEmployeeFields, EMPLOYEE_HR_FIELDS, purgeEmployee, destroyAllSessionsFor,
+  applyEmployeeFields, EMPLOYEE_HR_FIELDS, purgeEmployee, destroyAllSessionsFor, isContractor, contractDaysLeft,
   listVacation, listAllVacation, getVacation, saveVacation, deleteVacation, vacationBalance, VACATION_TYPES,
   listDocuments, getDocument, storeDocument, deleteDocument, fileResponse,
 } from "./_lib/hr.mts";
@@ -32,10 +32,23 @@ export default async (req: Request) => {
     const pending = all.filter((v) => v.status === "pending").sort((a, b) => a.created_at.localeCompare(b.created_at))
       .map((v) => ({ ...v, employee_name: names[v.employee_id] || v.employee_id }));
     const awayToday = new Set(all.filter((v) => v.status === "approved" && v.start_date <= today && v.end_date >= today).map((v) => v.employee_id)).size;
+    const staff = employees.filter((e) => !isContractor(e));
+    const contractors = employees.filter(isContractor).map((e) => ({ ...sanitizeEmployee(e), contract_days_left: contractDaysLeft(e) }));
+    const expiring = contractors
+      .filter((c) => c.status === "active" && c.contract_days_left !== null && c.contract_days_left <= 60)
+      .sort((a, b) => (a.contract_days_left ?? 0) - (b.contract_days_left ?? 0));
     return json({
-      employees: employees.map(sanitizeEmployee),
+      employees: staff.map(sanitizeEmployee),
+      contractors,
+      expiring,
       pending,
-      stats: { active: employees.filter((e) => e.status === "active").length, away_today: awayToday, pending: pending.length },
+      stats: {
+        active: staff.filter((e) => e.status === "active").length,
+        contractors: contractors.filter((c) => c.status === "active").length,
+        away_today: awayToday,
+        pending: pending.length,
+        expiring: expiring.length,
+      },
     });
   }
 
@@ -63,7 +76,10 @@ export default async (req: Request) => {
       status: "active", vacation_days_per_year: 25, must_change_password: true,
       password_hash: await hashPassword(password), created_at: now, updated_at: now,
     };
-    applyEmployeeFields(e, body, ["employee_number", "job_title", "department", "start_date", "employment_type", "vacation_days_per_year"]);
+    e.contract_start = null; e.contract_end = null; e.contracting_entity = null; e.engagement_basis = null;
+    applyEmployeeFields(e, body, ["employee_number", "job_title", "department", "start_date", "employment_type", "vacation_days_per_year",
+      "contract_start", "contract_end", "contracting_entity", "engagement_basis"]);
+    if (isContractor(e)) e.vacation_days_per_year = 0;
     await saveEmployee(e);
     await hrStore().set(`email:${email}`, e.id);
     return json({ employee: sanitizeEmployee(e), email, password }, { status: 201 });
@@ -75,7 +91,7 @@ export default async (req: Request) => {
 
     if (!sub && method === "GET") {
       const [reqs, docs] = await Promise.all([listVacation(id), listDocuments(id)]);
-      return json({ employee: sanitizeEmployee(e), vacation: reqs, documents: docs, balance: vacationBalance(e, reqs) });
+      return json({ employee: sanitizeEmployee(e), vacation: reqs, documents: docs, balance: vacationBalance(e, reqs), is_contractor: isContractor(e), contract_days_left: contractDaysLeft(e) });
     }
 
     if (!sub && method === "PATCH") {
@@ -109,11 +125,11 @@ export default async (req: Request) => {
 
     if (sub === "vacation" && !subId && method === "POST") {
       const body = await readJson(req);
-      const type = VACATION_TYPES.includes(body.type) ? body.type : "vacation";
+      const type = isContractor(e) ? "absence" : (VACATION_TYPES.includes(body.type) && body.type !== "absence" ? body.type : "vacation");
       const start = String(body.start_date || ""), end = String(body.end_date || "");
       const days = workingDays(start, end);
       if (!days) return json({ error: "Please choose a valid date range containing at least one working day." }, { status: 400 });
-      const status = body.status === "pending" ? "pending" : "approved";
+      const status = (!isContractor(e) && body.status === "pending") ? "pending" : "approved";
       const v = {
         id: newId(), employee_id: id, type, start_date: start, end_date: end, days,
         reason: String(body.reason || "").trim() || null, status,

@@ -27,21 +27,21 @@
 
   <main class="portal-main">
     <div class="page-label">Staff Portal</div>
-    <h1 class="page-title">Time Off</h1>
-    <p class="page-subtitle">Requests go to HR for approval. Weekends are not counted. You can cancel a request while it's still pending.</p>
+    <h1 class="page-title" id="pageTitle">Time Off</h1>
+    <p class="page-subtitle" id="pageSub">Requests go to HR for approval. Weekends are not counted. You can cancel a request while it's still pending.</p>
 
     <div id="pageAlert"></div>
 
-    <div class="stat-cards">
+    <div class="stat-cards" id="balanceCards">
       <div class="stat-card"><div class="stat-value" id="stRemaining">—</div><div class="stat-label">Vacation days remaining</div></div>
       <div class="stat-card"><div class="stat-value" id="stUsed">—</div><div class="stat-label">Used this year</div></div>
       <div class="stat-card"><div class="stat-value" id="stAllowance">—</div><div class="stat-label">Annual allowance</div></div>
     </div>
 
     <form id="requestForm" class="card" novalidate>
-      <h2 style="font-size:1rem; margin-bottom:1rem;">New Request</h2>
+      <h2 style="font-size:1rem; margin-bottom:1rem;" id="formHeading">New Request</h2>
       <div class="form-row">
-        <div class="field">
+        <div class="field" id="typeField">
           <label for="type">Type <span class="required">*</span></label>
           <select id="type">
             <option value="vacation">Vacation</option>
@@ -59,7 +59,7 @@
     </form>
 
     <div class="section-block">
-      <h2>My Requests</h2>
+      <h2 id="historyHeading">My Requests</h2>
       <div class="card"><div id="history"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
     </div>
   </main>
@@ -68,7 +68,9 @@
   <script>
     document.getElementById('logoutBtn').addEventListener('click', window.mcStaffLogout);
 
-    var TYPE_LABELS = { vacation: 'Vacation', sick: 'Sick leave', unpaid: 'Unpaid leave', other: 'Other' };
+    var TYPE_LABELS = { vacation: 'Vacation', sick: 'Sick leave', unpaid: 'Unpaid leave', other: 'Other', absence: 'Absence' };
+    var contractor = false;
+    var todayIso = new Date().toISOString().slice(0, 10);
     var STATUS_CLS = { pending: 'pending', approved: 'approved', rejected: 'rejected', cancelled: 'neutral' };
 
     function showAlert(m, t) {
@@ -87,12 +89,14 @@
       var data = await window.mcStaffApi('/vacation');
       var reqs = data.requests || [];
       var bal = data.balance;
-      document.getElementById('stRemaining').textContent = bal.remaining;
-      document.getElementById('stUsed').textContent = bal.used;
-      document.getElementById('stAllowance').textContent = bal.allowance;
+      if (bal) {
+        document.getElementById('stRemaining').textContent = bal.remaining;
+        document.getElementById('stUsed').textContent = bal.used;
+        document.getElementById('stAllowance').textContent = bal.allowance;
+      }
 
       var el = document.getElementById('history');
-      if (!reqs.length) { el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No requests yet.</p>'; return; }
+      if (!reqs.length) { el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">' + (contractor ? 'No absence notices yet.' : 'No requests yet.') + '</p>'; return; }
       var rows = '';
       reqs.forEach(function (r) {
         rows += '<tr>' +
@@ -100,13 +104,13 @@
           '<td>' + r.start_date + ' → ' + r.end_date + '</td>' +
           '<td>' + r.days + '</td>' +
           '<td><span class="status-pill ' + STATUS_CLS[r.status] + '">' + r.status + '</span>' + (r.reviewer_note ? '<div style="font-size:0.75rem; color:var(--gray-light);">' + r.reviewer_note + '</div>' : '') + '</td>' +
-          '<td>' + (r.status === 'pending' ? '<button type="button" class="btn-small danger" data-cancel="' + r.id + '">Cancel</button>' : '') + '</td>' +
+          '<td>' + ((contractor ? (r.status === 'approved' && r.start_date >= todayIso) : r.status === 'pending') ? '<button type="button" class="btn-small danger" data-cancel="' + r.id + '">' + (contractor ? 'Withdraw' : 'Cancel') + '</button>' : '') + '</td>' +
         '</tr>';
       });
       el.innerHTML = '<table class="simple-table"><thead><tr><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
       el.querySelectorAll('[data-cancel]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
-          if (!confirm('Cancel this request?')) return;
+          if (!confirm(contractor ? 'Withdraw this absence notice?' : 'Cancel this request?')) return;
           try {
             await window.mcStaffApi('/vacation/' + btn.getAttribute('data-cancel') + '/cancel', { method: 'POST' });
             loadHistory();
@@ -122,8 +126,8 @@
       if (en < s) { showAlert('The end date must be on or after the start date.', 'error'); return; }
       var days = window.mcWorkingDays(s, en);
       if (days === 0) { showAlert('That range contains no working days.', 'error'); return; }
-      var type = document.getElementById('type').value;
-      if (type === 'vacation' && window.mcStaffBalance && days > window.mcStaffBalance.remaining &&
+      var type = contractor ? 'absence' : document.getElementById('type').value;
+      if (!contractor && type === 'vacation' && window.mcStaffBalance && days > window.mcStaffBalance.remaining &&
           !confirm('This exceeds your remaining vacation balance (' + window.mcStaffBalance.remaining + ' days). Submit anyway for HR to decide?')) return;
 
       var btn = document.getElementById('submitBtn');
@@ -132,7 +136,7 @@
         await window.mcStaffApi('/vacation', { method: 'POST', body: { type: type, start_date: s, end_date: en, reason: document.getElementById('reason').value.trim() } });
         document.getElementById('requestForm').reset();
         updatePreview();
-        showAlert('Request submitted. HR will review it.', 'success');
+        showAlert(contractor ? 'Absence recorded. HR can see it immediately.' : 'Request submitted. HR will review it.', 'success');
         loadHistory();
       } catch (err) {
         showAlert('Could not submit: ' + err.message, 'error');
@@ -144,6 +148,18 @@
     (async function init() {
       var me = await window.mcRequireStaffSession('/staff/vacation/');
       if (!me) return;
+      contractor = window.mcStaffIsContractor;
+      if (contractor) {
+        document.title = 'Availability — Met Capital Staff Portal';
+        document.getElementById('pageTitle').textContent = 'Availability';
+        document.getElementById('pageSub').textContent = 'As a contractor you don\'t accrue leave. Use this page to let HR know when you will be unavailable; notices are recorded immediately and can be withdrawn until they start.';
+        document.getElementById('balanceCards').style.display = 'none';
+        document.getElementById('typeField').style.display = 'none';
+        document.getElementById('formHeading').textContent = 'New Absence Notice';
+        document.getElementById('submitBtn').textContent = 'Record Absence';
+        document.getElementById('historyHeading').textContent = 'My Absence Notices';
+        document.querySelector('nav a.active').textContent = 'Availability';
+      }
       loadHistory();
     })();
   </script>

@@ -30,6 +30,8 @@
     }
     window.mcStaffProfile = me.employee;
     window.mcStaffBalance = me.balance;
+    window.mcStaffIsContractor = !!me.is_contractor;
+    window.mcStaffContractDaysLeft = me.contract_days_left;
     if (me.employee.must_change_password && window.location.pathname.indexOf("/staff/account/change-password") !== 0) {
       window.location.href = "/staff/account/change-password/";
       return null;

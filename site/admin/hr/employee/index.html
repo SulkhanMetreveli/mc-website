@@ -33,7 +33,7 @@
 
     <div class="stat-cards">
       <div class="stat-card"><div class="stat-value" id="stRemaining">—</div><div class="stat-label">Vacation days remaining</div></div>
-      <div class="stat-card"><div class="stat-value" id="stUsed">—</div><div class="stat-label">Used this year</div></div>
+      <div class="stat-card"><div class="stat-value" id="stUsed">—</div><div class="stat-label">Used this year / allowance</div></div>
       <div class="stat-card warn"><div class="stat-value" id="stPending">—</div><div class="stat-label">Pending requests</div></div>
     </div>
 
@@ -68,10 +68,20 @@
                 <option value="intern">Intern</option>
               </select>
             </div>
-            <div class="field"><label>Start Date</label><input type="date" id="p_start_date"></div>
-            <div class="field"><label>End Date</label><input type="date" id="p_end_date"></div>
-            <div class="field"><label>Vacation Days / Year</label><input type="number" step="0.5" id="p_vacation_days_per_year"></div>
+            <div class="field" id="f_start_date"><label>Start Date</label><input type="date" id="p_start_date"></div>
+            <div class="field" id="f_end_date"><label>End Date</label><input type="date" id="p_end_date"></div>
+            <div class="field" id="f_vacation"><label>Vacation Days / Year</label><input type="number" step="0.5" id="p_vacation_days_per_year"></div>
           </div>
+        </div>
+        <div class="form-section" id="contractSection" style="display:none;">
+          <h3>Contract</h3>
+          <div class="form-row">
+            <div class="field"><label>Contract Start</label><input type="date" id="p_contract_start"></div>
+            <div class="field"><label>Contract End</label><input type="date" id="p_contract_end"></div>
+            <div class="field"><label>Contracting Entity</label><input type="text" id="p_contracting_entity"></div>
+            <div class="field"><label>Engagement Basis</label><input type="text" id="p_engagement_basis" placeholder="e.g. Day rate CHF 1,200 · 3 days/week"></div>
+          </div>
+          <p id="contractNote" style="font-size:0.8125rem; color:var(--gray);"></p>
         </div>
         <div class="form-section">
           <h3>Personal &amp; Contact (employee can also edit these)</h3>
@@ -105,13 +115,13 @@
 
     <!-- TIME OFF -->
     <div class="section-block">
-      <h2>Time Off</h2>
+      <h2 id="timeOffHeading">Time Off</h2>
       <div class="card">
         <div id="vacationTable"></div>
         <h3 style="margin-top:1.5rem; margin-bottom:0.75rem; font-size:0.8125rem; color:var(--gray);">Record Time Off on Their Behalf</h3>
         <form id="vacationForm" novalidate>
           <div class="inline-form-grid">
-            <div class="field">
+            <div class="field" id="f_v_type">
               <label>Type</label>
               <select id="v_type">
                 <option value="vacation">Vacation</option>
@@ -122,7 +132,7 @@
             </div>
             <div class="field"><label>From</label><input type="date" id="v_start"></div>
             <div class="field"><label>To</label><input type="date" id="v_end"></div>
-            <div class="field">
+            <div class="field" id="f_v_status">
               <label>Status</label>
               <select id="v_status">
                 <option value="approved">Approved</option>
@@ -153,6 +163,8 @@
                 <option value="policy">Policy</option>
                 <option value="id">ID</option>
                 <option value="certificate">Certificate</option>
+                <option value="invoice">Invoice</option>
+                <option value="compliance">Compliance</option>
                 <option value="other">Other</option>
               </select>
             </div>
@@ -192,10 +204,31 @@
     var profile = null;
 
     var FIELDS = ['full_name', 'employee_number', 'work_email', 'status', 'job_title', 'department', 'employment_type', 'start_date', 'end_date', 'vacation_days_per_year',
+      'contract_start', 'contract_end', 'contracting_entity', 'engagement_basis',
       'personal_email', 'phone', 'date_of_birth', 'nationality', 'address_line1', 'address_line2', 'city', 'postal_code', 'country',
       'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship'];
-    var TYPE_LABELS = { vacation: 'Vacation', sick: 'Sick leave', unpaid: 'Unpaid leave', other: 'Other' };
+    var TYPE_LABELS = { vacation: 'Vacation', sick: 'Sick leave', unpaid: 'Unpaid leave', other: 'Other', absence: 'Absence notice' };
     var STATUS_CLS = { pending: 'pending', approved: 'approved', rejected: 'rejected', cancelled: 'neutral' };
+    var isContractor = false;
+
+    function applyContractorMode(on, data) {
+      isContractor = on;
+      document.getElementById('contractSection').style.display = on ? '' : 'none';
+      document.getElementById('f_start_date').style.display = on ? 'none' : '';
+      document.getElementById('f_end_date').style.display = on ? 'none' : '';
+      document.getElementById('f_vacation').style.display = on ? 'none' : '';
+      document.getElementById('timeOffHeading').textContent = on ? 'Absence Notices' : 'Time Off';
+      document.getElementById('f_v_type').style.display = on ? 'none' : '';
+      document.getElementById('f_v_status').style.display = on ? 'none' : '';
+      document.querySelector('#vacationForm').previousElementSibling.textContent = on ? 'Record an Absence on Their Behalf' : 'Record Time Off on Their Behalf';
+      var note = document.getElementById('contractNote');
+      if (on && data && data.contract_days_left !== null && data.contract_days_left !== undefined) {
+        note.textContent = data.contract_days_left < 0 ? 'Contract ended ' + Math.abs(data.contract_days_left) + ' days ago.' : data.contract_days_left + ' days left on the current contract.';
+      } else note.textContent = '';
+      var opt = document.querySelector('#p_status option[value="terminated"]');
+      if (opt) opt.textContent = on ? 'Ended' : 'Terminated';
+    }
+    document.getElementById('p_employment_type').addEventListener('change', function () { applyContractorMode(this.value === 'contractor', null); });
 
     function showAlert(m, t) {
       document.getElementById('pageAlert').innerHTML = '<div class="alert ' + t + '">' + m + '</div>';
@@ -208,11 +241,16 @@
     }
 
     function renderVacation(reqs, bal) {
-      document.getElementById('stRemaining').textContent = bal.remaining;
-      document.getElementById('stUsed').textContent = bal.used + ' / ' + bal.allowance;
+      if (bal) {
+        document.getElementById('stRemaining').textContent = bal.remaining;
+        document.getElementById('stUsed').textContent = bal.used + ' / ' + bal.allowance;
+      } else {
+        document.getElementById('stRemaining').textContent = '—';
+        document.getElementById('stUsed').textContent = 'n/a';
+      }
       document.getElementById('stPending').textContent = reqs.filter(function (r) { return r.status === 'pending'; }).length;
       var el = document.getElementById('vacationTable');
-      if (!reqs.length) { el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No time off recorded.</p>'; return; }
+      if (!reqs.length) { el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">' + (isContractor ? 'No absence notices.' : 'No time off recorded.') + '</p>'; return; }
       var rows = '';
       reqs.forEach(function (r) {
         rows += '<tr><td>' + (TYPE_LABELS[r.type] || r.type) + '</td><td>' + r.start_date + ' → ' + r.end_date + '</td><td>' + r.days + '</td>' +
@@ -284,6 +322,7 @@
       document.getElementById('empTitle').textContent = profile.full_name;
       document.getElementById('empSubtitle').textContent = [profile.job_title, profile.department, profile.work_email].filter(Boolean).join(' · ');
       FIELDS.forEach(function (f) { var el = document.getElementById('p_' + f); if (el) el.value = profile[f] ?? ''; });
+      applyContractorMode(!!data.is_contractor, data);
       renderVacation(data.vacation || [], data.balance);
       renderDocuments(data.documents || []);
     }

@@ -132,6 +132,11 @@ export type Employee = {
   end_date: string | null;
   status: "active" | "on_leave" | "terminated";
   vacation_days_per_year: number;
+  // contractor-only (ignored for employees)
+  contract_start: string | null;
+  contract_end: string | null;
+  contracting_entity: string | null;
+  engagement_basis: string | null;
   must_change_password: boolean;
   password_hash: string;
   created_at: string;
@@ -147,7 +152,19 @@ export const EMPLOYEE_HR_FIELDS = [
   ...EMPLOYEE_SELF_FIELDS,
   "employee_number", "full_name", "work_email", "job_title", "department",
   "employment_type", "start_date", "end_date", "status", "vacation_days_per_year",
+  "contract_start", "contract_end", "contracting_entity", "engagement_basis",
 ];
+
+export function isContractor(e: Employee) {
+  return e.employment_type === "contractor";
+}
+
+export function contractDaysLeft(e: Employee, today = new Date()) {
+  if (!isContractor(e) || !e.contract_end) return null;
+  const end = new Date(e.contract_end + "T00:00:00Z");
+  const t = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  return Math.round((end.getTime() - t.getTime()) / 86400000);
+}
 const EMPLOYMENT_TYPES = ["full_time", "part_time", "contractor", "intern"];
 const STATUSES = ["active", "on_leave", "terminated"];
 
@@ -285,7 +302,7 @@ export type VacationRequest = {
   created_by: "employee" | "hr";
   created_at: string;
 };
-export const VACATION_TYPES = ["vacation", "sick", "unpaid", "other"];
+export const VACATION_TYPES = ["vacation", "sick", "unpaid", "other", "absence"];
 
 export async function listVacation(employeeId: string): Promise<VacationRequest[]> {
   const store = hrStore();
@@ -309,6 +326,7 @@ export async function deleteVacation(employeeId: string, id: string) {
   await hrStore().delete(`vacation:${employeeId}:${id}`);
 }
 export function vacationBalance(e: Employee, reqs: VacationRequest[], year = new Date().getFullYear()) {
+  if (isContractor(e)) return null;
   const used = reqs
     .filter((r) => r.status === "approved" && r.type === "vacation" && r.start_date.slice(0, 4) === String(year))
     .reduce((s, r) => s + Number(r.days || 0), 0);
@@ -328,7 +346,7 @@ export type EmployeeDocument = {
   uploaded_by: "employee" | "hr";
   uploaded_at: string;
 };
-export const DOC_CATEGORIES = ["contract", "id", "payslip", "certificate", "policy", "other"];
+export const DOC_CATEGORIES = ["contract", "id", "payslip", "certificate", "policy", "invoice", "compliance", "other"];
 
 export async function listDocuments(employeeId: string): Promise<EmployeeDocument[]> {
   const store = hrStore();

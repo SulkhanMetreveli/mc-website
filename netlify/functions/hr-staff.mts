@@ -5,7 +5,7 @@ import type { Config } from "@netlify/functions";
 import {
   json, readJson, nowIso, newId, workingDays,
   getEmployeeByEmail, getSessionEmployee, saveEmployee, sanitizeEmployee,
-  applyEmployeeFields, EMPLOYEE_SELF_FIELDS,
+  applyEmployeeFields, EMPLOYEE_SELF_FIELDS, isContractor, contractDaysLeft,
   hashPassword, verifyPassword, createSession, destroySession, destroyAllSessionsFor,
   sessionCookie, clearSessionCookie, loginThrottled, recordLoginFailure, clearLoginFailures,
   listVacation, getVacation, saveVacation, vacationBalance, VACATION_TYPES,
@@ -47,7 +47,12 @@ export default async (req: Request) => {
 
   if (seg === "me" && method === "GET") {
     const reqs = await listVacation(me.id);
-    return json({ employee: sanitizeEmployee(me), balance: vacationBalance(me, reqs) });
+    return json({
+      employee: sanitizeEmployee(me),
+      balance: vacationBalance(me, reqs),
+      is_contractor: isContractor(me),
+      contract_days_left: contractDaysLeft(me),
+    });
   }
 
   if (seg === "me" && method === "PATCH") {
@@ -77,23 +82,35 @@ export default async (req: Request) => {
 
   if (seg === "vacation" && !id && method === "POST") {
     const body = await readJson(req);
-    const type = VACATION_TYPES.includes(body.type) ? body.type : "vacation";
+    const contractor = isContractor(me);
+    // Contractors don't request leave -- they post absence notices, which are
+    // recorded immediately (no approval, no balance).
+    const type = contractor ? "absence" : (VACATION_TYPES.includes(body.type) && body.type !== "absence" ? body.type : "vacation");
     const start = String(body.start_date || ""), end = String(body.end_date || "");
     const days = workingDays(start, end);
     if (!days) return json({ error: "Please choose a valid date range containing at least one working day." }, { status: 400 });
     const v = {
       id: newId(), employee_id: me.id, type, start_date: start, end_date: end, days,
-      reason: String(body.reason || "").trim() || null, status: "pending" as const,
-      reviewer_note: null, reviewed_at: null, created_by: "employee" as const, created_at: nowIso(),
+      reason: String(body.reason || "").trim() || null,
+      status: (contractor ? "approved" : "pending") as "approved" | "pending",
+      reviewer_note: null, reviewed_at: contractor ? nowIso() : null,
+      created_by: "employee" as const, created_at: nowIso(),
     };
-    await saveVacation(v);
+    await saveVacation(v as any);
     return json(v, { status: 201 });
   }
 
   if (seg === "vacation" && id && sub === "cancel" && method === "POST") {
     const v = await getVacation(me.id, id);
     if (!v) return json({ error: "Not found." }, { status: 404 });
-    if (v.status !== "pending") return json({ error: "You can only cancel a request that is still pending." }, { status: 400 });
+    if (isContractor(me)) {
+      const today = nowIso().slice(0, 10);
+      if (v.status !== "approved" || v.start_date < today) {
+        return json({ error: "You can only withdraw an absence notice that hasn't started yet." }, { status: 400 });
+      }
+    } else if (v.status !== "pending") {
+      return json({ error: "You can only cancel a request that is still pending." }, { status: 400 });
+    }
     v.status = "cancelled";
     await saveVacation(v);
     return json(v);

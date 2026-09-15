@@ -31,18 +31,18 @@
     <p class="page-subtitle" id="jobLine"></p>
 
     <div class="stat-cards">
-      <div class="stat-card"><div class="stat-value" id="stRemaining">—</div><div class="stat-label">Vacation days remaining</div></div>
-      <div class="stat-card"><div class="stat-value" id="stUsed">—</div><div class="stat-label">Used this year</div></div>
-      <div class="stat-card warn"><div class="stat-value" id="stPending">—</div><div class="stat-label">Pending requests</div></div>
+      <div class="stat-card"><div class="stat-value" id="stRemaining">—</div><div class="stat-label" id="lblRemaining">Vacation days remaining</div></div>
+      <div class="stat-card"><div class="stat-value" id="stUsed">—</div><div class="stat-label" id="lblUsed">Used this year</div></div>
+      <div class="stat-card warn"><div class="stat-value" id="stPending">—</div><div class="stat-label" id="lblPending">Pending requests</div></div>
     </div>
 
     <div class="section-block">
-      <h2>Upcoming &amp; Pending Time Off</h2>
+      <h2 id="upcomingHeading">Upcoming &amp; Pending Time Off</h2>
       <div class="card"><div id="upcoming"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
     </div>
 
     <div class="quick-links">
-      <a class="quick-link" href="/staff/vacation/">
+      <a class="quick-link" href="/staff/vacation/" id="qlTimeOff">
         <h3>Request Time Off</h3>
         <p>Submit vacation, sick leave, or other absence for HR approval, and see your history.</p>
       </a>
@@ -65,7 +65,7 @@
   <script>
     document.getElementById('logoutBtn').addEventListener('click', window.mcStaffLogout);
 
-    var TYPE_LABELS = { vacation: 'Vacation', sick: 'Sick leave', unpaid: 'Unpaid leave', other: 'Other' };
+    var TYPE_LABELS = { vacation: 'Vacation', sick: 'Sick leave', unpaid: 'Unpaid leave', other: 'Other', absence: 'Absence' };
     var STATUS_META = { pending: 'pending', approved: 'approved', rejected: 'rejected', cancelled: 'neutral' };
 
     (async function init() {
@@ -74,16 +74,30 @@
       var p = me.employee;
 
       document.getElementById('welcomeTitle').textContent = 'Welcome, ' + (p.full_name || '').split(' ')[0];
-      document.getElementById('jobLine').textContent = [p.job_title, p.department].filter(Boolean).join(' · ') || 'Met Capital';
+      var contractor = window.mcStaffIsContractor;
+      document.getElementById('jobLine').textContent = ([p.job_title, p.department].filter(Boolean).join(' · ') || 'Met Capital') + (contractor ? ' · Contractor' : '');
 
       var data = await window.mcStaffApi('/vacation');
       var reqs = data.requests || [];
       var bal = data.balance;
-      document.getElementById('stRemaining').textContent = bal.remaining;
-      document.getElementById('stUsed').textContent = bal.used + ' / ' + bal.allowance;
-      document.getElementById('stPending').textContent = reqs.filter(function (r) { return r.status === 'pending'; }).length;
-
       var today = new Date().toISOString().slice(0, 10);
+      if (contractor) {
+        var left = window.mcStaffContractDaysLeft;
+        document.getElementById('lblRemaining').textContent = 'Contract ends';
+        document.getElementById('stRemaining').textContent = p.contract_end || '—';
+        document.getElementById('lblUsed').textContent = 'Days left on contract';
+        document.getElementById('stUsed').textContent = (left === null || left === undefined) ? '—' : (left < 0 ? 'ended' : left);
+        document.getElementById('lblPending').textContent = 'Upcoming absences';
+        document.getElementById('stPending').textContent = reqs.filter(function (r) { return r.status === 'approved' && r.end_date >= today; }).length;
+        document.getElementById('upcomingHeading').textContent = 'Upcoming Absences';
+        document.querySelector('#qlTimeOff h3').textContent = 'Availability';
+        document.querySelector('#qlTimeOff p').textContent = 'Let HR know when you will be unavailable, and see your notices.';
+      } else {
+        document.getElementById('stRemaining').textContent = bal.remaining;
+        document.getElementById('stUsed').textContent = bal.used + ' / ' + bal.allowance;
+        document.getElementById('stPending').textContent = reqs.filter(function (r) { return r.status === 'pending'; }).length;
+      }
+
       var show = reqs.filter(function (r) { return r.status === 'pending' || (r.status === 'approved' && r.end_date >= today); });
       var el = document.getElementById('upcoming');
       if (!show.length) { el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">Nothing upcoming.</p>'; return; }
