@@ -206,14 +206,10 @@
     </form>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="/clients/assets/supabase-config.js"></script>
-  <script src="/clients/assets/mfa.js"></script>
-  <script src="/clients/assets/auth.js"></script>
+    <script src="/clients/assets/portal.js"></script>
   <script>
     document.getElementById('logoutBtn').addEventListener('click', window.mcLogout);
 
-    var mcSession = null;
 
     function showAlert(message, type) {
       document.getElementById('formAlert').innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
@@ -271,22 +267,11 @@
       btn.textContent = 'Submitting…';
 
       try {
-        var userId = mcSession.user.id;
-        var stamp = Date.now();
-
-        function safe(name) { return name.replace(/[^a-zA-Z0-9._-]/g, '_'); }
-
-        var passportPath = userId + '/onboarding-passport-' + stamp + '-' + safe(passportFile.name);
-        var proofPath = userId + '/onboarding-address-proof-' + stamp + '-' + safe(proofFile.name);
-
-        var up1 = await window.mcClient.storage.from('kyc-files').upload(passportPath, passportFile, { contentType: 'application/pdf' });
-        if (up1.error) throw up1.error;
-
-        var up2 = await window.mcClient.storage.from('kyc-files').upload(proofPath, proofFile, { contentType: 'application/pdf' });
-        if (up2.error) throw up2.error;
-
+        btn.textContent = 'Uploading…';
+        var passportUp = await window.mcUpload(passportFile);
+        var proofUp = await window.mcUpload(proofFile);
+        btn.textContent = 'Submitting…';
         var payload = {
-          user_id: userId,
           full_legal_name: document.getElementById('full_legal_name').value.trim(),
           date_of_birth: document.getElementById('date_of_birth').value,
           nationality: document.getElementById('nationality').value.trim(),
@@ -303,8 +288,8 @@
           occupation: document.getElementById('occupation').value.trim(),
           source_of_funds: document.getElementById('source_of_funds').value,
           pep_status: document.getElementById('pep_status').checked,
-          passport_copy_path: passportPath,
-          proof_of_address_path: proofPath,
+          passport_upload_id: passportUp.upload_id,
+          proof_upload_id: proofUp.upload_id,
           bank_account_holder_name: document.getElementById('bank_account_holder_name').value.trim(),
           bank_name: document.getElementById('bank_name').value.trim(),
           bank_account_number: document.getElementById('bank_account_number').value.trim(),
@@ -312,15 +297,13 @@
           bank_country: document.getElementById('bank_country').value.trim(),
           payout_currency: document.getElementById('payout_currency').value
         };
-
-        var insert = await window.mcClient.from('onboarding_submissions').insert(payload);
-        if (insert.error) throw insert.error;
+        await window.mcApi('/client/onboarding', { method: 'POST', body: payload });
 
         form.style.display = 'none';
         showAlert('Thank you. Your onboarding information has been submitted and is being reviewed by our compliance team.', 'success');
       } catch (err) {
         console.error(err);
-        showAlert('Something went wrong submitting your information. Please try again, or contact inquiries@met.capital.', 'error');
+        showAlert(err.message || 'Something went wrong submitting your information. Please try again, or reach us via the Contact page.', 'error');
       } finally {
         btn.disabled = false;
         btn.textContent = 'Submit Onboarding Information';
@@ -330,35 +313,19 @@
     (async function init() {
       var session = await window.mcRequireSession('/clients/kyc/onboarding/');
       if (!session) return;
-      mcSession = session;
-      var profile = await window.mcLoadProfile();
-      if (!profile) return;
-
+      var profile = window.mcProfile || {};
       document.getElementById('email_field').value = profile.email || '';
 
-      var { data: existing } = await window.mcClient
-        .from('onboarding_submissions')
-        .select('id, status, submitted_at')
-        .eq('user_id', session.user.id)
-        .order('submitted_at', { ascending: false })
-        .limit(1);
-
-      if (existing && existing.length > 0) {
+      var existing = [];
+      try { existing = (await window.mcApi('/client/onboarding')).submissions || []; } catch (e) {}
+      if (existing.length > 0) {
         document.getElementById('onboardingForm').style.display = 'none';
         var box = document.getElementById('alreadySubmitted');
         box.style.display = 'block';
-
-        var statusLabels = {
-          pending: 'Pending review',
-          in_transit_documents_review: 'In transit — documents in review',
-          approved: 'Approved',
-          rejected: 'Rejected'
-        };
+        var statusLabels = { pending: 'Pending review', in_transit_documents_review: 'In transit — documents in review', approved: 'Approved', rejected: 'Rejected' };
         var statusLabel = statusLabels[existing[0].status] || existing[0].status;
-
         document.getElementById('alreadySubmittedText').textContent =
-          'You submitted onboarding information on ' + new Date(existing[0].submitted_at).toLocaleDateString() +
-          '. Status: ' + statusLabel + '. Contact us if you need to update any details.';
+          'You submitted onboarding information on ' + new Date(existing[0].submitted_at).toLocaleDateString() + '. Status: ' + statusLabel + '. Contact us if you need to update any details.';
       }
     })();
   </script>

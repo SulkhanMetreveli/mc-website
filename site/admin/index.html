@@ -100,9 +100,8 @@
       <h2>Admin Users</h2>
       <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:0.75rem;">
         Super admins see and manage every app, including this section. Standard admins only
-        get the apps ticked below. To add a new admin: first create their login under
-        Authentication → Users in Supabase (no automatic emails are ever sent), then add
-        them here with their User ID.
+        get the apps ticked below. Adding an admin creates their login here — nothing is
+        emailed automatically; the temporary password is shown to you once to pass on.
       </p>
       <div id="adminUsersAlert"></div>
       <div class="card">
@@ -110,9 +109,9 @@
         <h3 style="margin-top:1.5rem; margin-bottom:0.75rem; font-size:0.8125rem; color:var(--gray);">Add an Admin</h3>
         <form id="adminUserForm" novalidate>
           <div class="form-row">
-            <div class="field"><label>User ID (from Supabase Auth) <span class="required">*</span></label><input type="text" id="au_user_id" required placeholder="uuid"></div>
             <div class="field"><label>Full Name <span class="required">*</span></label><input type="text" id="au_full_name" required></div>
-            <div class="field"><label>Email (label only)</label><input type="email" id="au_email"></div>
+            <div class="field"><label>Email (their username) <span class="required">*</span></label><input type="email" id="au_email" required></div>
+            <div class="field"><label>Temporary password (optional)</label><input type="text" id="au_password" placeholder="Leave blank to generate"></div>
             <div class="field">
               <label>Role</label>
               <select id="au_role">
@@ -133,14 +132,12 @@
           </div>
           <button type="submit" class="btn-small" id="adminUserSaveBtn">Add Admin</button>
         </form>
+        <p style="font-size:0.75rem; color:var(--gray-light); margin-top:1.25rem;">Migrating from the old database? <a href="/admin/import/">Import from Supabase</a>.</p>
       </div>
     </div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="/clients/assets/supabase-config.js"></script>
-  <script src="/clients/assets/mfa.js"></script>
-  <script src="/admin/assets/admin.js"></script>
+    <script src="/clients/assets/portal.js"></script>
   <script>
     document.getElementById('logoutBtn').addEventListener('click', window.mcAdminLogout);
 
@@ -151,45 +148,47 @@
     }
 
     async function loadAdminUsers() {
-      var { data: rows } = await window.mcAdminClient
-        .from('admin_users').select('*').order('created_at');
-
       var el = document.getElementById('adminUsersTable');
-      if (!rows || rows.length === 0) {
-        el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No admin users.</p>';
-        return;
-      }
-
+      var rows = [];
+      try { rows = (await window.mcApi('/admin/admins')).admins || []; }
+      catch (err) { el.innerHTML = '<div class="alert error">' + window.mcEscape(err.message) + '</div>'; return; }
+      if (rows.length === 0) { el.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No admin users.</p>'; return; }
       var html = '';
       rows.forEach(function (a) {
-        var access = a.role === 'super_admin'
+        var access = a.admin.role === 'super_admin'
           ? '<span class="status-pill approved">Super Admin</span>'
-          : ((a.apps || []).map(function (k) { return APP_LABELS[k] || k; }).join(', ') || '<span style="color:var(--gray-light);">No apps</span>');
+          : ((a.admin.apps || []).map(function (k) { return APP_LABELS[k] || k; }).join(', ') || '<span style="color:var(--gray-light);">No apps</span>');
         html += '<tr>' +
-          '<td>' + (a.full_name || '—') + '</td>' +
-          '<td>' + (a.email || '—') + '</td>' +
+          '<td>' + window.mcEscape(a.admin.full_name || '—') + '</td>' +
+          '<td>' + window.mcEscape(a.email || '—') + '</td>' +
           '<td>' + access + '</td>' +
-          '<td>' + new Date(a.created_at).toLocaleDateString() + '</td>' +
-          '<td>' + (a.user_id === window.mcAdminProfile.user_id
+          '<td>' + new Date(a.admin.created_at).toLocaleDateString() + (a.totp_enabled ? '' : ' <span style="color:var(--gray-light); font-size:0.75rem;">(2FA not set up)</span>') + '</td>' +
+          '<td>' + (a.id === window.mcAdminProfile.user_id
             ? '<span style="color:var(--gray-light); font-size:0.75rem;">You</span>'
-            : '<button type="button" class="btn-small" data-reset-mfa="' + a.user_id + '">Reset 2FA</button><button type="button" class="btn-small danger" data-remove-admin="' + a.user_id + '">Remove</button>') + '</td>' +
+            : '<button type="button" class="btn-small" data-reset-pw="' + a.id + '">Reset Password</button><button type="button" class="btn-small" data-reset-mfa="' + a.id + '">Reset 2FA</button><button type="button" class="btn-small danger" data-remove-admin="' + a.id + '">Remove</button>') + '</td>' +
         '</tr>';
       });
       el.innerHTML = '<table class="admin-table"><thead><tr><th>Name</th><th>Email</th><th>Access</th><th>Added</th><th></th></tr></thead><tbody>' + html + '</tbody></table>';
 
+      el.querySelectorAll('[data-reset-pw]').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          if (!confirm('Reset this admin\'s password? Their current password stops working immediately and they must set a new one on next login.')) return;
+          try { var r = await window.mcApi('/admin/admins/' + btn.getAttribute('data-reset-pw') + '/reset-password', { method: 'POST' }); showAlert('adminUsersAlert', 'Password reset. Send this over a secure channel:<br><br><strong>Temporary password:</strong> ' + r.password, 'success'); }
+          catch (err) { showAlert('adminUsersAlert', 'Could not reset password: ' + err.message, 'error'); }
+        });
+      });
       el.querySelectorAll('[data-reset-mfa]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
           if (!confirm('Reset two-factor authentication for this admin? Only do this after verifying them by phone. They will get a fresh 7-day window to set it up again.')) return;
-          try { await window.mcMfa.recovery(window.mcAdminClient, 'admin_reset', { user_id: btn.getAttribute('data-reset-mfa') }); showAlert('adminUsersAlert', 'Two-factor authentication reset.', 'success'); }
+          try { await window.mcApi('/admin/admins/' + btn.getAttribute('data-reset-mfa') + '/reset-mfa', { method: 'POST' }); showAlert('adminUsersAlert', 'Two-factor authentication reset.', 'success'); loadAdminUsers(); }
           catch (err) { showAlert('adminUsersAlert', 'Could not reset 2FA: ' + err.message, 'error'); }
         });
       });
       el.querySelectorAll('[data-remove-admin]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
-          if (!confirm('Remove this admin? They lose all access to the company panel immediately. Their login itself is not deleted.')) return;
-          var { error } = await window.mcAdminClient.from('admin_users').delete().eq('user_id', btn.getAttribute('data-remove-admin'));
-          if (error) { showAlert('adminUsersAlert', 'Could not remove admin: ' + error.message, 'error'); return; }
-          loadAdminUsers();
+          if (!confirm('Remove this admin? They lose all access to the company panel immediately.')) return;
+          try { await window.mcApi('/admin/admins/' + btn.getAttribute('data-remove-admin'), { method: 'DELETE' }); loadAdminUsers(); }
+          catch (err) { showAlert('adminUsersAlert', 'Could not remove admin: ' + err.message, 'error'); }
         });
       });
     }
@@ -200,28 +199,25 @@
 
     document.getElementById('adminUserForm').addEventListener('submit', async function (e) {
       e.preventDefault();
-      var userId = document.getElementById('au_user_id').value.trim();
       var fullName = document.getElementById('au_full_name').value.trim();
-      if (!userId || !fullName) { showAlert('adminUsersAlert', 'User ID and Full Name are required.', 'error'); return; }
-
+      var email = document.getElementById('au_email').value.trim();
+      if (!email || !fullName) { showAlert('adminUsersAlert', 'Full name and email are required.', 'error'); return; }
       var role = document.getElementById('au_role').value;
       var apps = Array.prototype.map.call(document.querySelectorAll('.au-app:checked'), function (c) { return c.value; });
-      if (role === 'admin' && apps.length === 0) {
-        showAlert('adminUsersAlert', 'Pick at least one app, or make them a Super Admin.', 'error');
-        return;
-      }
-
-      var { error } = await window.mcAdminClient.from('admin_users').insert({
-        user_id: userId,
-        full_name: fullName,
-        email: document.getElementById('au_email').value.trim() || null,
-        role: role,
-        apps: role === 'super_admin' ? [] : apps
-      });
-      if (error) { showAlert('adminUsersAlert', 'Could not add admin: ' + error.message + '. Check the User ID exists under Authentication → Users.', 'error'); return; }
-      document.getElementById('adminUserForm').reset();
-      showAlert('adminUsersAlert', 'Admin added.', 'success');
-      loadAdminUsers();
+      if (role === 'admin' && apps.length === 0) { showAlert('adminUsersAlert', 'Pick at least one app, or make them a Super Admin.', 'error'); return; }
+      var btn = document.getElementById('adminUserSaveBtn'); btn.disabled = true;
+      try {
+        var r = await window.mcApi('/admin/admins', { method: 'POST', body: {
+          full_name: fullName, email: email, role: role, apps: role === 'super_admin' ? [] : apps,
+          password: document.getElementById('au_password').value.trim() || undefined
+        } });
+        document.getElementById('adminUserForm').reset();
+        showAlert('adminUsersAlert', r.password
+          ? 'Admin added. Send these credentials over a secure channel — they must change the password on first login:<br><br><strong>Username:</strong> ' + window.mcEscape(email) + '<br><strong>Temporary password:</strong> ' + r.password
+          : 'Admin access granted to the existing login ' + window.mcEscape(email) + '.', 'success');
+        loadAdminUsers();
+      } catch (err) { showAlert('adminUsersAlert', 'Could not add admin: ' + err.message, 'error'); }
+      finally { btn.disabled = false; }
     });
 
     (async function init() {

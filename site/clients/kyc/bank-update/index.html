@@ -104,14 +104,10 @@
     </form>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="/clients/assets/supabase-config.js"></script>
-  <script src="/clients/assets/mfa.js"></script>
-  <script src="/clients/assets/auth.js"></script>
+    <script src="/clients/assets/portal.js"></script>
   <script>
     document.getElementById('logoutBtn').addEventListener('click', window.mcLogout);
 
-    var mcSession = null;
 
     function showAlert(message, type) {
       document.getElementById('formAlert').innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
@@ -136,16 +132,7 @@
       btn.textContent = 'Submitting…';
 
       try {
-        var insert = await window.mcClient.from('address_update_requests').insert({
-          user_id: mcSession.user.id,
-          address_line1: null,
-          address_line2: null,
-          city: null,
-          state_province: null,
-          postal_code: null,
-          country: null,
-          proof_of_address_path: null,
-          passport_copy_path: null,
+        await window.mcApi('/client/address-requests', { method: 'POST', body: {
           bank_account_holder_name: fieldVal('bank_account_holder_name'),
           bank_name: fieldVal('bank_name'),
           bank_account_number: fieldVal('bank_account_number'),
@@ -153,53 +140,41 @@
           bank_routing_number: fieldVal('bank_routing_number') || null,
           bank_country: fieldVal('bank_country'),
           payout_currency: fieldVal('payout_currency'),
-          bank_address: fieldVal('bank_address') || null,
-          additional_notes: null
-        });
-        if (insert.error) throw insert.error;
+          bank_address: fieldVal('bank_address') || null
+        } });
 
         document.getElementById('requestForm').reset();
         showAlert('Your bank update has been submitted for review. A member of our operations team will verify this change with you directly before it takes effect — no changes are made automatically.', 'success');
       } catch (err) {
         console.error(err);
-        showAlert('Something went wrong submitting your request. Please try again, or reach us via the Contact page.', 'error');
+        showAlert(err.message || 'Something went wrong submitting your request. Please try again, or reach us via the Contact page.', 'error');
       } finally {
         btn.disabled = false;
         btn.textContent = 'Submit for Review';
       }
     });
 
+
+    async function addHeldCurrencies() {
+      var vehicleRows = [];
+      try { vehicleRows = (await window.mcApi('/client/vehicles')).vehicles || []; } catch (e) {}
+      var seen = {}, currencies = [];
+      vehicleRows.forEach(function (v) {
+        if (v.currency && v.currency !== 'MULTI' && !seen[v.currency]) { seen[v.currency] = true; currencies.push(v.currency); }
+      });
+      if (currencies.length > 0) {
+        var group = document.getElementById('accountCurrencyGroup');
+        currencies.forEach(function (c) {
+          var opt = document.createElement('option'); opt.value = c; opt.textContent = c + ' — currently held'; group.appendChild(opt);
+        });
+        group.style.display = '';
+      }
+    }
+
     (async function init() {
       var session = await window.mcRequireSession('/clients/kyc/bank-update/');
       if (!session) return;
-      mcSession = session;
-      await window.mcLoadProfile();
-
-      var { data: vehicleRows } = await window.mcClient
-        .from('investment_vehicles')
-        .select('currency')
-        .eq('user_id', session.user.id);
-
-      if (vehicleRows && vehicleRows.length > 0) {
-        var seen = {};
-        var currencies = [];
-        vehicleRows.forEach(function (v) {
-          if (v.currency && v.currency !== 'MULTI' && !seen[v.currency]) {
-            seen[v.currency] = true;
-            currencies.push(v.currency);
-          }
-        });
-        if (currencies.length > 0) {
-          var group = document.getElementById('accountCurrencyGroup');
-          currencies.forEach(function (c) {
-            var opt = document.createElement('option');
-            opt.value = c;
-            opt.textContent = c + ' — currently held';
-            group.appendChild(opt);
-          });
-          group.style.display = '';
-        }
-      }
+      addHeldCurrencies();
     })();
   </script>
 </body>

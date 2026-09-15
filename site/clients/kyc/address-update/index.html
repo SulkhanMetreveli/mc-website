@@ -170,14 +170,10 @@
     </form>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="/clients/assets/supabase-config.js"></script>
-  <script src="/clients/assets/mfa.js"></script>
-  <script src="/clients/assets/auth.js"></script>
+    <script src="/clients/assets/portal.js"></script>
   <script>
     document.getElementById('logoutBtn').addEventListener('click', window.mcLogout);
 
-    var mcSession = null;
 
     function showAlert(message, type) {
       document.getElementById('formAlert').innerHTML = '<div class="alert ' + type + '">' + message + '</div>';
@@ -252,35 +248,14 @@
       btn.textContent = 'Submitting…';
 
       try {
-        var userId = mcSession.user.id;
-
-        function safe(name) { return name.replace(/[^a-zA-Z0-9._-]/g, '_'); }
-
-        var proofPath = userId + '/address-proof-' + Date.now() + '-' + safe(proofFile.name);
-        var uploadProof = await window.mcClient.storage
-          .from('kyc-files')
-          .upload(proofPath, proofFile, { contentType: 'application/pdf' });
-        if (uploadProof.error) throw uploadProof.error;
-
-        var passportPath = null;
-        if (passportFile) {
-          passportPath = userId + '/address-request-passport-' + Date.now() + '-' + safe(passportFile.name);
-          var uploadPassport = await window.mcClient.storage
-            .from('kyc-files')
-            .upload(passportPath, passportFile, { contentType: 'application/pdf' });
-          if (uploadPassport.error) throw uploadPassport.error;
-        }
-
+        btn.textContent = 'Uploading…';
         var payload = {
-          user_id: userId,
           address_line1: addressTouched ? fieldVal('address_line1') : null,
           address_line2: addressTouched ? (fieldVal('address_line2') || null) : null,
           city: addressTouched ? fieldVal('city') : null,
           state_province: addressTouched ? (fieldVal('state_province') || null) : null,
           postal_code: addressTouched ? fieldVal('postal_code') : null,
           country: addressTouched ? fieldVal('country') : null,
-          proof_of_address_path: proofPath,
-          passport_copy_path: passportPath,
           bank_account_holder_name: bankTouched ? fieldVal('bank_account_holder_name') : null,
           bank_name: bankTouched ? fieldVal('bank_name') : null,
           bank_account_number: bankTouched ? fieldVal('bank_account_number') : null,
@@ -289,11 +264,11 @@
           bank_country: bankTouched ? fieldVal('bank_country') : null,
           payout_currency: bankTouched ? fieldVal('payout_currency') : null,
           bank_address: bankTouched ? (fieldVal('bank_address') || null) : null,
-          additional_notes: null
+          proof_upload_id: (await window.mcUpload(proofFile)).upload_id,
+          passport_upload_id: passportFile ? (await window.mcUpload(passportFile)).upload_id : null
         };
-
-        var insert = await window.mcClient.from('address_update_requests').insert(payload);
-        if (insert.error) throw insert.error;
+        btn.textContent = 'Submitting…';
+        await window.mcApi('/client/address-requests', { method: 'POST', body: payload });
 
         document.getElementById('requestForm').reset();
         document.getElementById('proofStatus').textContent = '';
@@ -301,47 +276,34 @@
         showAlert('Your request has been submitted for review. A member of our operations team will verify these changes with you directly before they take effect — no changes are made automatically.', 'success');
       } catch (err) {
         console.error(err);
-        showAlert('Something went wrong submitting your request. Please try again, or contact inquiries@met.capital.', 'error');
+        showAlert(err.message || 'Something went wrong submitting your request. Please try again, or reach us via the Contact page.', 'error');
       } finally {
         btn.disabled = false;
         btn.textContent = 'Submit Request for Review';
       }
     });
 
+
+    async function addHeldCurrencies() {
+      var vehicleRows = [];
+      try { vehicleRows = (await window.mcApi('/client/vehicles')).vehicles || []; } catch (e) {}
+      var seen = {}, currencies = [];
+      vehicleRows.forEach(function (v) {
+        if (v.currency && v.currency !== 'MULTI' && !seen[v.currency]) { seen[v.currency] = true; currencies.push(v.currency); }
+      });
+      if (currencies.length > 0) {
+        var group = document.getElementById('accountCurrencyGroup');
+        currencies.forEach(function (c) {
+          var opt = document.createElement('option'); opt.value = c; opt.textContent = c + ' — currently held'; group.appendChild(opt);
+        });
+        group.style.display = '';
+      }
+    }
+
     (async function init() {
       var session = await window.mcRequireSession('/clients/kyc/address-update/');
       if (!session) return;
-      mcSession = session;
-      await window.mcLoadProfile();
-
-      // Surface the client's existing investment-vehicle currencies at the
-      // top of the Payout Currency dropdown, so multi-currency accounts are
-      // easy to select from without losing the ability to add a new one.
-      var { data: vehicleRows } = await window.mcClient
-        .from('investment_vehicles')
-        .select('currency')
-        .eq('user_id', session.user.id);
-
-      if (vehicleRows && vehicleRows.length > 0) {
-        var seen = {};
-        var currencies = [];
-        vehicleRows.forEach(function (v) {
-          if (v.currency && v.currency !== 'MULTI' && !seen[v.currency]) {
-            seen[v.currency] = true;
-            currencies.push(v.currency);
-          }
-        });
-        if (currencies.length > 0) {
-          var group = document.getElementById('accountCurrencyGroup');
-          currencies.forEach(function (c) {
-            var opt = document.createElement('option');
-            opt.value = c;
-            opt.textContent = c + ' — currently held';
-            group.appendChild(opt);
-          });
-          group.style.display = '';
-        }
-      }
+      addHeldCurrencies();
     })();
   </script>
 </body>

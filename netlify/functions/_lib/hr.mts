@@ -9,92 +9,31 @@
 //   * Employees  -> own accounts (bcrypt password hash in their record) with an
 //                   HttpOnly session cookie, same pattern as the metreveli.org
 //                   intranet.
-//   * HR admins  -> the company-panel login. The browser sends its Supabase
-//                   access token; we ask Supabase "does this user hold the hr
-//                   app?" and nothing else. No HR data ever lives in Supabase.
+//   * HR admins  -> the company-panel login (portal session cookie); the
+//                   caller must hold the 'hr' app or be a Super Admin.
 // ============================================================================
-import { getStore, getDeployStore } from "@netlify/blobs";
-import bcrypt from "bcryptjs";
-import { createHmac, timingSafeEqual } from "node:crypto";
-
-const SUPABASE_URL = "https://qnysvjbqltnwkjkvjwov.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_GSi7RBnzm4npqyJgOR_vtg_ZZJ4lmnb";
+import {
+  store, json, newId, nowIso, readJson, randomToken, randomPassword, sha256Hex, hashPassword, verifyPassword,
+  parseCookies, cookie, decodeBase64, contentTypeFor,
+  loginThrottled as _loginThrottled, recordLoginFailure as _recordLoginFailure, clearLoginFailures as _clearLoginFailures,
+  MFA_GRACE_DAYS, DEVICE_TTL_SECONDS, mfaGraceActive, mfaSatisfied, mfaStatusFor, freshGrace, clearMfa, handleMfa, mfaSummary,
+} from "./common.mts";
+import { getAuth as getPortalAuth, mfaOk as portalMfaOk, hasApp as portalHasApp } from "./portal.mts";
+export {
+  json, newId, nowIso, readJson, randomToken, randomPassword, sha256Hex, hashPassword, verifyPassword, parseCookies,
+  MFA_GRACE_DAYS, mfaGraceActive, mfaSatisfied, mfaStatusFor, freshGrace, clearMfa, handleMfa, mfaSummary,
+};
 
 export const SESSION_COOKIE = "mc_staff_session";
 const SESSION_TTL_SECONDS = 12 * 60 * 60;
 export const MAX_FILE_BYTES = 4 * 1024 * 1024; // one synchronous function request (base64) fits ~4MB
 
 /* ---------------------------------------------------------------- stores -- */
-function isProduction() {
-  return (globalThis as any).Netlify?.context?.deploy?.context === "production";
-}
-export function hrStore() {
-  return isProduction()
-    ? getStore({ name: "hr", consistency: "strong" })
-    : getDeployStore({ name: "hr", consistency: "strong" });
-}
-export function filesStore() {
-  return isProduction()
-    ? getStore({ name: "hr-files", consistency: "strong" })
-    : getDeployStore({ name: "hr-files", consistency: "strong" });
-}
+export function hrStore() { return store("hr"); }
+export function filesStore() { return store("hr-files"); }
 
-/* --------------------------------------------------------------- helpers -- */
-export function json(data: unknown, init: ResponseInit = {}) {
-  const headers = new Headers(init.headers);
-  headers.set("content-type", "application/json");
-  return new Response(JSON.stringify(data), { ...init, headers });
-}
-
-export function newId() {
-  return crypto.randomUUID();
-}
-
-export function nowIso() {
-  return new Date().toISOString();
-}
-
-export async function readJson(req: Request): Promise<any> {
-  try { return await req.json(); } catch { return {}; }
-}
-
-export function randomToken(bytes = 32) {
-  const arr = new Uint8Array(bytes);
-  crypto.getRandomValues(arr);
-  return Array.from(arr, (b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-export function randomPassword() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-  const arr = new Uint8Array(14);
-  crypto.getRandomValues(arr);
-  return Array.from(arr, (b) => alphabet[b % alphabet.length]).join("") + "!1";
-}
-
-export async function sha256Hex(input: string) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
-  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-export async function hashPassword(pw: string) { return bcrypt.hash(pw, 11); }
-export async function verifyPassword(pw: string, hash: string) { return bcrypt.compare(pw, hash); }
-
-export function parseCookies(req: Request): Record<string, string> {
-  const out: Record<string, string> = {};
-  (req.headers.get("cookie") || "").split(";").forEach((part) => {
-    const i = part.indexOf("=");
-    if (i === -1) return;
-    out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
-  });
-  return out;
-}
-
-export function sessionCookie(token: string) {
-  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${SESSION_TTL_SECONDS}`;
-}
-export function clearSessionCookie() {
-  return `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`;
-}
+export function sessionCookie(token: string) { return cookie(SESSION_COOKIE, token, SESSION_TTL_SECONDS); }
+export function clearSessionCookie() { return `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`; }
 
 // Working days between two ISO dates, inclusive, excluding weekends.
 export function workingDays(start: string, end: string) {
@@ -391,113 +330,18 @@ export async function destroyAllSessionsFor(employeeId: string) {
 }
 
 // Simple login throttle: 5 failures per email per 15 minutes.
-export async function loginThrottled(email: string) {
-  const rec = (await hrStore().get(`loginfail:${email}`, { type: "json" })) as any;
-  if (!rec) return false;
-  if (Date.now() - new Date(rec.first_at).getTime() > 15 * 60 * 1000) return false;
-  return rec.count >= 5;
-}
-export async function recordLoginFailure(email: string) {
-  const key = `loginfail:${email}`;
-  const rec = (await hrStore().get(key, { type: "json" })) as any;
-  if (!rec || Date.now() - new Date(rec.first_at).getTime() > 15 * 60 * 1000) {
-    await hrStore().setJSON(key, { count: 1, first_at: nowIso() });
-  } else {
-    await hrStore().setJSON(key, { count: rec.count + 1, first_at: rec.first_at });
-  }
-}
-export async function clearLoginFailures(email: string) {
-  await hrStore().delete(`loginfail:${email}`);
-}
+export const loginThrottled = (email: string) => _loginThrottled(hrStore(), email);
+export const recordLoginFailure = (email: string) => _recordLoginFailure(hrStore(), email);
+export const clearLoginFailures = (email: string) => _clearLoginFailures(hrStore(), email);
 
-
-/* ------------------------------------------------------- two-factor (TOTP) -- */
-// RFC 6238 time-based one-time passwords, 6 digits, 30-second steps, ±1 step
-// tolerance, with replay protection (a code can't be reused within its
-// window). Secrets are base32 for authenticator apps.
-
-export const MFA_GRACE_DAYS = 7;
-export const DEVICE_TTL_SECONDS = 7 * 24 * 60 * 60;
+/* ------------------------------------------------- remembered devices (2FA) -- */
 export const DEVICE_COOKIE = "mc_staff_device";
-const B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-
-export function base32Encode(bytes: Uint8Array) {
-  let bits = 0, value = 0, out = "";
-  for (const b of bytes) {
-    value = (value << 8) | b; bits += 8;
-    while (bits >= 5) { out += B32[(value >>> (bits - 5)) & 31]; bits -= 5; }
-  }
-  if (bits > 0) out += B32[(value << (5 - bits)) & 31];
-  return out;
-}
-export function base32Decode(s: string) {
-  const clean = s.toUpperCase().replace(/[^A-Z2-7]/g, "");
-  let bits = 0, value = 0; const out: number[] = [];
-  for (const c of clean) {
-    value = (value << 5) | B32.indexOf(c); bits += 5;
-    if (bits >= 8) { out.push((value >>> (bits - 8)) & 255); bits -= 8; }
-  }
-  return Uint8Array.from(out);
-}
-export function newTotpSecret() {
-  const b = new Uint8Array(20); crypto.getRandomValues(b);
-  return base32Encode(b);
-}
-function hotp(secret: Uint8Array, counter: number) {
-  const buf = Buffer.alloc(8);
-  buf.writeUInt32BE(Math.floor(counter / 0x100000000), 0);
-  buf.writeUInt32BE(counter >>> 0, 4);
-  const h = createHmac("sha1", Buffer.from(secret)).update(buf).digest();
-  const off = h[h.length - 1] & 0xf;
-  const code = ((h[off] & 0x7f) << 24) | (h[off + 1] << 16) | (h[off + 2] << 8) | h[off + 3];
-  return String(code % 1_000_000).padStart(6, "0");
-}
-// Returns the matching time-step counter, or null.
-export function totpMatch(secretB32: string, code: string, lastCounter: number | null): number | null {
-  const c = String(code || "").replace(/\s+/g, "");
-  if (!/^\d{6}$/.test(c)) return null;
-  const secret = base32Decode(secretB32);
-  const now = Math.floor(Date.now() / 1000 / 30);
-  for (const d of [0, -1, 1]) {
-    const counter = now + d;
-    if (lastCounter !== null && counter <= lastCounter) continue; // replay guard
-    const expected = Buffer.from(hotp(secret, counter));
-    if (expected.length === c.length && timingSafeEqual(expected, Buffer.from(c))) return counter;
-  }
-  return null;
-}
-export function otpauthUri(secretB32: string, account: string) {
-  return `otpauth://totp/${encodeURIComponent("Met Capital Staff")}:${encodeURIComponent(account)}?secret=${secretB32}&issuer=${encodeURIComponent("Met Capital Staff")}&algorithm=SHA1&digits=6&period=30`;
-}
-export function newRecoveryCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const a = new Uint8Array(10); crypto.getRandomValues(a);
-  const s = Array.from(a, (b) => alphabet[b % alphabet.length]).join("");
-  return s.slice(0, 5) + "-" + s.slice(5);
-}
-export function normalizeRecovery(code: string) {
-  return String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-}
-
-// Grace: starts at the first sign-in after the feature shipped.
-export function mfaGraceActive(e: Employee) {
-  if (!e.mfa_grace_until) return true; // not started yet -> will be started at login
-  return new Date(e.mfa_grace_until) > new Date();
-}
-export function mfaSatisfied(e: Employee, session: any) {
-  if (session && session.mfa) return true;
-  return !e.totp_enabled && mfaGraceActive(e);
-}
-
-export function deviceCookie(token: string) {
-  return `${DEVICE_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${DEVICE_TTL_SECONDS}`;
-}
 export async function trustDevice(employeeId: string) {
   const token = randomToken(32);
   await hrStore().setJSON(`device:${await sha256Hex(token)}`, {
     employee_id: employeeId, expires_at: new Date(Date.now() + DEVICE_TTL_SECONDS * 1000).toISOString(),
   });
-  return token;
+  return cookie(DEVICE_COOKIE, token, DEVICE_TTL_SECONDS);
 }
 export async function deviceTrusted(req: Request, employeeId: string) {
   const token = parseCookies(req)[DEVICE_COOKIE];
@@ -515,24 +359,13 @@ export async function forgetDevices(employeeId: string) {
 }
 
 /* ----------------------------------------------------------- HR admin auth -- */
-// Verifies the caller holds the 'hr' app in the company panel by asking
-// Supabase with the caller's own token. That's the only Supabase call in
-// this app, and it's auth-only.
+// The caller must be signed in to the company panel (portal session cookie)
+// with a verified second factor and hold the 'hr' app (or be a Super Admin).
 export async function requireHrAdmin(req: Request): Promise<boolean> {
-  const auth = req.headers.get("authorization") || "";
-  const token = auth.replace(/^Bearer\s+/i, "").trim();
-  if (!token) return false;
-  try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/has_app_access`, {
-      method: "POST",
-      headers: { apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body: JSON.stringify({ app: "hr" }),
-    });
-    if (!r.ok) return false;
-    return (await r.json()) === true;
-  } catch {
-    return false;
-  }
+  const auth = await getPortalAuth(req);
+  if (!auth || !auth.user.admin) return false;
+  if (!portalMfaOk(auth)) return false;
+  return portalHasApp(auth.user, "hr");
 }
 
 /* -------------------------------------------------------------- time off -- */
@@ -606,12 +439,6 @@ export async function getDocument(employeeId: string, id: string): Promise<Emplo
   return (await hrStore().get(`doc:${employeeId}:${id}`, { type: "json" })) as EmployeeDocument | null;
 }
 
-function decodeBase64(b64: string) {
-  const bin = atob(b64);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
-}
 
 // body: { title, category, file_name, mime_type, data_base64 }
 export async function storeDocument(employeeId: string, body: any, uploadedBy: "employee" | "hr") {
