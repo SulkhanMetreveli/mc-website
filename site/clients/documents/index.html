@@ -41,62 +41,30 @@
     </div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="/clients/assets/supabase-config.js"></script>
-  <script src="/clients/assets/mfa.js"></script>
-  <script src="/clients/assets/auth.js"></script>
+    <script src="/clients/assets/portal.js"></script>
   <script>
     document.getElementById('logoutBtn').addEventListener('click', window.mcLogout);
-
     (async function init() {
       var session = await window.mcRequireSession('/clients/documents/');
       if (!session) return;
-      var profile = await window.mcLoadProfile();
-      if (!profile) return;
-
-      var { data: docs, error } = await window.mcClient
-        .from('documents')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('uploaded_at', { ascending: false });
-
       var content = document.getElementById('docsContent');
-
-      if (error || !docs || docs.length === 0) {
+      var docs = [];
+      try { docs = (await window.mcApi('/client/documents')).documents || []; }
+      catch (err) { content.innerHTML = '<div class="alert error">' + window.mcEscape(err.message) + '</div>'; return; }
+      if (docs.length === 0) {
         content.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">No documents have been shared with you yet.</p>';
         return;
       }
-
       var rows = '';
-      for (var i = 0; i < docs.length; i++) {
-        var d = docs[i];
+      docs.forEach(function (d) {
         rows += '<tr>' +
-          '<td>' + d.title + '</td>' +
-          '<td style="text-transform:capitalize;">' + d.category + '</td>' +
+          '<td>' + window.mcEscape(d.title) + '</td>' +
+          '<td style="text-transform:capitalize;">' + window.mcEscape(String(d.category || '').replace(/_/g, ' ')) + '</td>' +
           '<td>' + new Date(d.uploaded_at).toLocaleDateString() + '</td>' +
-          '<td><a href="#" data-path="' + d.storage_path + '" class="download-link">Download</a></td>' +
+          '<td><a href="' + window.mcFileUrl(d.storage_path, true) + '">Download</a></td>' +
         '</tr>';
-      }
-
-      content.innerHTML =
-        '<table class="simple-table"><thead><tr><th>Title</th><th>Category</th><th>Date</th><th></th></tr></thead>' +
-        '<tbody>' + rows + '</tbody></table>';
-
-      var links = document.querySelectorAll('.download-link');
-      links.forEach(function (link) {
-        link.addEventListener('click', async function (e) {
-          e.preventDefault();
-          var path = link.getAttribute('data-path');
-          var { data, error } = await window.mcClient.storage
-            .from('client-documents')
-            .createSignedUrl(path, 60);
-          if (error || !data) {
-            alert('Could not generate a download link. Please try again or contact us.');
-            return;
-          }
-          window.open(data.signedUrl, '_blank');
-        });
       });
+      content.innerHTML = '<table class="simple-table"><thead><tr><th>Title</th><th>Category</th><th>Date</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
     })();
   </script>
 </body>

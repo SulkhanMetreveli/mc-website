@@ -1,8 +1,8 @@
 // ============================================================================
 // Met Capital — Document Management app (/admin/dms/)
 // Port of the metreveli.org intranet document management system, running on
-// this project's Supabase (tables dms_categories / dms_documents, bucket
-// dms-files). Access requires the 'dms' app in the company panel.
+// Netlify Functions + Blobs (/api/portal/dms/*). Access requires the 'dms'
+// app in the company panel.
 // ============================================================================
 (async () => {
   const session = await window.mcRequireAdminSession("/admin/dms/");
@@ -12,8 +12,8 @@
     return;
   }
 
-  const sb = window.mcAdminClient;
-  const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // dms-files bucket limit
+  const api = window.mcApi;
+  const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
   document.getElementById("logoutBtn").addEventListener("click", window.mcAdminLogout);
 
@@ -44,40 +44,20 @@
 
   /* --------------------------------------------------------- data layer -- */
   async function apiListCategories() {
-    const [{ data: cats, error: e1 }, { data: docCats, error: e2 }] = await Promise.all([
-      sb.from("dms_categories").select("*").order("name"),
-      sb.from("dms_documents").select("category_id"),
-    ]);
-    if (e1) throw e1;
-    if (e2) throw e2;
-    const counts = {};
-    (docCats || []).forEach((r) => {
-      const k = r.category_id || "";
-      counts[k] = (counts[k] || 0) + 1;
-    });
-    return {
-      categories: (cats || []).map((c) => ({ ...c, document_count: counts[c.id] || 0 })),
-      totalDocuments: (docCats || []).length,
-    };
+    return api("/dms/categories");
   }
 
   async function apiListDocuments({ categoryId, q, actionOnly }) {
-    let query = sb.from("dms_documents").select("*").order("uploaded_at", { ascending: false }).limit(200);
-    if (categoryId) query = query.eq("category_id", categoryId);
-    if (actionOnly) query = query.eq("action_required", true);
-    if (q) {
-      const cleaned = q.replace(/[,()%]/g, " ").trim();
-      if (cleaned) query = query.or(`title.ilike.%${cleaned}%,description.ilike.%${cleaned}%`);
-    }
-    const { data, error } = await query;
-    if (error) throw error;
-    return data || [];
+    const params = new URLSearchParams();
+    if (categoryId) params.set("category", categoryId);
+    if (actionOnly) params.set("action", "1");
+    if (q) params.set("q", q);
+    const qs = params.toString();
+    return (await api("/dms/documents" + (qs ? "?" + qs : ""))).documents || [];
   }
 
   async function apiGetDocument(id) {
-    const { data, error } = await sb.from("dms_documents").select("*").eq("id", id).single();
-    if (error) throw error;
-    return data;
+    return (await api("/dms/documents/" + id)).document;
   }
 
   /* -------------------------------------------------------------- state -- */
@@ -325,9 +305,8 @@
     btn.disabled = true;
     try {
       btn.textContent = `Moving ${ids.length}…`;
-      const { error } = await sb.from("dms_documents")
-        .update({ category_id: target, updated_at: new Date().toISOString() })
-        .in("id", ids);
+      let error = null;
+      try { await api("/dms/documents/move", { method: "POST", body: { ids, category_id: target } }); } catch (e) { error = e; }
       closeModal("moveModal");
       clearSelection();
       await loadCategories();
@@ -374,13 +353,8 @@
     const btn = document.getElementById("saveCategoryBtn");
     btn.disabled = true;
     try {
-      let error;
-      if (editingCategoryId) {
-        ({ error } = await sb.from("dms_categories").update({ name, parent_id }).eq("id", editingCategoryId));
-      } else {
-        ({ error } = await sb.from("dms_categories").insert({ name, parent_id, created_by: session.user.id }));
-      }
-      if (error) throw error;
+      if (editingCategoryId) await api("/dms/categories/" + editingCategoryId, { method: "PATCH", body: { name, parent_id } });
+      else await api("/dms/categories", { method: "POST", body: { name, parent_id } });
       if (parent_id) collapsed.delete(parent_id);
       closeModal("categoryModal");
       await loadCategories();
@@ -404,8 +378,7 @@
 
     if (!descendants.length && !cat.document_count) {
       try {
-        const { error } = await sb.from("dms_categories").delete().eq("id", editingCategoryId);
-        if (error) throw error;
+        await api("/dms/categories/" + editingCategoryId, { method: "DELETE" });
         closeModal("categoryModal");
         if (activeCategory === editingCategoryId) activeCategory = null;
         await loadCategories();
@@ -442,23 +415,7 @@
     if (!editingCategoryId) return;
     const cat = categories.find((c) => c.id === editingCategoryId);
     try {
-      if (strategy === "promote") {
-        const newParent = cat.parent_id || null;
-        let r = await sb.from("dms_categories").update({ parent_id: newParent }).eq("parent_id", editingCategoryId);
-        if (r.error) throw r.error;
-        r = await sb.from("dms_documents").update({ category_id: newParent, updated_at: new Date().toISOString() }).eq("category_id", editingCategoryId);
-        if (r.error) throw r.error;
-        r = await sb.from("dms_categories").delete().eq("id", editingCategoryId);
-        if (r.error) throw r.error;
-      } else {
-        // cascade: subtree docs become uncategorized, then delete the root
-        // (parent_id FK cascades to descendants; documents FK sets null).
-        const subtree = [editingCategoryId, ...descendantIds(editingCategoryId)];
-        let r = await sb.from("dms_documents").update({ category_id: null, updated_at: new Date().toISOString() }).in("category_id", subtree);
-        if (r.error) throw r.error;
-        r = await sb.from("dms_categories").delete().eq("id", editingCategoryId);
-        if (r.error) throw r.error;
-      }
+      await api("/dms/categories/" + editingCategoryId + "?strategy=" + (strategy === "promote" ? "promote" : "cascade"), { method: "DELETE" });
       closeModal("catDeleteModal");
       closeModal("categoryModal");
       if (activeCategory === editingCategoryId) activeCategory = null;
@@ -529,9 +486,7 @@
         const btn = ev.currentTarget;
         btn.disabled = true;
         try {
-          const { data, error } = await sb.storage.from("dms-files").createSignedUrl(d.file_path, 120, { download: d.file_name });
-          if (error || !data) throw (error || new Error("no url"));
-          window.open(data.signedUrl, "_blank");
+          window.open("/api/portal/dms/documents/" + d.id + "/file?download=1", "_blank");
         } catch (err) {
           alert(`Could not download this file.\n\n${err.message}`);
         } finally {
@@ -568,7 +523,6 @@
       action_due_date: document.getElementById("docActionRequired").checked
         ? (document.getElementById("docActionDue").value || null) : null,
       action_note: document.getElementById("docActionNote").value || null,
-      updated_at: new Date().toISOString(),
     };
     if (!body.title) { alert("Title is required."); return; }
     body.action_status = body.action_required
@@ -587,40 +541,17 @@
     }
 
     try {
-      setBusy(true, "Saving details…");
-      let oldFilePath = null;
-      if (editingDocId) {
-        if (file) {
-          const existing = await apiGetDocument(editingDocId);
-          oldFilePath = existing.file_path;
-        }
-        const { error } = await sb.from("dms_documents").update(body).eq("id", editingDocId);
-        if (error) throw error;
-      } else {
-        body.uploaded_by = session.user.id;
-        const { data, error } = await sb.from("dms_documents").insert(body).select("id").single();
-        if (error) throw error;
-        editingDocId = data.id;
-      }
-
       if (file) {
         setBusy(true, `Uploading ${formatBytes(file.size)}…`);
-        const path = `${editingDocId}/${Date.now()}-${safeName(file.name)}`;
-        const up = await sb.storage.from("dms-files").upload(path, file, {
-          contentType: file.type || "application/octet-stream",
-        });
-        if (up.error) throw up.error;
-        const { error } = await sb.from("dms_documents").update({
-          file_path: path,
-          file_name: file.name,
-          mime_type: file.type || "application/octet-stream",
-          file_size: file.size,
-          updated_at: new Date().toISOString(),
-        }).eq("id", editingDocId);
-        if (error) throw error;
-        if (oldFilePath) {
-          try { await sb.storage.from("dms-files").remove([oldFilePath]); } catch (e) { /* metadata already points at the new file */ }
-        }
+        const up = await window.mcUpload(file, (p) => setBusy(true, `Uploading ${formatBytes(file.size)}… ${p}%`));
+        body.upload_id = up.upload_id;
+      }
+      setBusy(true, "Saving details…");
+      if (editingDocId) {
+        await api("/dms/documents/" + editingDocId, { method: "PATCH", body });
+      } else {
+        const r = await api("/dms/documents", { method: "POST", body });
+        editingDocId = r.document.id;
       }
 
       setBusy(false);
@@ -637,12 +568,7 @@
     if (!editingDocId) return;
     if (!confirm("Delete this document permanently?")) return;
     try {
-      const d = await apiGetDocument(editingDocId);
-      if (d.file_path) {
-        try { await sb.storage.from("dms-files").remove([d.file_path]); } catch (e) { /* row cleanup still proceeds */ }
-      }
-      const { error } = await sb.from("dms_documents").delete().eq("id", editingDocId);
-      if (error) throw error;
+      await api("/dms/documents/" + editingDocId, { method: "DELETE" });
       closeModal("docModal");
       await loadCategories();
       await loadDocuments();
@@ -657,7 +583,7 @@
     await loadDocuments();
   } catch (err) {
     document.getElementById("docList").innerHTML =
-      `<div class="empty">Could not load documents: ${escapeHtml(err.message)}. Make sure migration 015 has been run in Supabase.</div>`;
+      `<div class="empty">Could not load documents: ${escapeHtml(err.message)}. Please try again.</div>`;
   }
 
   const params = new URLSearchParams(window.location.search);

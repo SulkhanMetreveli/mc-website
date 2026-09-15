@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Import from Supabase — Met Capital Company Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+<style>
+  .log { font-family: ui-monospace, Menlo, monospace; font-size: 0.75rem; line-height: 1.6; background: var(--off-white); border: 1px solid var(--border); padding: 0.75rem 1rem; max-height: 360px; overflow: auto; white-space: pre-wrap; }
+  .counts { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.5rem; margin: 1rem 0; }
+  .counts div { border: 1px solid var(--border); padding: 0.6rem 0.75rem; font-size: 0.8125rem; }
+  .counts strong { display: block; font-size: 1.125rem; font-weight: 600; }
+  ol.steps { padding-left: 1.25rem; font-size: 0.875rem; line-height: 1.7; margin-bottom: 1rem; }
+</style>
+</head>
+<body>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/admin/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/admin/" class="dashboard-link">Apps</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main" style="max-width:820px;">
+    <div class="page-label">Company Panel</div>
+    <h1 class="page-title">Import from Supabase</h1>
+    <p class="page-subtitle">One-time copy of every login, client, request, document and DMS record from the old Supabase project into this site's own storage. Run it once; it can be re-run, but that overwrites anything changed here since.</p>
+
+    <div id="pageAlert"></div>
+
+    <div class="card" id="setupCard">
+      <h2 style="font-size:1rem; margin-bottom:0.75rem;">Before you start</h2>
+      <ol class="steps">
+        <li>In Supabase → SQL Editor, run the short script from <code>supabase/EXPORT_FOR_MIGRATION.sql</code>. It lets the import read existing password hashes so nobody has to change their password.</li>
+        <li>Copy the project's <strong>service_role</strong> key (Supabase → Project Settings → API). It is only sent to this site's own functions for the duration of the import and is never stored.</li>
+        <li>Keep the Supabase project running until the import reports <em>done</em>.</li>
+      </ol>
+      <form id="importForm" novalidate>
+        <div class="field" style="margin-bottom:1rem;">
+          <label for="supabase_url">Supabase project URL</label>
+          <input type="url" id="supabase_url" value="https://qnysvjbqltnwkjkvjwov.supabase.co" required>
+        </div>
+        <div class="field" style="margin-bottom:1.25rem;">
+          <label for="service_key">service_role key</label>
+          <input type="password" id="service_key" autocomplete="off" required>
+        </div>
+        <button type="submit" class="btn-primary" id="startBtn">Start import</button>
+      </form>
+    </div>
+
+    <div class="card" id="progressCard" style="display:none; margin-top:1rem;">
+      <h2 style="font-size:1rem; margin-bottom:0.5rem;" id="progressTitle">Importing…</h2>
+      <div class="counts" id="counts"></div>
+      <div class="log" id="log"></div>
+    </div>
+  </main>
+
+  <script src="/clients/assets/portal.js"></script>
+  <script>
+    function showAlert(m, t) { document.getElementById('pageAlert').innerHTML = '<div class="alert ' + t + '">' + m + '</div>'; }
+    var running = false;
+
+    function render(state) {
+      var counts = state.counts || {};
+      document.getElementById('counts').innerHTML = Object.keys(counts).map(function (k) {
+        return '<div>' + window.mcEscape(k.replace(/_/g, ' ')) + '<strong>' + counts[k] + '</strong></div>';
+      }).join('');
+      var log = document.getElementById('log');
+      log.textContent = (state.log || []).join('\n');
+      log.scrollTop = log.scrollHeight;
+      document.getElementById('progressTitle').textContent = state.phase === 'done' ? 'Import complete' : ('Importing… (' + state.phase + ')');
+    }
+
+    async function run(restart) {
+      var url = document.getElementById('supabase_url').value.trim();
+      var key = document.getElementById('service_key').value.trim();
+      if (!url || !key) { showAlert('Both the project URL and the service_role key are required.', 'error'); return; }
+      running = true;
+      document.getElementById('startBtn').disabled = true;
+      document.getElementById('progressCard').style.display = '';
+      var first = restart;
+      var runToken = null;
+      try {
+        while (true) {
+          var r = await window.mcApi('/import/step', { method: 'POST', body: { supabase_url: url, service_key: key, restart: first, run_token: runToken } });
+          first = false;
+          if (r.run_token) runToken = r.run_token;
+          render(r.state);
+          if (r.error) { showAlert('Import stopped: ' + window.mcEscape(r.error) + ' — fix the cause and press Start again to resume.', 'error'); break; }
+          if (r.done) {
+            showAlert('Import complete. Sign in at <a href="/admin/login/">/admin/login/</a> with your usual email and password — you will be asked to set up two-factor authentication again within 7 days. You can now pause or delete the Supabase project.', 'success');
+            break;
+          }
+        }
+      } catch (err) {
+        showAlert('Import error: ' + window.mcEscape(err.message), 'error');
+      } finally {
+        running = false;
+        document.getElementById('startBtn').disabled = false;
+      }
+    }
+
+    document.getElementById('importForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (running) return;
+      run(true);
+    });
+
+    (async function init() {
+      var st;
+      try { st = await window.mcApi('/import/status'); }
+      catch (err) { showAlert('Could not reach the import service: ' + window.mcEscape(err.message), 'error'); return; }
+      if (!st.bootstrap) {
+        var session = await window.mcRequireAdminSession('/admin/import/');
+        if (!session) return;
+        if (!window.mcIsSuperAdmin()) { showAlert('Only a Super Admin can run the import.', 'error'); document.getElementById('setupCard').style.display = 'none'; return; }
+        showAlert('This site already has ' + st.user_count + ' login(s). Re-running the import overwrites records with the Supabase copy.', 'info');
+      } else {
+        showAlert('No logins exist here yet — this is the first import. The service_role key is your credential for this run.', 'info');
+      }
+      if (st.state) { document.getElementById('progressCard').style.display = ''; render(st.state); }
+    })();
+  </script>
+</body>
+</html>

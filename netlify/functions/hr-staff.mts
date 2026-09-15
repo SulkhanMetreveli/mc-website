@@ -8,8 +8,7 @@ import {
   applyEmployeeFields, EMPLOYEE_SELF_FIELDS, isContractor, contractDaysLeft, validateBank,
   hashPassword, verifyPassword, createSession, destroySession, destroyAllSessionsFor, markSessionMfa,
   sessionCookie, clearSessionCookie, loginThrottled, recordLoginFailure, clearLoginFailures,
-  MFA_GRACE_DAYS, newTotpSecret, totpMatch, otpauthUri, newRecoveryCode, normalizeRecovery, sha256Hex,
-  mfaGraceActive, mfaSatisfied, deviceCookie, trustDevice, deviceTrusted, forgetDevices,
+  MFA_GRACE_DAYS, mfaGraceActive, mfaSatisfied, mfaStatusFor, handleMfa, trustDevice, deviceTrusted, forgetDevices,
   listVacation, getVacation, saveVacation, vacationBalance, VACATION_TYPES,
   listDocuments, getDocument, storeDocument, deleteDocument, fileResponse,
 } from "./_lib/hr.mts";
@@ -41,11 +40,8 @@ export default async (req: Request) => {
     }
     const trusted = e.totp_enabled ? await deviceTrusted(req, e.id) : false;
     const token = await createSession(e.id, trusted);
-    let mfa_status: string;
-    if (e.totp_enabled) mfa_status = trusted ? "ok" : "code_required";
-    else mfa_status = mfaGraceActive(e) ? "grace" : "enroll_required";
     return json({
-      ok: true, must_change_password: e.must_change_password, mfa_status, grace_until: e.mfa_grace_until,
+      ok: true, must_change_password: e.must_change_password, mfa_status: mfaStatusFor(e, trusted), grace_until: e.mfa_grace_until,
     }, { headers: { "set-cookie": sessionCookie(token) } });
   }
 
@@ -61,67 +57,14 @@ export default async (req: Request) => {
 
   /* ------------------------------------------------------------ two-factor */
   if (seg === "mfa") {
-    if (id === "status" && method === "GET") {
-      return json({
-        enabled: !!me.totp_enabled, session_mfa: !!session.mfa,
-        grace_until: me.mfa_grace_until, grace_active: mfaGraceActive(me),
-        recovery_codes_left: (me.recovery_code_hashes || []).length,
-      });
-    }
-    if (id === "challenge" && method === "POST") {
-      const body = await readJson(req);
-      if (!me.totp_enabled) return json({ error: "Two-factor is not set up on this account." }, { status: 400 });
-      const counter = totpMatch(me.totp_secret!, String(body.code || ""), me.totp_last_counter ?? null);
-      if (counter === null) return json({ error: "That code is not correct. Codes change every 30 seconds — try the current one." }, { status: 401 });
-      me.totp_last_counter = counter;
-      await saveEmployee(me);
-      await markSessionMfa(req);
-      const headers: Record<string, string> = {};
-      if (body.remember_device) headers["set-cookie"] = deviceCookie(await trustDevice(me.id));
-      return json({ ok: true }, { headers });
-    }
-    if (id === "recover" && method === "POST") {
-      const body = await readJson(req);
-      const hash = await sha256Hex(normalizeRecovery(body.code));
-      const list = me.recovery_code_hashes || [];
-      if (!list.includes(hash)) return json({ error: "That recovery code is not valid." }, { status: 401 });
-      // Recovery removes the authenticator so a new one can be set up; fresh grace window.
-      me.recovery_code_hashes = [];
-      me.totp_enabled = false; me.totp_secret = null; me.totp_pending_secret = null; me.totp_last_counter = null;
-      me.mfa_grace_until = new Date(Date.now() + MFA_GRACE_DAYS * 86400000).toISOString();
-      await saveEmployee(me);
-      await forgetDevices(me.id);
-      await markSessionMfa(req);
-      return json({ ok: true, enroll_required: true });
-    }
-    if (id === "enroll" && !sub && method === "POST") {
-      me.totp_pending_secret = newTotpSecret();
-      await saveEmployee(me);
-      return json({ secret: me.totp_pending_secret, uri: otpauthUri(me.totp_pending_secret, me.work_email) });
-    }
-    if (id === "enroll" && sub === "confirm" && method === "POST") {
-      const body = await readJson(req);
-      if (!me.totp_pending_secret) return json({ error: "Start set-up first." }, { status: 400 });
-      const counter = totpMatch(me.totp_pending_secret, String(body.code || ""), null);
-      if (counter === null) return json({ error: "That code is not correct. Make sure your authenticator shows the current 6-digit code and try again." }, { status: 401 });
-      me.totp_secret = me.totp_pending_secret; me.totp_pending_secret = null;
-      me.totp_enabled = true; me.totp_last_counter = counter;
-      const codes = Array.from({ length: 8 }, newRecoveryCode);
-      me.recovery_code_hashes = await Promise.all(codes.map((c) => sha256Hex(normalizeRecovery(c))));
-      await saveEmployee(me);
-      await markSessionMfa(req);
-      const headers: Record<string, string> = {};
-      if (body.remember_device) headers["set-cookie"] = deviceCookie(await trustDevice(me.id));
-      return json({ ok: true, recovery_codes: codes }, { headers });
-    }
-    if (id === "recovery-codes" && method === "POST") {
-      if (!session.mfa) return json({ error: "Complete two-factor sign-in first." }, { status: 403 });
-      const codes = Array.from({ length: 8 }, newRecoveryCode);
-      me.recovery_code_hashes = await Promise.all(codes.map((c) => sha256Hex(normalizeRecovery(c))));
-      await saveEmployee(me);
-      return json({ recovery_codes: codes });
-    }
-    return json({ error: "Not found." }, { status: 404 });
+    return handleMfa({
+      action: id, sub, method, body: method === "POST" ? await readJson(req) : {},
+      account: me, accountLabel: me.work_email, issuer: "Met Capital Staff", session,
+      save: () => saveEmployee(me),
+      markSession: () => markSessionMfa(req),
+      trust: () => trustDevice(me.id),
+      forget: () => forgetDevices(me.id),
+    });
   }
 
   // Password changes are allowed before the second factor (first-login flow);

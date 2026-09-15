@@ -96,7 +96,8 @@
         </p>
         <button type="button" class="btn-small" id="resetPasswordBtn">Reset Password</button>
         <button type="button" class="btn-small" id="resetMfaBtn">Reset Two-Factor</button>
-        <p style="font-size:0.75rem; color:var(--gray-light); margin-top:0.75rem;">Reset Two-Factor removes the client's authenticator (after you've verified them by phone) and gives them 7 days to set up a new one.</p>
+        <p style="font-size:0.75rem; color:var(--gray-light); margin-top:0.75rem;" id="mfaStatusNote"></p>
+        <p style="font-size:0.75rem; color:var(--gray-light); margin-top:0.5rem;">Reset Two-Factor removes the client's authenticator (after you've verified them by phone) and gives them 7 days to set up a new one.</p>
       </div>
     </div>
 
@@ -219,10 +220,7 @@
     </div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="/clients/assets/supabase-config.js"></script>
-  <script src="/clients/assets/mfa.js"></script>
-  <script src="/admin/assets/admin.js"></script>
+    <script src="/clients/assets/portal.js"></script>
   <script>
     document.getElementById('logoutBtn').addEventListener('click', window.mcAdminLogout);
 
@@ -280,19 +278,21 @@
       return '<span class="status-pill ' + meta.cls + '">' + meta.label + '</span>';
     }
 
-    async function signedUrlFor(bucket, path) {
-      var { data, error } = await window.mcAdminClient.storage.from(bucket).createSignedUrl(path, 60);
-      if (error || !data) return null;
-      return data.signedUrl;
+    function bindPdfLink(el, bucket, path) {
+      el.setAttribute('href', window.mcFileUrl(path));
+      el.setAttribute('target', '_blank');
+      el.setAttribute('rel', 'noopener');
     }
 
-    function bindPdfLink(el, bucket, path) {
-      el.addEventListener('click', async function (e) {
-        e.preventDefault();
-        var url = await signedUrlFor(bucket, path);
-        if (url) window.open(url, '_blank'); else alert('Could not generate a link for this file.');
-      });
+    var data = null;
+    async function loadAll() {
+      try { data = await window.mcApi('/admin/clients/' + targetUserId); }
+      catch (err) { document.getElementById('clientTitle').textContent = 'Client not found'; showAlert(err.message, 'error'); return null; }
+      loadProfile(); loadVehicles(); loadDocuments(); loadDocumentSubmissions(); loadGeneralDocumentSubmissions(); loadOnboarding(); loadAddressRequests(); loadWithdrawalRequests();
+      return data;
     }
+    async function refresh() { await loadAll(); }
+    async function act(path, method, payload) { return window.mcApi('/admin/clients/' + targetUserId + path, { method: method || 'POST', body: payload }); }
 
     if (!targetUserId) {
       document.body.innerHTML = '<main class="portal-main"><div class="alert error">No client specified. Go back to the <a href="/admin/clients/">dashboard</a> and click Manage on a client.</div></main>';
@@ -300,14 +300,9 @@
     }
 
     // ---------------- PROFILE ----------------
-    async function loadProfile() {
-      var { data: profile, error } = await window.mcAdminClient
-        .from('client_profiles').select('*').eq('user_id', targetUserId).maybeSingle();
-
-      if (error || !profile) {
-        document.getElementById('clientTitle').textContent = 'Client not found';
-        return null;
-      }
+    function loadProfile() {
+      var profile = data && data.profile;
+      if (!profile) { document.getElementById('clientTitle').textContent = 'Client not found'; return null; }
 
       document.getElementById('clientTitle').textContent = profile.full_name;
       document.getElementById('clientSubtitle').textContent = profile.email + ' · ' + (profile.client_reference || 'no reference');
@@ -334,7 +329,8 @@
       e.preventDefault();
       var btn = document.getElementById('profileSaveBtn');
       btn.disabled = true; btn.textContent = 'Saving…';
-      var { error } = await window.mcAdminClient.from('client_profiles').update({
+      var error = null;
+      try { await act('', 'PATCH', {
         full_name: document.getElementById('p_full_name').value.trim(),
         client_reference: document.getElementById('p_reference').value.trim() || null,
         status: document.getElementById('p_status').value,
@@ -350,27 +346,17 @@
         bank_account_number: document.getElementById('p_bank_account_number').value.trim() || null,
         bank_swift_bic: document.getElementById('p_bank_swift_bic').value.trim() || null,
         bank_country: document.getElementById('p_bank_country').value.trim() || null
-      }).eq('user_id', targetUserId);
+      }); } catch (e) { error = e; }
       btn.disabled = false; btn.textContent = 'Save Profile';
       if (error) { showAlert('Could not save profile: ' + error.message, 'error'); return; }
       showAlert('Profile saved.', 'success');
-      loadProfile();
+      refresh();
     });
-
-    async function edgeFunctionErrorMessage(error) {
-      if (error && error.context && typeof error.context.json === 'function') {
-        try {
-          var body = await error.context.json();
-          if (body && body.error) return body.error;
-        } catch (parseErr) { /* fall through to generic message */ }
-      }
-      return error ? error.message : 'Unknown error.';
-    }
 
     document.getElementById('resetMfaBtn').addEventListener('click', async function () {
       if (!confirm('Reset two-factor authentication for this client? Only do this after verifying them by phone.')) return;
       var btn = this; btn.disabled = true;
-      try { await window.mcMfa.recovery(window.mcAdminClient, 'admin_reset', { user_id: targetUserId }); showAlert('Two-factor authentication reset. The client can set up a new authenticator within 7 days.', 'success'); }
+      try { await act('/reset-mfa'); showAlert('Two-factor authentication reset. The client can set up a new authenticator within 7 days.', 'success'); }
       catch (err) { showAlert('Could not reset 2FA: ' + err.message, 'error'); }
       finally { btn.disabled = false; }
     });
@@ -383,22 +369,10 @@
       btn.textContent = 'Resetting…';
 
       try {
-        var { data, error } = await window.mcAdminClient.functions.invoke('admin-reset-password', {
-          body: { user_id: targetUserId }
-        });
-
-        if (error || (data && data.error)) {
-          throw new Error((data && data.error) || await edgeFunctionErrorMessage(error));
-        }
-
-        showAlert(
-          'Password reset. Send this to the client over a secure channel \u2014 they will be required to set their own on next login:<br><br>' +
-          '<strong>Temporary password:</strong> ' + data.password,
-          'success'
-        );
+        var r = await act('/reset-password');
+        showAlert('Password reset. Send this to the client over a secure channel \u2014 they will be required to set their own on next login:<br><br><strong>Temporary password:</strong> ' + r.password, 'success');
       } catch (err) {
-        console.error(err);
-        showAlert('Could not reset password: ' + err.message + '. Make sure the admin-reset-password Edge Function has been deployed (see SETUP.md).', 'error');
+        showAlert('Could not reset password: ' + err.message, 'error');
       } finally {
         btn.disabled = false;
         btn.textContent = 'Reset Password';
@@ -415,9 +389,8 @@
     }
 
     // ---------------- INVESTMENT VEHICLES ----------------
-    async function loadVehicles() {
-      var { data: vehicles } = await window.mcAdminClient
-        .from('investment_vehicles').select('*').eq('user_id', targetUserId).order('vehicle_name');
+    function loadVehicles() {
+      var vehicles = (data && data.vehicles) || [];
 
       var el = document.getElementById('vehiclesTable');
       if (!vehicles || vehicles.length === 0) {
@@ -471,8 +444,8 @@
       el.querySelectorAll('[data-delete-vehicle]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
           if (!confirm('Delete this investment vehicle?')) return;
-          await window.mcAdminClient.from('investment_vehicles').delete().eq('id', btn.getAttribute('data-delete-vehicle'));
-          loadVehicles();
+          try { await act('/vehicles/' + btn.getAttribute('data-delete-vehicle'), 'DELETE'); } catch (err) { showAlert(err.message, 'error'); }
+          refresh();
         });
       });
     }
@@ -491,7 +464,6 @@
       e.preventDefault();
       var id = document.getElementById('v_id').value;
       var payload = {
-        user_id: targetUserId,
         vehicle_name: document.getElementById('v_name').value.trim(),
         currency: document.getElementById('v_currency').value,
         balance: document.getElementById('v_balance').value ? parseFloat(document.getElementById('v_balance').value) : null,
@@ -503,22 +475,16 @@
         updated_at: new Date().toISOString()
       };
 
-      var result;
-      if (id) {
-        result = await window.mcAdminClient.from('investment_vehicles').update(payload).eq('id', id);
-      } else {
-        result = await window.mcAdminClient.from('investment_vehicles').insert(payload);
-      }
-      if (result.error) { showAlert('Could not save vehicle: ' + result.error.message, 'error'); return; }
+      try { await act(id ? '/vehicles/' + id : '/vehicles', id ? 'PUT' : 'POST', payload); }
+      catch (err) { showAlert('Could not save vehicle: ' + err.message, 'error'); return; }
       resetVehicleForm();
-      loadVehicles();
+      refresh();
       showAlert('Vehicle saved.', 'success');
     });
 
     // ---------------- DOCUMENTS ----------------
-    async function loadDocuments() {
-      var { data: docs } = await window.mcAdminClient
-        .from('documents').select('*').eq('user_id', targetUserId).order('uploaded_at', { ascending: false });
+    function loadDocuments() {
+      var docs = (data && data.documents) || [];
 
       var el = document.getElementById('documentsTable');
       if (!docs || docs.length === 0) {
@@ -543,9 +509,8 @@
       el.querySelectorAll('[data-delete-doc]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
           if (!confirm('Delete this document?')) return;
-          await window.mcAdminClient.storage.from('client-documents').remove([btn.getAttribute('data-path')]);
-          await window.mcAdminClient.from('documents').delete().eq('id', btn.getAttribute('data-delete-doc'));
-          loadDocuments();
+          try { await act('/documents/' + btn.getAttribute('data-delete-doc'), 'DELETE'); } catch (err) { showAlert(err.message, 'error'); }
+          refresh();
         });
       });
     }
@@ -560,21 +525,10 @@
       btn.disabled = true; btn.textContent = 'Uploading…';
 
       try {
-        var safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        var path = targetUserId + '/' + Date.now() + '-' + safeName;
-        var up = await window.mcAdminClient.storage.from('client-documents').upload(path, file);
-        if (up.error) throw up.error;
-
-        var ins = await window.mcAdminClient.from('documents').insert({
-          user_id: targetUserId,
-          title: title,
-          category: document.getElementById('d_category').value,
-          storage_path: path
-        });
-        if (ins.error) throw ins.error;
-
+        var up = await window.mcUpload(file, function (p) { btn.textContent = 'Uploading… ' + p + '%'; });
+        await act('/documents', 'POST', { title: title, category: document.getElementById('d_category').value, upload_id: up.upload_id, file_name: file.name });
         document.getElementById('documentForm').reset();
-        loadDocuments();
+        refresh();
         showAlert('Document uploaded.', 'success');
       } catch (err) {
         showAlert('Upload failed: ' + err.message, 'error');
@@ -584,9 +538,8 @@
     });
 
     // ---------------- DOCUMENT SUBMISSIONS ----------------
-    async function loadDocumentSubmissions() {
-      var { data: rows } = await window.mcAdminClient
-        .from('document_submissions').select('*').eq('user_id', targetUserId).order('submitted_at', { ascending: false });
+    function loadDocumentSubmissions() {
+      var rows = (data && data.document_submissions) || [];
 
       var el = document.getElementById('documentSubmissionsContent');
       if (!rows || rows.length === 0) {
@@ -618,15 +571,15 @@
 
       el.querySelectorAll('[data-doc-review]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
-          await window.mcAdminClient.from('document_submissions').update({ status: 'in_transit_documents_review' }).eq('id', btn.getAttribute('data-doc-review'));
-          loadDocumentSubmissions();
+          try { await act('/document-submissions/' + btn.getAttribute('data-doc-review') + '/review'); } catch (err) { showAlert(err.message, 'error'); }
+          refresh();
         });
       });
 
       el.querySelectorAll('[data-doc-reject]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
-          await window.mcAdminClient.from('document_submissions').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', btn.getAttribute('data-doc-reject'));
-          loadDocumentSubmissions();
+          try { await act('/document-submissions/' + btn.getAttribute('data-doc-reject') + '/reject'); } catch (err) { showAlert(err.message, 'error'); }
+          refresh();
         });
       });
 
@@ -638,35 +591,12 @@
           btn.disabled = true;
           btn.textContent = 'Approving…';
 
-          async function promote(path, title, category) {
-            if (!path) return;
-            var dl = await window.mcAdminClient.storage.from('kyc-files').download(path);
-            if (dl.error) throw dl.error;
-            var filename = path.split('/').pop();
-            var newPath = targetUserId + '/' + Date.now() + '-' + filename;
-            var up = await window.mcAdminClient.storage.from('client-documents').upload(newPath, dl.data, { contentType: 'application/pdf' });
-            if (up.error) throw up.error;
-            var ins = await window.mcAdminClient.from('documents').insert({
-              user_id: targetUserId, title: title, category: category, storage_path: newPath
-            });
-            if (ins.error) throw ins.error;
-          }
-
           try {
-            await promote(r.passport_path, 'Passport Copy', 'passport');
-            await promote(r.proof_of_address_path, 'Proof of Address', 'proof_of_address');
-
-            var upd = await window.mcAdminClient.from('document_submissions').update({
-              status: 'approved', reviewed_at: new Date().toISOString()
-            }).eq('id', r.id);
-            if (upd.error) throw upd.error;
-
-            loadDocuments();
-            loadDocumentSubmissions();
+            await act('/document-submissions/' + r.id + '/approve');
+            refresh();
             showAlert('Approved. The document(s) now appear in this client\'s Document Center.', 'success');
           } catch (err) {
-            console.error(err);
-            showAlert('Could not approve: ' + err.message + '. The submission was left as-is -- no partial changes were saved to its status.', 'error');
+            showAlert('Could not approve: ' + err.message + '. The submission was left as-is.', 'error');
             btn.disabled = false;
             btn.textContent = 'Approve & Add to Documents';
           }
@@ -675,9 +605,8 @@
     }
 
     // ---------------- GENERAL DOCUMENT SUBMISSIONS ----------------
-    async function loadGeneralDocumentSubmissions() {
-      var { data: rows } = await window.mcAdminClient
-        .from('general_document_submissions').select('*').eq('user_id', targetUserId).order('submitted_at', { ascending: false });
+    function loadGeneralDocumentSubmissions() {
+      var rows = (data && data.general_documents) || [];
 
       var el = document.getElementById('generalDocumentSubmissionsContent');
       if (!rows || rows.length === 0) {
@@ -709,15 +638,15 @@
 
       el.querySelectorAll('[data-gendoc-review]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
-          await window.mcAdminClient.from('general_document_submissions').update({ status: 'in_transit_documents_review' }).eq('id', btn.getAttribute('data-gendoc-review'));
-          loadGeneralDocumentSubmissions();
+          try { await act('/general-documents/' + btn.getAttribute('data-gendoc-review') + '/review'); } catch (err) { showAlert(err.message, 'error'); }
+          refresh();
         });
       });
 
       el.querySelectorAll('[data-gendoc-reject]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
-          await window.mcAdminClient.from('general_document_submissions').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', btn.getAttribute('data-gendoc-reject'));
-          loadGeneralDocumentSubmissions();
+          try { await act('/general-documents/' + btn.getAttribute('data-gendoc-reject') + '/reject'); } catch (err) { showAlert(err.message, 'error'); }
+          refresh();
         });
       });
 
@@ -730,28 +659,11 @@
           btn.textContent = 'Approving…';
 
           try {
-            var dl = await window.mcAdminClient.storage.from('kyc-files').download(r.file_path);
-            if (dl.error) throw dl.error;
-            var filename = r.file_path.split('/').pop();
-            var newPath = targetUserId + '/' + Date.now() + '-' + filename;
-            var up = await window.mcAdminClient.storage.from('client-documents').upload(newPath, dl.data, { contentType: 'application/pdf' });
-            if (up.error) throw up.error;
-            var ins = await window.mcAdminClient.from('documents').insert({
-              user_id: targetUserId, title: r.title, category: 'other', storage_path: newPath
-            });
-            if (ins.error) throw ins.error;
-
-            var upd = await window.mcAdminClient.from('general_document_submissions').update({
-              status: 'approved', reviewed_at: new Date().toISOString()
-            }).eq('id', r.id);
-            if (upd.error) throw upd.error;
-
-            loadDocuments();
-            loadGeneralDocumentSubmissions();
+            await act('/general-documents/' + r.id + '/approve');
+            refresh();
             showAlert('Approved. The document now appears in this client\'s Document Center.', 'success');
           } catch (err) {
-            console.error(err);
-            showAlert('Could not approve: ' + err.message + '. The submission was left as-is -- no partial changes were saved to its status.', 'error');
+            showAlert('Could not approve: ' + err.message + '. The submission was left as-is.', 'error');
             btn.disabled = false;
             btn.textContent = 'Approve & Add to Documents';
           }
@@ -760,9 +672,8 @@
     }
 
     // ---------------- ONBOARDING ----------------
-    async function loadOnboarding() {
-      var { data: rows } = await window.mcAdminClient
-        .from('onboarding_submissions').select('*').eq('user_id', targetUserId).order('submitted_at', { ascending: false });
+    function loadOnboarding() {
+      var rows = (data && data.onboarding) || [];
 
       var el = document.getElementById('onboardingContent');
       if (!rows || rows.length === 0) {
@@ -801,28 +712,27 @@
       el.querySelectorAll('[data-view-doc]').forEach(function (a) { bindPdfLink(a, 'kyc-files', a.getAttribute('data-view-doc')); });
       el.querySelectorAll('[data-onboard-review]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
-          await window.mcAdminClient.from('onboarding_submissions').update({ status: 'in_transit_documents_review' }).eq('id', btn.getAttribute('data-onboard-review'));
-          loadOnboarding();
+          try { await act('/onboarding/' + btn.getAttribute('data-onboard-review') + '/review'); } catch (err) { showAlert(err.message, 'error'); }
+          refresh();
         });
       });
       el.querySelectorAll('[data-onboard-approve]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
-          await window.mcAdminClient.from('onboarding_submissions').update({ status: 'approved' }).eq('id', btn.getAttribute('data-onboard-approve'));
-          loadOnboarding();
+          try { await act('/onboarding/' + btn.getAttribute('data-onboard-approve') + '/approve'); } catch (err) { showAlert(err.message, 'error'); }
+          refresh();
         });
       });
       el.querySelectorAll('[data-onboard-reject]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
-          await window.mcAdminClient.from('onboarding_submissions').update({ status: 'rejected' }).eq('id', btn.getAttribute('data-onboard-reject'));
-          loadOnboarding();
+          try { await act('/onboarding/' + btn.getAttribute('data-onboard-reject') + '/reject'); } catch (err) { showAlert(err.message, 'error'); }
+          refresh();
         });
       });
     }
 
     // ---------------- ADDRESS UPDATE REQUESTS ----------------
-    async function loadAddressRequests() {
-      var { data: rows } = await window.mcAdminClient
-        .from('address_update_requests').select('*').eq('user_id', targetUserId).order('submitted_at', { ascending: false });
+    function loadAddressRequests() {
+      var rows = (data && data.address_requests) || [];
 
       var el = document.getElementById('addressRequestsContent');
       if (!rows || rows.length === 0) {
@@ -856,8 +766,8 @@
       el.querySelectorAll('[data-view-doc]').forEach(function (a) { bindPdfLink(a, 'kyc-files', a.getAttribute('data-view-doc')); });
       el.querySelectorAll('[data-addr-review]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
-          await window.mcAdminClient.from('address_update_requests').update({ status: 'in_transit_documents_review' }).eq('id', btn.getAttribute('data-addr-review'));
-          loadAddressRequests();
+          try { await act('/address-requests/' + btn.getAttribute('data-addr-review') + '/review'); } catch (err) { showAlert(err.message, 'error'); }
+          refresh();
         });
       });
       el.querySelectorAll('[data-addr-approve]').forEach(function (btn) {
@@ -865,33 +775,22 @@
           if (!confirm('Mark this request approved? If it includes an address change, the new address will be copied into the client profile. Have you already verified the client by phone?')) return;
           var r = JSON.parse(btn.getAttribute('data-addr-approve'));
 
-          if (r.address_line1) {
-            await window.mcAdminClient.from('client_profiles').update({
-              address_line1: r.address_line1, address_line2: r.address_line2, city: r.city,
-              state_province: r.state_province, postal_code: r.postal_code, country: r.country
-            }).eq('user_id', targetUserId);
-          }
-
-          await window.mcAdminClient.from('address_update_requests').update({
-            status: 'approved', reviewed_at: new Date().toISOString()
-          }).eq('id', r.id);
-          loadProfile();
-          loadAddressRequests();
+          try { await act('/address-requests/' + r.id + '/approve'); } catch (err) { showAlert(err.message, 'error'); return; }
+          refresh();
           showAlert('Request approved' + (r.address_line1 ? ' and the new address applied to the profile' : '') + '. Remember to action any bank/passport changes in your banking/custodian and records systems separately — nothing here does that automatically.', 'success');
         });
       });
       el.querySelectorAll('[data-addr-reject]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
-          await window.mcAdminClient.from('address_update_requests').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', btn.getAttribute('data-addr-reject'));
-          loadAddressRequests();
+          try { await act('/address-requests/' + btn.getAttribute('data-addr-reject') + '/reject'); } catch (err) { showAlert(err.message, 'error'); }
+          refresh();
         });
       });
     }
 
     // ---------------- WITHDRAWAL REQUESTS ----------------
-    async function loadWithdrawalRequests() {
-      var { data: rows } = await window.mcAdminClient
-        .from('withdrawal_requests').select('*').eq('user_id', targetUserId).order('submitted_at', { ascending: false });
+    function loadWithdrawalRequests() {
+      var rows = (data && data.withdrawals) || [];
 
       var el = document.getElementById('withdrawalRequestsContent');
       if (!rows || rows.length === 0) {
@@ -924,21 +823,21 @@
 
       el.querySelectorAll('[data-wd-review]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
-          await window.mcAdminClient.from('withdrawal_requests').update({ status: 'in_transit_documents_review' }).eq('id', btn.getAttribute('data-wd-review'));
-          loadWithdrawalRequests();
+          try { await act('/withdrawals/' + btn.getAttribute('data-wd-review') + '/review'); } catch (err) { showAlert(err.message, 'error'); }
+          refresh();
         });
       });
       el.querySelectorAll('[data-wd-approve]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
           if (!confirm('Mark this withdrawal approved? This does not move any money — action the payment in your banking/custodian system separately, after verifying the client by phone.')) return;
-          await window.mcAdminClient.from('withdrawal_requests').update({ status: 'approved', reviewed_at: new Date().toISOString() }).eq('id', btn.getAttribute('data-wd-approve'));
-          loadWithdrawalRequests();
+          try { await act('/withdrawals/' + btn.getAttribute('data-wd-approve') + '/approve'); } catch (err) { showAlert(err.message, 'error'); }
+          refresh();
         });
       });
       el.querySelectorAll('[data-wd-reject]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
-          await window.mcAdminClient.from('withdrawal_requests').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', btn.getAttribute('data-wd-reject'));
-          loadWithdrawalRequests();
+          try { await act('/withdrawals/' + btn.getAttribute('data-wd-reject') + '/reject'); } catch (err) { showAlert(err.message, 'error'); }
+          refresh();
         });
       });
     }
@@ -946,20 +845,12 @@
     (async function init() {
       var session = await window.mcRequireAdminSession('/admin/client/?u=' + targetUserId);
       if (!session) return;
-
-      if (!window.mcHasApp('client_dashboard')) {
-        window.location.href = '/admin/?denied_app=client_dashboard';
-        return;
+      if (!window.mcHasApp('client_dashboard')) { window.location.href = '/admin/?denied_app=client_dashboard'; return; }
+      var d = await loadAll();
+      if (d && d.user) {
+        var el = document.getElementById('mfaStatusNote');
+        if (el) el.textContent = d.user.totp_enabled ? 'Two-factor: active.' : 'Two-factor: not set up' + (d.user.mfa_grace_until ? ' (grace period until ' + new Date(d.user.mfa_grace_until).toLocaleDateString() + ').' : '.');
       }
-
-      await loadProfile();
-      loadVehicles();
-      loadDocuments();
-      loadDocumentSubmissions();
-      loadGeneralDocumentSubmissions();
-      loadOnboarding();
-      loadAddressRequests();
-      loadWithdrawalRequests();
     })();
   </script>
 </body>
