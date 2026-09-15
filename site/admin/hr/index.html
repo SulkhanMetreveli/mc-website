@@ -37,11 +37,17 @@
       <div class="stat-card"><div class="stat-value" id="stOnLeave">—</div><div class="stat-label">Away Today</div></div>
       <div class="stat-card warn"><div class="stat-value" id="stPending">—</div><div class="stat-label">Pending Time-Off Requests</div></div>
       <div class="stat-card warn"><div class="stat-value" id="stExpiring">—</div><div class="stat-label">Contracts Ending ≤ 60 Days</div></div>
+      <div class="stat-card warn"><div class="stat-value" id="stBank">—</div><div class="stat-label">Bank Changes to Confirm</div></div>
     </div>
 
     <div class="section-block">
       <h2>Pending Time-Off Requests</h2>
       <div class="card"><div id="pendingContent"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
+    </div>
+
+    <div class="section-block">
+      <h2>Bank Changes Awaiting Confirmation</h2>
+      <div class="card"><div id="bankPendingContent"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div></div>
     </div>
 
     <div class="section-block">
@@ -137,6 +143,18 @@
       document.getElementById('stOnLeave').textContent = data.stats.away_today;
       document.getElementById('stPending').textContent = data.stats.pending;
       document.getElementById('stExpiring').textContent = data.stats.expiring;
+      document.getElementById('stBank').textContent = data.stats.bank_pending;
+
+      var bp = document.getElementById('bankPendingContent');
+      var bankPending = data.bank_pending || [];
+      if (!bankPending.length) bp.innerHTML = '<p style="color:var(--gray-light); font-size:0.875rem;">None pending.</p>';
+      else {
+        var br = '';
+        bankPending.forEach(function (b) {
+          br += '<tr><td><a href="/admin/hr/employee/?u=' + b.id + '">' + b.full_name + '</a></td><td>' + (b.employment_type === 'contractor' ? 'Contractor' : 'Employee') + '</td><td style="text-transform:uppercase;">' + b.scheme + '</td><td>' + new Date(b.submitted_at).toLocaleString() + '</td><td><a href="/admin/hr/employee/?u=' + b.id + '">Review →</a></td></tr>';
+        });
+        bp.innerHTML = '<table class="admin-table"><thead><tr><th>Person</th><th>Type</th><th>Format</th><th>Submitted</th><th></th></tr></thead><tbody>' + br + '</tbody></table>';
+      }
 
       var ex = document.getElementById('expiringContent');
       var expiring = data.expiring || [];

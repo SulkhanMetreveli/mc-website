@@ -20,6 +20,7 @@
         <a href="/staff/profile/">My Profile</a>
         <a href="/staff/vacation/">Time Off</a>
         <a href="/staff/documents/">Documents</a>
+        <a href="/staff/bank/">Bank Details</a>
         <button class="logout" id="logoutBtn">Log Out</button>
       </nav>
     </div>
@@ -29,6 +30,7 @@
     <div class="page-label">Staff Portal</div>
     <h1 class="page-title" id="welcomeTitle">Welcome</h1>
     <p class="page-subtitle" id="jobLine"></p>
+    <div id="pageAlert"></div>
 
     <div class="stat-cards">
       <div class="stat-card"><div class="stat-value" id="stRemaining">—</div><div class="stat-label" id="lblRemaining">Vacation days remaining</div></div>
@@ -54,6 +56,10 @@
         <h3>Documents</h3>
         <p>Contracts, payslips, and policies shared by HR — and upload your own documents.</p>
       </a>
+      <a class="quick-link" href="/staff/bank/">
+        <h3>Bank Details</h3>
+        <p id="qlBankText">The account we pay you into. Changes are confirmed by HR before use.</p>
+      </a>
       <a class="quick-link" href="/staff/account/change-password/">
         <h3>Account Security</h3>
         <p>Change your password.</p>
@@ -77,6 +83,9 @@
       var contractor = window.mcStaffIsContractor;
       document.getElementById('jobLine').textContent = ([p.job_title, p.department].filter(Boolean).join(' · ') || 'Met Capital') + (contractor ? ' · Contractor' : '');
 
+      if (!p.bank && !p.bank_pending) {
+        document.getElementById('pageAlert') && (document.getElementById('pageAlert').innerHTML = '<div class="alert info">We have no bank details on file for you yet. Please add them under <a href="/staff/bank/">Bank Details</a> so payments can be made.</div>');
+      }
       var data = await window.mcStaffApi('/vacation');
       var reqs = data.requests || [];
       var bal = data.balance;

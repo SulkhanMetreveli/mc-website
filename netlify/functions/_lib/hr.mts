@@ -137,6 +137,10 @@ export type Employee = {
   contract_end: string | null;
   contracting_entity: string | null;
   engagement_basis: string | null;
+  // bank details: 'bank' is the account of record (HR-confirmed);
+  // 'bank_pending' is a change submitted by the employee awaiting HR.
+  bank?: BankDetails | null;
+  bank_pending?: PendingBank | null;
   must_change_password: boolean;
   password_hash: string;
   created_at: string;
@@ -207,6 +211,122 @@ export function applyEmployeeFields(e: Employee, body: any, allowed: string[]) {
     (e as any)[f] = v;
   }
   e.updated_at = nowIso();
+}
+
+
+/* ---------------------------------------------------------- bank details -- */
+// Scheme decides which identifiers apply:
+//   uk    -> sort code + account number            (GBP domestic)
+//   iban  -> IBAN + BIC                             (CH, EU/SEPA, most of the world)
+//   us    -> ABA routing number + account + type    (USD domestic)
+//   other -> SWIFT/BIC + account number + bank address
+export type BankScheme = "uk" | "iban" | "us" | "other";
+export type BankDetails = {
+  scheme: BankScheme;
+  account_holder_name: string;
+  bank_name: string;
+  bank_country: string | null;
+  currency: string | null;
+  // uk
+  sort_code?: string;
+  account_number?: string;
+  // iban
+  iban?: string;
+  bic?: string;
+  // us
+  routing_number?: string;
+  account_type?: "checking" | "savings";
+  // other
+  swift_bic?: string;
+  bank_address?: string;
+  // audit
+  set_by: "employee" | "hr";
+  set_at: string;
+};
+export type PendingBank = BankDetails & { submitted_at: string };
+
+const BANK_SCHEMES = ["uk", "iban", "us", "other"];
+
+function digitsOnly(s: string) { return String(s || "").replace(/[\s-]/g, ""); }
+
+export function ibanIsValid(raw: string) {
+  const iban = String(raw || "").replace(/\s+/g, "").toUpperCase();
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(iban)) return false;
+  const rearranged = iban.slice(4) + iban.slice(0, 4);
+  const expanded = rearranged.replace(/[A-Z]/g, (c) => String(c.charCodeAt(0) - 55));
+  let remainder = 0;
+  for (let i = 0; i < expanded.length; i += 7) {
+    remainder = Number(String(remainder) + expanded.slice(i, i + 7)) % 97;
+  }
+  return remainder === 1;
+}
+
+export function bicIsValid(raw: string) {
+  return /^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(String(raw || "").replace(/\s+/g, "").toUpperCase());
+}
+
+export function abaIsValid(raw: string) {
+  const d = digitsOnly(raw);
+  if (!/^\d{9}$/.test(d)) return false;
+  const n = d.split("").map(Number);
+  const sum = 3 * (n[0] + n[3] + n[6]) + 7 * (n[1] + n[4] + n[7]) + (n[2] + n[5] + n[8]);
+  return sum % 10 === 0;
+}
+
+// Returns { ok, errors, bank } -- bank is normalised and ready to store.
+export function validateBank(body: any, setBy: "employee" | "hr"): { ok: boolean; errors: string[]; bank: BankDetails | null } {
+  const errors: string[] = [];
+  const scheme = BANK_SCHEMES.includes(body.scheme) ? body.scheme as BankScheme : null;
+  if (!scheme) errors.push("Choose a bank account format.");
+  const holder = String(body.account_holder_name || "").trim();
+  const bankName = String(body.bank_name || "").trim();
+  if (!holder) errors.push("Account holder name is required.");
+  if (!bankName) errors.push("Bank name is required.");
+  const currency = String(body.currency || "").trim().toUpperCase() || null;
+  if (currency && !/^[A-Z]{3}$/.test(currency)) errors.push("Currency must be a 3-letter code (e.g. CHF, EUR, GBP, USD).");
+  const country = String(body.bank_country || "").trim() || null;
+
+  const bank: any = {
+    scheme, account_holder_name: holder, bank_name: bankName, bank_country: country, currency,
+    set_by: setBy, set_at: nowIso(),
+  };
+
+  if (scheme === "uk") {
+    const sc = digitsOnly(body.sort_code), acc = digitsOnly(body.account_number);
+    if (!/^\d{6}$/.test(sc)) errors.push("UK sort code must be 6 digits (e.g. 12-34-56).");
+    if (!/^\d{8}$/.test(acc)) errors.push("UK account number must be 8 digits.");
+    bank.sort_code = sc.replace(/(\d{2})(\d{2})(\d{2})/, "$1-$2-$3");
+    bank.account_number = acc;
+    bank.currency = bank.currency || "GBP";
+  } else if (scheme === "iban") {
+    const iban = String(body.iban || "").replace(/\s+/g, "").toUpperCase();
+    const bic = String(body.bic || "").replace(/\s+/g, "").toUpperCase();
+    if (!ibanIsValid(iban)) errors.push("That IBAN doesn't pass validation — please check it.");
+    if (bic && !bicIsValid(bic)) errors.push("BIC/SWIFT must be 8 or 11 characters (e.g. UBSWCHZH80A).");
+    bank.iban = iban.replace(/(.{4})/g, "$1 ").trim();
+    bank.bic = bic || null;
+    if (!bank.bank_country && iban.length >= 2) bank.bank_country = iban.slice(0, 2);
+  } else if (scheme === "us") {
+    const rt = digitsOnly(body.routing_number), acc = digitsOnly(body.account_number);
+    if (!abaIsValid(rt)) errors.push("US routing number must be 9 digits and pass the ABA check.");
+    if (!/^\d{4,17}$/.test(acc)) errors.push("US account number must be 4–17 digits.");
+    bank.routing_number = rt;
+    bank.account_number = acc;
+    bank.account_type = body.account_type === "savings" ? "savings" : "checking";
+    bank.currency = bank.currency || "USD";
+    bank.bank_country = bank.bank_country || "US";
+  } else if (scheme === "other") {
+    const acc = String(body.account_number || "").trim();
+    const swift = String(body.swift_bic || "").replace(/\s+/g, "").toUpperCase();
+    if (!acc) errors.push("Account number is required.");
+    if (!swift) errors.push("SWIFT/BIC is required for international transfers.");
+    else if (!bicIsValid(swift)) errors.push("SWIFT/BIC must be 8 or 11 characters.");
+    bank.account_number = acc;
+    bank.swift_bic = swift || null;
+    bank.bank_address = String(body.bank_address || "").trim() || null;
+  }
+
+  return { ok: errors.length === 0, errors, bank: errors.length ? null : (bank as BankDetails) };
 }
 
 /* -------------------------------------------------------------- sessions -- */

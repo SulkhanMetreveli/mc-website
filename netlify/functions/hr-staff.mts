@@ -5,7 +5,7 @@ import type { Config } from "@netlify/functions";
 import {
   json, readJson, nowIso, newId, workingDays,
   getEmployeeByEmail, getSessionEmployee, saveEmployee, sanitizeEmployee,
-  applyEmployeeFields, EMPLOYEE_SELF_FIELDS, isContractor, contractDaysLeft,
+  applyEmployeeFields, EMPLOYEE_SELF_FIELDS, isContractor, contractDaysLeft, validateBank,
   hashPassword, verifyPassword, createSession, destroySession, destroyAllSessionsFor,
   sessionCookie, clearSessionCookie, loginThrottled, recordLoginFailure, clearLoginFailures,
   listVacation, getVacation, saveVacation, vacationBalance, VACATION_TYPES,
@@ -60,6 +60,23 @@ export default async (req: Request) => {
     applyEmployeeFields(me, body, EMPLOYEE_SELF_FIELDS);
     await saveEmployee(me);
     return json({ employee: sanitizeEmployee(me) });
+  }
+
+  /* ---------------------------------------------------------- bank details */
+  if (seg === "bank" && !id && method === "POST") {
+    const result = validateBank(await readJson(req), "employee");
+    if (!result.ok) return json({ error: result.errors.join(" ") , errors: result.errors }, { status: 400 });
+    me.bank_pending = { ...(result.bank as any), submitted_at: nowIso() };
+    me.updated_at = nowIso();
+    await saveEmployee(me);
+    return json({ bank: me.bank || null, bank_pending: me.bank_pending });
+  }
+
+  if (seg === "bank" && id === "pending" && method === "DELETE") {
+    me.bank_pending = null;
+    me.updated_at = nowIso();
+    await saveEmployee(me);
+    return json({ ok: true });
   }
 
   if (seg === "change-password" && method === "POST") {

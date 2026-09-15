@@ -113,6 +113,30 @@
       </div>
     </div>
 
+    <!-- BANK DETAILS -->
+    <div class="section-block">
+      <h2>Bank Details</h2>
+      <div class="card">
+        <h3 style="font-size:0.8125rem; color:var(--gray); margin-bottom:0.5rem;">Account on File</h3>
+        <div class="request-detail-box" id="bankCurrent"></div>
+        <div id="bankPendingWrap" style="display:none; margin-top:1rem;">
+          <h3 style="font-size:0.8125rem; color:var(--gray); margin-bottom:0.5rem;">Pending Change Submitted by the Employee <span class="status-pill pending">Awaiting your confirmation</span></h3>
+          <div class="request-detail-box" id="bankPending"></div>
+          <p style="font-size:0.8125rem; color:var(--gray); margin:0.75rem 0;">Verify this with the person directly (by phone, not email) before approving — bank-detail changes are the classic payroll-fraud vector.</p>
+          <button type="button" class="btn-small approve" id="bankApproveBtn">Approve &amp; Make Account on File</button>
+          <button type="button" class="btn-small reject" id="bankRejectBtn">Reject</button>
+        </div>
+        <details style="margin-top:1.25rem;">
+          <summary style="cursor:pointer; font-size:0.8125rem; color:var(--gray);">Set or replace bank details directly (HR)</summary>
+          <form id="bankForm" novalidate style="margin-top:1rem;">
+            <div id="bankFields"></div>
+            <button type="submit" class="btn-small" id="bankSaveBtn">Save as Account on File</button>
+            <button type="button" class="btn-small danger" id="bankClearBtn">Remove Bank Details</button>
+          </form>
+        </details>
+      </div>
+    </div>
+
     <!-- TIME OFF -->
     <div class="section-block">
       <h2 id="timeOffHeading">Time Off</h2>
@@ -179,6 +203,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="/clients/assets/supabase-config.js"></script>
   <script src="/admin/assets/admin.js"></script>
+  <script src="/staff/assets/bank-form.js"></script>
   <script>
     document.getElementById('logoutBtn').addEventListener('click', window.mcAdminLogout);
     async function hrApi(path, opts) {
@@ -314,6 +339,38 @@
       });
     }
 
+    function renderBank(p) {
+      document.getElementById('bankCurrent').innerHTML = window.mcBankSummary(p.bank);
+      var pend = p.bank_pending;
+      document.getElementById('bankPendingWrap').style.display = pend ? '' : 'none';
+      if (pend) document.getElementById('bankPending').innerHTML = window.mcBankSummary(pend) + '<p style="font-size:0.75rem; color:var(--gray-light);">Submitted ' + new Date(pend.submitted_at).toLocaleString() + '</p>';
+      window.mcBankFormRender(document.getElementById('bankFields'), 'hb', p.bank || null);
+    }
+
+    document.getElementById('bankForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      try {
+        var res = await hrApi('/employees/' + targetId + '/bank', { method: 'PUT', body: window.mcBankFormRead('hb') });
+        profile.bank = res.bank; profile.bank_pending = res.bank_pending; renderBank(profile);
+        showAlert('Bank details saved as the account on file.', 'success');
+      } catch (err) { showAlert(err.message, 'error'); }
+    });
+    document.getElementById('bankClearBtn').addEventListener('click', async function () {
+      if (!confirm('Remove the bank details on file?')) return;
+      try { var res = await hrApi('/employees/' + targetId + '/bank', { method: 'DELETE' }); profile.bank = res.bank; renderBank(profile); }
+      catch (err) { showAlert(err.message, 'error'); }
+    });
+    document.getElementById('bankApproveBtn').addEventListener('click', async function () {
+      if (!confirm('Approve this change? Have you verified it with the person by phone?')) return;
+      try { var res = await hrApi('/employees/' + targetId + '/bank/approve', { method: 'POST' }); profile.bank = res.bank; profile.bank_pending = null; renderBank(profile); showAlert('Bank change approved.', 'success'); }
+      catch (err) { showAlert(err.message, 'error'); }
+    });
+    document.getElementById('bankRejectBtn').addEventListener('click', async function () {
+      if (!confirm('Reject and discard this pending change?')) return;
+      try { var res = await hrApi('/employees/' + targetId + '/bank/reject', { method: 'POST' }); profile.bank_pending = null; renderBank(profile); }
+      catch (err) { showAlert(err.message, 'error'); }
+    });
+
     async function loadAll() {
       var data;
       try { data = await hrApi('/employees/' + targetId); }
@@ -323,6 +380,7 @@
       document.getElementById('empSubtitle').textContent = [profile.job_title, profile.department, profile.work_email].filter(Boolean).join(' · ');
       FIELDS.forEach(function (f) { var el = document.getElementById('p_' + f); if (el) el.value = profile[f] ?? ''; });
       applyContractorMode(!!data.is_contractor, data);
+      renderBank(profile);
       renderVacation(data.vacation || [], data.balance);
       renderDocuments(data.documents || []);
     }

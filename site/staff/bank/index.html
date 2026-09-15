@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Bank Details — Met Capital Staff Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/clients/assets/portal.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body>
+  <header class="portal-header">
+    <div class="header-inner">
+      <a href="/staff/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <nav class="portal-nav">
+        <a href="/staff/" class="dashboard-link">Dashboard</a>
+        <a href="/staff/profile/">My Profile</a>
+        <a href="/staff/vacation/">Time Off</a>
+        <a href="/staff/documents/">Documents</a>
+        <a href="/staff/bank/" class="active">Bank Details</a>
+        <button class="logout" id="logoutBtn">Log Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="page-label">Staff Portal</div>
+    <h1 class="page-title">Bank Details</h1>
+    <p class="page-subtitle" id="pageSub">The account we pay you into. Changes you submit here are confirmed by HR before they take effect — we will never ask you to confirm bank changes by email.</p>
+
+    <div id="pageAlert"></div>
+
+    <div class="section-block">
+      <h2>Account on File</h2>
+      <div class="card request-detail-box" id="currentBox"><p style="color:var(--gray-light); font-size:0.875rem;">Loading…</p></div>
+    </div>
+
+    <div class="section-block" id="pendingSection" style="display:none;">
+      <h2>Pending Change <span class="status-pill pending" style="margin-left:0.5rem;">Awaiting HR</span></h2>
+      <div class="card request-detail-box">
+        <div id="pendingBox"></div>
+        <button type="button" class="btn-small danger" id="withdrawBtn" style="margin-top:0.75rem;">Withdraw this change</button>
+      </div>
+    </div>
+
+    <form id="bankForm" class="card" novalidate>
+      <h2 style="font-size:1rem; margin-bottom:0.25rem;" id="formHeading">Submit New Bank Details</h2>
+      <p style="font-size:0.8125rem; color:var(--gray); margin-bottom:1rem;">Pick the format that matches your bank, then fill in the fields shown.</p>
+      <div id="bankFields"></div>
+      <button type="submit" class="btn-primary" id="submitBtn">Submit for HR Confirmation</button>
+    </form>
+  </main>
+
+  <script src="/staff/assets/staff-auth.js"></script>
+  <script src="/staff/assets/bank-form.js"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', window.mcStaffLogout);
+
+    function showAlert(m, t) {
+      document.getElementById('pageAlert').innerHTML = '<div class="alert ' + t + '">' + m + '</div>';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function render(p) {
+      document.getElementById('currentBox').innerHTML = window.mcBankSummary(p.bank);
+      var pend = p.bank_pending;
+      document.getElementById('pendingSection').style.display = pend ? '' : 'none';
+      if (pend) document.getElementById('pendingBox').innerHTML = window.mcBankSummary(pend) + '<p style="font-size:0.75rem; color:var(--gray-light);">Submitted ' + new Date(pend.submitted_at).toLocaleString() + '</p>';
+      document.getElementById('formHeading').textContent = p.bank ? 'Change Bank Details' : 'Submit Bank Details';
+    }
+
+    document.getElementById('bankForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var btn = document.getElementById('submitBtn');
+      btn.disabled = true; btn.textContent = 'Submitting…';
+      try {
+        var res = await window.mcStaffApi('/bank', { method: 'POST', body: window.mcBankFormRead('b') });
+        window.mcStaffProfile.bank = res.bank; window.mcStaffProfile.bank_pending = res.bank_pending;
+        render(window.mcStaffProfile);
+        showAlert('Submitted. HR will confirm the change before it is used for any payment.', 'success');
+      } catch (err) {
+        showAlert(err.message, 'error');
+      } finally { btn.disabled = false; btn.textContent = 'Submit for HR Confirmation'; }
+    });
+
+    document.getElementById('withdrawBtn').addEventListener('click', async function () {
+      if (!confirm('Withdraw the pending change? The account on file stays as it is.')) return;
+      try {
+        await window.mcStaffApi('/bank/pending', { method: 'DELETE' });
+        window.mcStaffProfile.bank_pending = null;
+        render(window.mcStaffProfile);
+      } catch (err) { showAlert(err.message, 'error'); }
+    });
+
+    (async function init() {
+      var me = await window.mcRequireStaffSession('/staff/bank/');
+      if (!me) return;
+      if (window.mcStaffIsContractor) {
+        document.getElementById('pageSub').textContent = 'The account we settle your invoices to. Changes you submit here are confirmed by HR before they take effect — we will never ask you to confirm bank changes by email.';
+        document.querySelector('nav a[href="/staff/vacation/"]').textContent = 'Availability';
+      }
+      render(me.employee);
+      window.mcBankFormRender(document.getElementById('bankFields'), 'b', me.employee.bank_pending || me.employee.bank || null);
+    })();
+  </script>
+</body>
+</html>

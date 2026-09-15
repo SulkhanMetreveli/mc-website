@@ -8,7 +8,7 @@ import {
   json, readJson, nowIso, newId, workingDays, randomPassword, hashPassword,
   requireHrAdmin, hrStore,
   getEmployee, getEmployeeByEmail, listEmployees, saveEmployee, sanitizeEmployee,
-  applyEmployeeFields, EMPLOYEE_HR_FIELDS, purgeEmployee, destroyAllSessionsFor, isContractor, contractDaysLeft,
+  applyEmployeeFields, EMPLOYEE_HR_FIELDS, purgeEmployee, destroyAllSessionsFor, isContractor, contractDaysLeft, validateBank,
   listVacation, listAllVacation, getVacation, saveVacation, deleteVacation, vacationBalance, VACATION_TYPES,
   listDocuments, getDocument, storeDocument, deleteDocument, fileResponse,
 } from "./_lib/hr.mts";
@@ -34,6 +34,7 @@ export default async (req: Request) => {
     const awayToday = new Set(all.filter((v) => v.status === "approved" && v.start_date <= today && v.end_date >= today).map((v) => v.employee_id)).size;
     const staff = employees.filter((e) => !isContractor(e));
     const contractors = employees.filter(isContractor).map((e) => ({ ...sanitizeEmployee(e), contract_days_left: contractDaysLeft(e) }));
+    const bankPending = employees.filter((e) => e.bank_pending).map((e) => ({ id: e.id, full_name: e.full_name, employment_type: e.employment_type, submitted_at: e.bank_pending!.submitted_at, scheme: e.bank_pending!.scheme }));
     const expiring = contractors
       .filter((c) => c.status === "active" && c.contract_days_left !== null && c.contract_days_left <= 60)
       .sort((a, b) => (a.contract_days_left ?? 0) - (b.contract_days_left ?? 0));
@@ -42,7 +43,9 @@ export default async (req: Request) => {
       contractors,
       expiring,
       pending,
+      bank_pending: bankPending,
       stats: {
+        bank_pending: bankPending.length,
         active: staff.filter((e) => e.status === "active").length,
         contractors: contractors.filter((c) => c.status === "active").length,
         away_today: awayToday,
@@ -111,6 +114,40 @@ export default async (req: Request) => {
     if (!sub && method === "DELETE") {
       await purgeEmployee(e);
       return json({ ok: true });
+    }
+
+    if (sub === "bank" && !subId && method === "PUT") {
+      const result = validateBank(await readJson(req), "hr");
+      if (!result.ok) return json({ error: result.errors.join(" "), errors: result.errors }, { status: 400 });
+      e.bank = result.bank;
+      e.bank_pending = null;
+      e.updated_at = nowIso();
+      await saveEmployee(e);
+      return json({ bank: e.bank, bank_pending: null });
+    }
+
+    if (sub === "bank" && subId === "approve" && method === "POST") {
+      if (!e.bank_pending) return json({ error: "No pending bank change." }, { status: 400 });
+      const { submitted_at, ...details } = e.bank_pending as any;
+      e.bank = { ...details, set_by: "employee", set_at: nowIso() };
+      e.bank_pending = null;
+      e.updated_at = nowIso();
+      await saveEmployee(e);
+      return json({ bank: e.bank, bank_pending: null });
+    }
+
+    if (sub === "bank" && subId === "reject" && method === "POST") {
+      e.bank_pending = null;
+      e.updated_at = nowIso();
+      await saveEmployee(e);
+      return json({ bank: e.bank || null, bank_pending: null });
+    }
+
+    if (sub === "bank" && !subId && method === "DELETE") {
+      e.bank = null;
+      e.updated_at = nowIso();
+      await saveEmployee(e);
+      return json({ bank: null, bank_pending: e.bank_pending || null });
     }
 
     if (sub === "reset-password" && method === "POST") {

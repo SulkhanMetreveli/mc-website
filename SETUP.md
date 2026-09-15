@@ -141,6 +141,15 @@ the signed-in admin can access. The apps:
   entity, and engagement basis instead of employment dates; the HR
   directory lists them separately and the overview flags contracts
   ending within 60 days.
+  **Bank details:** each employee/contractor record holds an account on
+  file in one of four formats — UK (sort code + account number), IBAN +
+  BIC (Switzerland, Europe, most countries), US (ABA routing + account +
+  type), or Other (SWIFT + account + bank address) — validated server-side
+  (IBAN mod-97, ABA checksum). Staff submit or change theirs at
+  `/staff/bank/`; that lands as a **pending change** HR must approve on
+  the person's record (verify by phone first — never by email) before it
+  becomes the account on file. HR can also set or remove details directly.
+  The HR overview lists pending bank changes.
   The only Supabase call in this app is checking that an HR admin holds
   the `hr` app in the company panel. Code: `netlify/functions/hr-*.mts`
   and `netlify/functions/_lib/hr.mts`; data lives in the `hr` and
