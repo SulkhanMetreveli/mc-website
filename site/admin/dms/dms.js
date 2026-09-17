@@ -232,7 +232,7 @@
           <input type="checkbox" class="pick" data-pick="${d.id}"${selected.has(d.id) ? " checked" : ""} aria-label="Select document">
           <div class="item-main">
             <div class="item-title">${escapeHtml(d.title)}</div>
-            <div class="item-meta">${escapeHtml(categoryName(d.category_id) || "Uncategorized")} · ${escapeHtml(d.doc_type)}${d.file_name ? " · 📎 " + escapeHtml(d.file_name) : ""}</div>
+            <div class="item-meta">${escapeHtml(categoryName(d.category_id) || "Uncategorized")} · ${escapeHtml(d.doc_type)}${d.file_name ? " · " + escapeHtml(d.file_name) : ""}</div>
           </div>
           ${badge}
         </div>`;

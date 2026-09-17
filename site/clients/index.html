@@ -7,45 +7,13 @@
 <title>Dashboard — Met Capital Client Portal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/clients/assets/portal.css">
-<style>
-  .vehicle-block {
-    border: 1px solid var(--border);
-    padding: 1.5rem;
-    margin-bottom: 1rem;
-  }
-  .vehicle-block:last-child { margin-bottom: 0; }
-  .vehicle-block h3 {
-    font-size: 0.9375rem;
-    font-weight: 600;
-    color: var(--black);
-    margin-bottom: 1rem;
-  }
-  .profile-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1.75rem;
-  }
-  .profile-item .metric-label {
-    font-size: 0.6875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--gray-light);
-    margin-bottom: 0.35rem;
-  }
-  .profile-item .metric-value {
-    font-size: 0.9375rem;
-    font-weight: 500;
-    color: var(--black);
-    line-height: 1.5;
-  }
-</style>
 </head>
 <body>
   <header class="portal-header">
     <div class="header-inner">
-      <a href="/clients/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <div class="brand-group"><a href="/clients/" class="brand" aria-label="Met Capital"><span class="met">MET</span><span class="bar"></span><span class="cap">CAPITAL</span></a><span class="running-head">Client Portal</span></div>
       <nav class="portal-nav">
         <a href="/clients/" class="dashboard-link active">Dashboard</a>
         <a href="/clients/documents/">Documents</a>
