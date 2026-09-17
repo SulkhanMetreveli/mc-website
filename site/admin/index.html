@@ -7,43 +7,14 @@
 <title>Met Capital — Company Panel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/clients/assets/portal.css">
 <link rel="stylesheet" href="/admin/assets/admin.css">
-<style>
-  .app-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 1.25rem;
-    margin-bottom: 2.5rem;
-  }
-
-  .app-tile {
-    display: block;
-    text-decoration: none;
-    border: 1px solid var(--border);
-    background: var(--white);
-    padding: 1.5rem;
-    transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  .app-tile:hover {
-    border-color: var(--blue);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
-  }
-
-  .app-tile .tick { width: 32px; height: 4px; background: var(--blue); margin-bottom: 1rem; }
-  .app-tile h3 { font-size: 1rem; font-weight: 600; color: var(--black); margin-bottom: 0.375rem; }
-  .app-tile p { font-size: 0.8125rem; color: var(--gray); line-height: 1.55; }
-  .app-tile .open-hint { display: inline-block; margin-top: 0.875rem; font-size: 0.8125rem; font-weight: 500; color: var(--blue); }
-</style>
 </head>
 <body>
-  <div class="admin-topbar">Met Capital — Internal</div>
   <header class="portal-header">
     <div class="header-inner">
-      <a href="/admin/"><img src="/met_capital_logo.svg" alt="Met Capital" class="logo"></a>
+      <div class="brand-group"><a href="/admin/" class="brand" aria-label="Met Capital"><span class="met">MET</span><span class="bar"></span><span class="cap">CAPITAL</span></a><span class="running-head">Company Panel</span></div>
       <nav class="portal-nav">
         <a href="/admin/" class="active">Company Panel</a>
         <button class="logout" id="logoutBtn">Log Out</button>
