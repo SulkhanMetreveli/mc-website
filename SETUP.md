@@ -72,6 +72,9 @@ app and sign in at `/staff/login/`.
 - **Client Dashboard** (`/admin/clients/`) — clients, investment vehicles,
   Document Center uploads, and review queues for onboarding, address & bank
   updates, withdrawals, passport/proof submissions and general documents.
+  Documents in the Document Center can be edited after upload (Edit on the
+  row): correct the title or category, and optionally replace the file — the
+  old file is deleted and the client sees the new one immediately.
   Per-client page: `/admin/client/?u=<id>`. Nothing a client submits is
   applied automatically: approving an address change copies the address to
   the profile; approving a document submission copies the file into the
