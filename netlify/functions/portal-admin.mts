@@ -220,6 +220,31 @@ export default async (req: Request) => {
           await saveRecord("document", d);
           return json({ ok: true, document: d });
         }
+        // Edit an existing document: title, category, and optionally the file
+        // itself. The client sees the change immediately in their Document
+        // Center, so this is an admin-only correction, not a review workflow.
+        if (method === "PATCH" && subId) {
+          const d = await getRecord("document", uid, subId);
+          if (!d) return json({ error: "Document not found." }, { status: 404 });
+          const b = await readJson(req);
+          if ("title" in b) {
+            const t = s(b.title);
+            if (!t) return json({ error: "Title is required." }, { status: 400 });
+            d.title = t;
+          }
+          if ("category" in b && DOC_CATEGORIES.includes(b.category)) d.category = b.category;
+          if (b.upload_id) {
+            const f = await claimUpload(files, meta, String(b.upload_id), me.id, `client-documents/${uid}/${Date.now()}-${String(b.file_name || "document").replace(/[^a-zA-Z0-9._-]/g, "_")}`);
+            if (!f) return json({ error: "The uploaded file could not be found. Please attach it again." }, { status: 400 });
+            const old = d.storage_path;
+            d.storage_path = f.key;
+            d.file_name = f.file_name;
+            if (old && old !== f.key) await files.delete(old).catch(() => {});
+          }
+          d.updated_at = nowIso();
+          await saveRecord("document", d);
+          return json({ ok: true, document: d });
+        }
         if (method === "DELETE" && subId) {
           const d = await getRecord("document", uid, subId);
           if (d && d.storage_path) await files.delete(d.storage_path).catch(() => {});
