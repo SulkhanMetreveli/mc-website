@@ -157,8 +157,9 @@
       <h2>Documents</h2>
       <div class="card">
         <div id="documentsTable"></div>
-        <h3 style="margin-top:1.5rem; margin-bottom:0.75rem; font-size:0.8125rem; color:var(--gray);">Upload a Document</h3>
+        <h3 style="margin-top:1.5rem; margin-bottom:0.75rem; font-size:0.8125rem; color:var(--gray);" id="documentFormTitle">Upload a Document</h3>
         <form id="documentForm" novalidate>
+          <input type="hidden" id="d_id">
           <div class="inline-form-grid">
             <div class="field"><label>Title</label><input type="text" id="d_title" required></div>
             <div class="field">
@@ -170,9 +171,10 @@
                 <option value="other">Other</option>
               </select>
             </div>
-            <div class="field"><label>File</label><input type="file" id="d_file" required></div>
+            <div class="field"><label id="d_file_label">File</label><input type="file" id="d_file" required></div>
           </div>
           <button type="submit" class="btn-small" id="documentUploadBtn">Upload</button>
+          <button type="button" class="btn-small" id="documentCancelBtn" style="display:none;">Cancel Edit</button>
         </form>
       </div>
     </div>
@@ -497,13 +499,32 @@
           '<td style="text-transform:capitalize;">' + d.category + '</td>' +
           '<td>' + new Date(d.uploaded_at).toLocaleDateString() + '</td>' +
           '<td><a href="#" data-view-doc="' + d.storage_path + '">View</a></td>' +
-          '<td><button type="button" class="btn-small danger" data-delete-doc="' + d.id + '" data-path="' + d.storage_path + '">Delete</button></td>' +
+          '<td>' +
+            '<button type="button" class="btn-small" data-edit-doc=\'' + JSON.stringify({ id: d.id, title: d.title, category: d.category, file_name: d.file_name || '' }).replace(/'/g, "&#39;") + '\'>Edit</button>' +
+            '<button type="button" class="btn-small danger" data-delete-doc="' + d.id + '">Delete</button>' +
+          '</td>' +
         '</tr>';
       });
       el.innerHTML = '<table class="admin-table"><thead><tr><th>Title</th><th>Category</th><th>Uploaded</th><th></th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
 
       el.querySelectorAll('[data-view-doc]').forEach(function (a) {
         bindPdfLink(a, 'client-documents', a.getAttribute('data-view-doc'));
+      });
+      el.querySelectorAll('[data-edit-doc]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var d = JSON.parse(btn.getAttribute('data-edit-doc'));
+          document.getElementById('d_id').value = d.id;
+          document.getElementById('d_title').value = d.title || '';
+          document.getElementById('d_category').value = d.category || 'other';
+          var fileInput = document.getElementById('d_file');
+          fileInput.value = '';
+          fileInput.required = false;
+          document.getElementById('d_file_label').textContent = 'Replace file (optional)';
+          document.getElementById('documentFormTitle').textContent = 'Edit Document' + (d.file_name ? ' — ' + d.file_name : '');
+          document.getElementById('documentUploadBtn').textContent = 'Save Changes';
+          document.getElementById('documentCancelBtn').style.display = '';
+          window.scrollTo({ top: document.getElementById('documentForm').getBoundingClientRect().top + window.scrollY - 120, behavior: 'smooth' });
+        });
       });
       el.querySelectorAll('[data-delete-doc]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
@@ -514,25 +535,47 @@
       });
     }
 
+    function resetDocumentForm() {
+      document.getElementById('documentForm').reset();
+      document.getElementById('d_id').value = '';
+      var fileInput = document.getElementById('d_file');
+      fileInput.required = true;
+      document.getElementById('d_file_label').textContent = 'File';
+      document.getElementById('documentFormTitle').textContent = 'Upload a Document';
+      document.getElementById('documentUploadBtn').textContent = 'Upload';
+      document.getElementById('documentCancelBtn').style.display = 'none';
+    }
+    document.getElementById('documentCancelBtn').addEventListener('click', resetDocumentForm);
+
     document.getElementById('documentForm').addEventListener('submit', async function (e) {
       e.preventDefault();
+      var docId = document.getElementById('d_id').value;
       var file = document.getElementById('d_file').files[0];
       var title = document.getElementById('d_title').value.trim();
-      if (!file || !title) { showAlert('Title and a file are required.', 'error'); return; }
+      if (!title) { showAlert('Title is required.', 'error'); return; }
+      if (!docId && !file) { showAlert('Title and a file are required.', 'error'); return; }
 
       var btn = document.getElementById('documentUploadBtn');
-      btn.disabled = true; btn.textContent = 'Uploading…';
+      var label = docId ? 'Save Changes' : 'Upload';
+      btn.disabled = true; btn.textContent = docId ? 'Saving…' : 'Uploading…';
 
       try {
-        var up = await window.mcUpload(file, function (p) { btn.textContent = 'Uploading… ' + p + '%'; });
-        await act('/documents', 'POST', { title: title, category: document.getElementById('d_category').value, upload_id: up.upload_id, file_name: file.name });
-        document.getElementById('documentForm').reset();
+        var body = { title: title, category: document.getElementById('d_category').value };
+        if (file) {
+          var up = await window.mcUpload(file, function (p) { btn.textContent = 'Uploading… ' + p + '%'; });
+          body.upload_id = up.upload_id;
+          body.file_name = file.name;
+          btn.textContent = docId ? 'Saving…' : 'Uploading…';
+        }
+        if (docId) await act('/documents/' + docId, 'PATCH', body);
+        else await act('/documents', 'POST', body);
+        resetDocumentForm();
         refresh();
-        showAlert('Document uploaded.', 'success');
+        showAlert(docId ? (file ? 'Document updated and the file replaced.' : 'Document updated.') : 'Document uploaded.', 'success');
       } catch (err) {
-        showAlert('Upload failed: ' + err.message, 'error');
+        showAlert((docId ? 'Could not save changes: ' : 'Upload failed: ') + err.message, 'error');
       } finally {
-        btn.disabled = false; btn.textContent = 'Upload';
+        btn.disabled = false; btn.textContent = label;
       }
     });
 
