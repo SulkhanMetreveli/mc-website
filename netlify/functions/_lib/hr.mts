@@ -70,7 +70,11 @@ export type Employee = {
   employment_type: "full_time" | "part_time" | "contractor" | "intern";
   start_date: string | null;
   end_date: string | null;
-  status: "active" | "on_leave" | "terminated";
+  status: "active" | "on_leave" | "suspended" | "terminated";
+  // last status change (set by HR when the status changes)
+  status_reason?: string | null;
+  status_changed_at?: string | null;
+  status_changed_by?: string | null;
   vacation_days_per_year: number;
   // contractor-only (ignored for employees)
   contract_start: string | null;
@@ -117,12 +121,32 @@ export function contractDaysLeft(e: Employee, today = new Date()) {
   return Math.round((end.getTime() - t.getTime()) / 86400000);
 }
 const EMPLOYMENT_TYPES = ["full_time", "part_time", "contractor", "intern"];
-const STATUSES = ["active", "on_leave", "terminated"];
+const STATUSES = ["active", "on_leave", "suspended", "terminated"];
+
+// Whether this person may use the staff portal right now. Returns null when
+// access is allowed, otherwise why not:
+//   terminated        -> left the company / contract ended by HR (permanent)
+//   suspended         -> blocked by HR until reactivated (temporary)
+//   contract_expired  -> contractor whose contract end date has passed; access
+//                        returns as soon as HR extends the end date
+export type AccessBlock = "terminated" | "suspended" | "contract_expired";
+export function accessBlock(e: Employee, today = new Date()): AccessBlock | null {
+  if (e.status === "terminated") return "terminated";
+  if (e.status === "suspended") return "suspended";
+  const left = contractDaysLeft(e, today);
+  if (left !== null && left < 0) return "contract_expired";
+  return null;
+}
+export function accessBlockMessage(b: AccessBlock, e: Employee) {
+  if (b === "suspended") return "Your access to the staff portal has been suspended. Please contact HR.";
+  if (b === "contract_expired") return `Your contract ended on ${e.contract_end}, so your access to the staff portal has closed. Please contact HR if it has been extended.`;
+  return "Your access to the staff portal has ended. Please contact HR if you think this is a mistake.";
+}
 
 export function sanitizeEmployee(e: Employee) {
   const { password_hash, totp_secret, totp_pending_secret, recovery_code_hashes, totp_last_counter, ...rest } = e as any;
   delete rest.__session;
-  return { ...rest, totp_enabled: !!e.totp_enabled, recovery_codes_left: (e.recovery_code_hashes || []).length };
+  return { ...rest, totp_enabled: !!e.totp_enabled, recovery_codes_left: (e.recovery_code_hashes || []).length, access_block: accessBlock(e) };
 }
 
 export async function getEmployee(id: string): Promise<Employee | null> {
@@ -309,9 +333,19 @@ export async function getSessionEmployee(req: Request): Promise<Employee | null>
   const rec = await getSessionRecord(req);
   if (!rec) return null;
   const emp = await getEmployee(rec.sess.employee_id);
-  if (!emp || emp.status === "terminated") return null;
+  if (!emp || accessBlock(emp)) return null;
   (emp as any).__session = rec.sess;
   return emp;
+}
+
+// For a request whose session belongs to someone who is now blocked: who and why,
+// so the portal can explain instead of just bouncing them to the login page.
+export async function blockedSessionEmployee(req: Request): Promise<{ emp: Employee; block: AccessBlock } | null> {
+  const rec = await getSessionRecord(req);
+  if (!rec) return null;
+  const emp = await getEmployee(rec.sess.employee_id);
+  const block = emp ? accessBlock(emp) : null;
+  return emp && block ? { emp, block } : null;
 }
 
 export async function destroySession(req: Request) {
@@ -362,10 +396,14 @@ export async function forgetDevices(employeeId: string) {
 // The caller must be signed in to the company panel (portal session cookie)
 // with a verified second factor and hold the 'hr' app (or be a Super Admin).
 export async function requireHrAdmin(req: Request): Promise<boolean> {
+  return !!(await hrAdminEmail(req));
+}
+// Same check, returning the admin's email (for "changed by" records) or null.
+export async function hrAdminEmail(req: Request): Promise<string | null> {
   const auth = await getPortalAuth(req);
-  if (!auth || !auth.user.admin) return false;
-  if (!portalMfaOk(auth)) return false;
-  return portalHasApp(auth.user, "hr");
+  if (!auth || !auth.user.admin) return null;
+  if (!portalMfaOk(auth)) return null;
+  return portalHasApp(auth.user, "hr") ? auth.user.email : null;
 }
 
 /* -------------------------------------------------------------- time off -- */

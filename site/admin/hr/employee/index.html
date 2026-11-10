@@ -29,6 +29,7 @@
     <p class="page-subtitle" id="empSubtitle"></p>
 
     <div id="pageAlert"></div>
+    <div id="accessBanner"></div>
 
     <div class="stat-cards">
       <div class="stat-card"><div class="stat-value" id="stRemaining">—</div><div class="stat-label">Vacation days remaining</div></div>
@@ -51,10 +52,21 @@
               <select id="p_status">
                 <option value="active">Active</option>
                 <option value="on_leave">On Leave</option>
+                <option value="suspended">Suspended</option>
                 <option value="terminated">Terminated</option>
               </select>
             </div>
           </div>
+          <div class="form-row" id="statusReasonRow" style="display:none;">
+            <div class="field" style="flex:1 1 100%;">
+              <label>Reason <span class="required">*</span></label>
+              <input type="text" id="p_status_reason" placeholder="Internal note — not shown to the person">
+            </div>
+          </div>
+          <p style="font-size:0.8125rem; color:var(--gray); margin-top:-0.25rem;">
+            <strong>On Leave</strong> keeps portal access. <strong>Suspended</strong> blocks portal access until you set them back to Active.
+            <strong id="statusHelpTerminated">Terminated</strong> ends access permanently. Both sign them out everywhere straight away; nothing is deleted.
+          </p>
           <div class="form-row">
             <div class="field"><label>Job Title</label><input type="text" id="p_job_title"></div>
             <div class="field"><label>Department</label><input type="text" id="p_department"></div>
@@ -252,6 +264,32 @@
       } else note.textContent = '';
       var opt = document.querySelector('#p_status option[value="terminated"]');
       if (opt) opt.textContent = on ? 'Ended' : 'Terminated';
+      document.getElementById('statusHelpTerminated').textContent = on ? 'Ended' : 'Terminated';
+    }
+
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+    // Reason is required when moving someone to Suspended / Terminated.
+    function syncReasonRow() {
+      var s = document.getElementById('p_status').value;
+      var blocking = s === 'suspended' || s === 'terminated';
+      var changed = !profile || s !== profile.status;
+      document.getElementById('statusReasonRow').style.display = blocking ? '' : 'none';
+      if (blocking && changed) document.getElementById('p_status_reason').value = '';
+    }
+    document.getElementById('p_status').addEventListener('change', syncReasonRow);
+
+    function renderAccessBanner(p) {
+      var el = document.getElementById('accessBanner');
+      var b = p.access_block;
+      if (!b) { el.innerHTML = ''; return; }
+      var who = p.status_changed_at ? ' on ' + new Date(p.status_changed_at).toLocaleDateString() + (p.status_changed_by ? ' by ' + esc(p.status_changed_by) : '') : '';
+      var why = p.status_reason ? ' Reason: ' + esc(p.status_reason) + '.' : '';
+      var msg;
+      if (b === 'suspended') msg = '<strong>Portal access suspended</strong>' + who + '.' + why + ' Set the status back to Active to restore access.';
+      else if (b === 'terminated') msg = '<strong>Portal access ended</strong>' + who + '.' + why;
+      else msg = '<strong>Portal access closed — contract ended on ' + esc(p.contract_end) + '.</strong> Extend the Contract End date to restore access, or set the status to Ended.';
+      el.innerHTML = '<div class="alert error" style="margin-bottom:1.5rem;">' + msg + '</div>';
     }
     document.getElementById('p_employment_type').addEventListener('change', function () { applyContractorMode(this.value === 'contractor', null); });
 
@@ -379,6 +417,9 @@
       document.getElementById('empSubtitle').textContent = [profile.job_title, profile.department, profile.work_email].filter(Boolean).join(' · ');
       FIELDS.forEach(function (f) { var el = document.getElementById('p_' + f); if (el) el.value = profile[f] ?? ''; });
       applyContractorMode(!!data.is_contractor, data);
+      document.getElementById('p_status_reason').value = profile.status_reason || '';
+      syncReasonRow();
+      renderAccessBanner(profile);
       renderBank(profile);
       document.getElementById('mfaStatusText').textContent = profile.totp_enabled ? 'Active (' + (profile.recovery_codes_left || 0) + ' recovery codes left)' : (profile.mfa_grace_until ? 'Not set up — grace period until ' + new Date(profile.mfa_grace_until).toLocaleDateString() : 'Not set up — grace period starts at first sign-in');
       renderVacation(data.vacation || [], data.balance);
@@ -391,9 +432,18 @@
       btn.disabled = true; btn.textContent = 'Saving…';
       var payload = {};
       FIELDS.forEach(function (f) { payload[f] = document.getElementById('p_' + f).value.trim(); });
+      var newStatus = payload.status, statusChanged = newStatus !== profile.status;
+      if (newStatus === 'suspended' || newStatus === 'terminated') payload.status_reason = document.getElementById('p_status_reason').value.trim();
+      if (statusChanged && (newStatus === 'suspended' || newStatus === 'terminated')) {
+        if (!payload.status_reason) { showAlert('Please give a reason for this status change.', 'error'); btn.disabled = false; btn.textContent = 'Save Record'; return; }
+        var label = newStatus === 'suspended' ? 'Suspend' : (isContractor ? 'End' : 'Terminate');
+        if (!confirm(label + ' ' + profile.full_name + '\'s portal access? They will be signed out everywhere immediately.')) { btn.disabled = false; btn.textContent = 'Save Record'; return; }
+      }
       try {
         await hrApi('/employees/' + targetId, { method: 'PATCH', body: payload });
-        showAlert('Record saved.', 'success');
+        showAlert(statusChanged && newStatus === 'suspended' ? 'Access suspended — they have been signed out everywhere.'
+          : statusChanged && newStatus === 'terminated' ? 'Access ended — they have been signed out everywhere.'
+          : statusChanged && profile.status === 'suspended' ? 'Access restored.' : 'Record saved.', 'success');
         loadAll();
       } catch (err) { showAlert('Could not save: ' + err.message, 'error'); }
       finally { btn.disabled = false; btn.textContent = 'Save Record'; }

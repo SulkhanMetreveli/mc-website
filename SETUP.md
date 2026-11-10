@@ -88,6 +88,19 @@ app and sign in at `/staff/login/`.
   time-off/absence, documents (4MB each), bank details in UK / IBAN / US /
   Other formats validated server-side, pending bank changes to approve,
   password and 2FA resets. Staff self-service at `/staff/`.
+  **Blocking access** (Status on the employee page):
+  - *On Leave* — a label only; the person keeps portal access.
+  - *Suspended* — temporary block. A reason is required; who/when/why is
+    recorded and shown on the record. They are signed out everywhere at once
+    (sessions and remembered 2FA devices) and see "access suspended, contact
+    HR" if they try to sign in. Set back to *Active* to restore access.
+  - *Terminated* (*Ended* for contractors) — permanent; same sign-out and
+    reason. Nothing is deleted, so the record stays for your files.
+  - *Contract end date passed* — a contractor whose Contract End is before
+    today (UTC) cannot sign in, whatever the status. Extending the date
+    restores access; the list shows them as "access closed".
+  The "access" messages are only shown after a correct password, so they don't
+  reveal who has an account.
 - **Document Management** (`/admin/dms/`) — nested categories, documents
   with type/description/related party, action-required workflow with
   due dates, search, bulk move, file attachments of any type up to 50MB.

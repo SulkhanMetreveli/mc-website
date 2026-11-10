@@ -15,6 +15,7 @@
     if (!res.ok) {
       var err = new Error((data && data.error) || ("Request failed (" + res.status + ")"));
       err.status = res.status;
+      if (data && data.blocked) err.blocked = data.blocked;
       if (data && data.mfa_required) { err.mfa_required = true; err.enroll_required = !!data.enroll_required; }
       throw err;
     }
@@ -28,6 +29,11 @@
     try {
       me = await window.mcStaffApi("/me");
     } catch (e) {
+      if (e.blocked) {
+        // Suspended, ended or contract expired: the server has already signed them out.
+        window.location.href = "/staff/login/?blocked=" + encodeURIComponent(e.blocked);
+        return null;
+      }
       if (e.status === 403 && e.mfa_required) {
         // Signed in with password but the second factor is outstanding.
         if (e.enroll_required) { if (!onTwoFactor) window.location.href = "/staff/account/two-factor/?required=1"; else return { mfa_gate: true }; }

@@ -1,1 +1,5 @@
 /* Company panel styles now live in /clients/assets/portal.css (brand system). */
+
+/* HR: suspended / access closed */
+.status-pill.blocked { color: var(--ink); font-weight: 500; }
+.status-pill.blocked::before { content: "■ "; font-size: 7px; vertical-align: 2px; }

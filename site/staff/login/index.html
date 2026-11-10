@@ -146,6 +146,14 @@
       }
     });
 
+    var BLOCKED_MSG = {
+      suspended: 'Your access to the staff portal has been suspended. Please contact HR.',
+      contract_expired: 'Your contract has ended, so your access to the staff portal has closed. Please contact HR if it has been extended.',
+      terminated: 'Your access to the staff portal has ended. Please contact HR if you think this is a mistake.'
+    };
+    var blockedParam = new URLSearchParams(window.location.search).get('blocked');
+    if (blockedParam && BLOCKED_MSG[blockedParam]) showAlert(BLOCKED_MSG[blockedParam], 'error');
+
     if (new URLSearchParams(window.location.search).get('denied')) {
       showAlert('Access denied. This login is not a staff account.', 'error');
     }

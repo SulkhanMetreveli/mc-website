@@ -6,7 +6,7 @@
 import type { Config } from "@netlify/functions";
 import {
   json, readJson, nowIso, newId, workingDays, randomPassword, hashPassword,
-  requireHrAdmin, hrStore,
+  hrAdminEmail, hrStore,
   getEmployee, getEmployeeByEmail, listEmployees, saveEmployee, sanitizeEmployee,
   applyEmployeeFields, EMPLOYEE_HR_FIELDS, purgeEmployee, destroyAllSessionsFor, isContractor, contractDaysLeft, validateBank,
   MFA_GRACE_DAYS, forgetDevices, clearMfa,
@@ -15,7 +15,8 @@ import {
 } from "./_lib/hr.mts";
 
 export default async (req: Request) => {
-  if (!(await requireHrAdmin(req))) {
+  const adminEmail = await hrAdminEmail(req);
+  if (!adminEmail) {
     return json({ error: "Not authorized. This requires the HR app (or Super Admin)." }, { status: 403 });
   }
 
@@ -37,7 +38,7 @@ export default async (req: Request) => {
     const contractors = employees.filter(isContractor).map((e) => ({ ...sanitizeEmployee(e), contract_days_left: contractDaysLeft(e) }));
     const bankPending = employees.filter((e) => e.bank_pending).map((e) => ({ id: e.id, full_name: e.full_name, employment_type: e.employment_type, submitted_at: e.bank_pending!.submitted_at, scheme: e.bank_pending!.scheme }));
     const expiring = contractors
-      .filter((c) => c.status === "active" && c.contract_days_left !== null && c.contract_days_left <= 60)
+      .filter((c) => (c.status === "active" || c.status === "on_leave") && c.contract_days_left !== null && c.contract_days_left <= 60)
       .sort((a, b) => (a.contract_days_left ?? 0) - (b.contract_days_left ?? 0));
     return json({
       employees: staff.map(sanitizeEmployee),
@@ -48,7 +49,7 @@ export default async (req: Request) => {
       stats: {
         bank_pending: bankPending.length,
         active: staff.filter((e) => e.status === "active").length,
-        contractors: contractors.filter((c) => c.status === "active").length,
+        contractors: contractors.filter((c) => c.status === "active" && !c.access_block).length,
         away_today: awayToday,
         pending: pending.length,
         expiring: expiring.length,
@@ -101,14 +102,31 @@ export default async (req: Request) => {
     if (!sub && method === "PATCH") {
       const body = await readJson(req);
       const oldEmail = e.work_email.toLowerCase();
+      const oldStatus = e.status;
       applyEmployeeFields(e, body, EMPLOYEE_HR_FIELDS);
+      if ((e.status === "suspended" || e.status === "terminated") && e.status !== oldStatus
+        && !String(body.status_reason || "").trim()) {
+        return json({ error: "Please give a reason when suspending or ending someone's access." }, { status: 400 });
+      }
       const newEmail = e.work_email.toLowerCase();
       if (newEmail !== oldEmail) {
         if (await getEmployeeByEmail(newEmail)) return json({ error: "Another employee already uses that email." }, { status: 400 });
         await hrStore().delete(`email:${oldEmail}`);
         await hrStore().set(`email:${newEmail}`, e.id);
       }
+      if (e.status !== oldStatus) {
+        e.status_reason = String(body.status_reason || "").trim() || null;
+        e.status_changed_at = nowIso();
+        e.status_changed_by = adminEmail;
+      } else if ("status_reason" in body && String(body.status_reason || "").trim()) {
+        e.status_reason = String(body.status_reason).trim(); // edit the note on the current status
+      }
       await saveEmployee(e);
+      // Cut them off at once: every open session and remembered 2FA device goes.
+      if (e.status !== oldStatus && (e.status === "suspended" || e.status === "terminated")) {
+        await destroyAllSessionsFor(e.id);
+        await forgetDevices(e.id);
+      }
       return json({ employee: sanitizeEmployee(e) });
     }
 

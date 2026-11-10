@@ -4,7 +4,7 @@
 import type { Config } from "@netlify/functions";
 import {
   json, readJson, nowIso, newId, workingDays,
-  getEmployeeByEmail, getSessionEmployee, saveEmployee, sanitizeEmployee,
+  getEmployeeByEmail, getSessionEmployee, blockedSessionEmployee, accessBlock, accessBlockMessage, saveEmployee, sanitizeEmployee,
   applyEmployeeFields, EMPLOYEE_SELF_FIELDS, isContractor, contractDaysLeft, validateBank,
   hashPassword, verifyPassword, createSession, destroySession, destroyAllSessionsFor, markSessionMfa,
   sessionCookie, clearSessionCookie, loginThrottled, recordLoginFailure, clearLoginFailures,
@@ -27,13 +27,16 @@ export default async (req: Request) => {
     if (!email || !password) return json({ error: "Email and password are required." }, { status: 400 });
     if (await loginThrottled(email)) return json({ error: "Too many failed attempts. Try again in 15 minutes." }, { status: 429 });
     const emp = await getEmployeeByEmail(email);
-    const ok = emp && emp.status !== "terminated" && (await verifyPassword(password, emp.password_hash));
+    const ok = emp && (await verifyPassword(password, emp.password_hash));
     if (!ok) {
       await recordLoginFailure(email);
       return json({ error: "Access denied. The username or password you entered is incorrect." }, { status: 401 });
     }
     await clearLoginFailures(email);
     const e = emp!;
+    // Only explained after a correct password, so it doesn't reveal who has an account.
+    const block = accessBlock(e);
+    if (block) return json({ error: accessBlockMessage(block, e), blocked: block }, { status: 403 });
     if (!e.mfa_grace_until) {
       e.mfa_grace_until = new Date(Date.now() + MFA_GRACE_DAYS * 86400000).toISOString();
       await saveEmployee(e);
@@ -52,7 +55,15 @@ export default async (req: Request) => {
 
   /* ------------------------------------------------ everything else: auth */
   const me = await getSessionEmployee(req);
-  if (!me) return json({ error: "Not authenticated." }, { status: 401 });
+  if (!me) {
+    // Signed in, but suspended / ended / contract expired since: end the session and say why.
+    const b = await blockedSessionEmployee(req);
+    if (b) {
+      await destroySession(req);
+      return json({ error: accessBlockMessage(b.block, b.emp), blocked: b.block }, { status: 403, headers: { "set-cookie": clearSessionCookie() } });
+    }
+    return json({ error: "Not authenticated." }, { status: 401 });
+  }
   const session = (me as any).__session;
 
   /* ------------------------------------------------------------ two-factor */
